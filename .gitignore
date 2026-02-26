@@ -212,3 +212,7 @@ cdk.out/
 private-key.pem
 *.pem
 node_modules
+
+# Private keys (NEVER commit)
+private-key.pem
+public-key.pem

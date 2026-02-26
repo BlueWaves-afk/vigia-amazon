@@ -1,14 +1,14 @@
+import { VideoUploader } from './components/VideoUploader';
+
 export default function Dashboard() {
   return (
     <div className="h-screen bg-vigia-dark grid grid-cols-4 grid-rows-[1fr_80px] gap-2 p-2">
       {/* Zone A: Sentinel Eye (Left Panel - Data Genesis) */}
-      <div className="col-span-1 bg-vigia-panel rounded-lg p-4 border border-gray-800">
+      <div className="col-span-1 bg-vigia-panel rounded-lg p-4 border border-gray-800 overflow-y-auto">
         <h2 className="text-lg font-semibold text-vigia-accent mb-4">
           📹 Sentinel Eye
         </h2>
-        <div className="text-gray-400 text-sm">
-          Video upload and hazard detection will appear here
-        </div>
+        <VideoUploader />
       </div>
 
       {/* Zone B: Cloud Swarm Logic (Center Panel - Intelligence) */}

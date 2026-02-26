@@ -9,7 +9,9 @@
     "lint": "eslint"
   },
   "dependencies": {
+    "comlink": "^4.4.1",
     "next": "16.1.6",
+    "onnxruntime-web": "^1.20.1",
     "react": "19.2.3",
     "react-dom": "19.2.3"
   },
