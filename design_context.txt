@@ -1,0 +1,66 @@
+# VIGIA: System Architecture & Design Context (AIdeas Hackathon)
+
+## 1. Vision & Architecture Philosophy
+
+Vigia is a web-based, Hybrid Hierarchical Multi-Agent System (H-HMAS) that simulates transforming the global network of smartphones into a real-time "sentient infrastructure" for road safety.
+The goal is "Implementation Excellence" within the AWS Free Tier. We are strictly using Spec-Driven Development to ensure a production-grade, highly responsive prototype.
+
+**Core Directives for Kiro:**
+
+* **No Ambiguity:** Execute the exact AWS stack defined below. Do not suggest alternative AWS services.
+* **Design Language:** Strictly emulate the dark-mode design system, layout, typography, and icon set used by Kiro's own UI.
+* **Cost Constraints:** Maintain absolute reliance on 'Always Free' or deep free-tier AWS services.
+
+## 2. Frontend: The Sentient Command Center
+
+The UI is a Next.js application (hosted on AWS Amplify) structured as a 4-zone dashboard to visualize the end-to-end H-HMAS logic on a single screen.
+
+**Zone A: The Sentinel Eye (Left Panel - Data Genesis)**
+
+* A live video player processing uploaded dashcam footage.
+* **Web Worker Mandate:** All AI processing (YOLOv8-nano via ONNX Runtime Web) and Web Crypto API payload signing MUST run inside an isolated Web Worker. The main UI thread must never block during inference.
+* **Privacy Toggle:** A button activating a local "Blur-Pass" to mask faces/plates before any telemetry is generated.
+* **Edge Telemetry Feed:** A real-time terminal UI showing the verified JSON payload (Hazard Type, Lat/Lon, Confidence, Signature) being generated.
+
+**Zone B: The Cloud Swarm Logic (Center Panel - Intelligence)**
+
+* **Reasoning Trace Window:** Visualizes the Agents for Amazon Bedrock "thinking" using the ReAct pattern (*Thought $\rightarrow$ Action $\rightarrow$ Observation*).
+* **Debounce Rule:** To prevent API limits and UI spam, do NOT trigger the Bedrock Agent on every single video frame. Aggregate hazard detections and trigger the swarm logic (Auditor & Strategist Agents) on a 5-second debounced interval.
+
+**Zone C: The Living Map (Main Background - Visualization)**
+
+* Uses **Amazon Location Service (ALS)** integrated with MapLibre GL JS.
+* **Smart Routing Hack:** Request a standard route from ALS. On the frontend, calculate the intersection of this route path with the dynamic hazard coordinates fetched from our database. Render the route segments red (hazardous) or green (safe) dynamically based on proximity to verified hazards.
+
+**Zone D: The Road Health Ledger (Bottom Strip - DePIN)**
+
+* A scrolling ledger of verified DePIN contributions (e.g., "Contributor #842 earned 5 credits for verified Pothole").
+
+## 3. The 5-Zone AWS Architecture (Strict Service Lock)
+
+This backend is a highly scalable, serverless pipeline optimized for zero-cost operation during the hackathon.
+
+**Zone 1: Web Edge (Data Genesis)**
+
+* The Next.js frontend (via Web Workers) extracts simulated GPS and hazard data, signs it with the Web Crypto API, and dispatches HTTP POST requests.
+
+**Zone 2: Ingestion Funnel (High-Velocity Routing)**
+
+* **Amazon API Gateway:** The secure REST endpoint receiving telemetry.
+* **AWS Lambda:** Triggered by API Gateway to validate the JSON payload and verify the cryptographic signature before passing it downstream.
+
+**Zone 3: Intelligence Core (System 2 Brain)**
+
+* **Amazon DynamoDB (Hot Path):** The primary database storing live hazard telemetry. Use a Partition Key for `Geohash` and a Sort Key for `Timestamp` to allow fast spatial querying.
+* **Agents for Amazon Bedrock:** The Cloud Orchestrator. Powered strictly by **Claude 3.5 Haiku** or **Amazon Nova Lite** for cost-efficiency. The swarm validates the aggregated DynamoDB data.
+
+**Zone 4: Trust Layer (Simulated DePIN Ledger)**
+
+* **Append-Only DynamoDB with Hash Chain:** To simulate a blockchain ledger without the cost of QLDB, use a dedicated DynamoDB table where records cannot be updated or deleted.
+* **Hash Logic:** Each new entry written by Lambda must contain a `PreviousHash` attribute (the SHA-256 hash of the prior row's signature), creating an unbroken, tamper-evident cryptographic chain to prove DePIN integrity.
+
+**Zone 5: Visualization & The Value Layer**
+
+* **Amazon Location Service:** Provides the base map tiles and initial A-to-B route calculation APIs.
+* **Custom React Analytics:** Instead of QuickSight, build lightweight, custom charts (using libraries like Recharts or Tremor) embedded directly in the Next.js UI to visualize city-wide hazard density and system health.
+
