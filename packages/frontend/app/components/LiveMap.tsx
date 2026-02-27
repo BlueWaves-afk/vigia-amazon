@@ -33,6 +33,18 @@ export function LiveMap() {
     }
   };
 
+  // Create monochrome marker element
+  const createMarkerElement = (verified: boolean) => {
+    const el = document.createElement('div');
+    el.style.width = '12px';
+    el.style.height = '12px';
+    el.style.borderRadius = '50%';
+    el.style.border = '2px solid #FFFFFF';
+    el.style.backgroundColor = verified ? '#000000' : '#9CA3AF';
+    el.style.cursor = 'pointer';
+    return el;
+  };
+
   useEffect(() => {
     if (!mapContainer.current || map.current) return;
 
@@ -99,17 +111,8 @@ export function LiveMap() {
     });
 
     filtered.forEach((hazard) => {
-      const el = document.createElement('div');
-
-      // Clean UI marker styling
-      el.style.width = '12px';
-      el.style.height = '12px';
-      el.style.borderRadius = '50%';
-      el.style.background =
-        hazard.status === 'verified' ? '#22c55e' : '#facc15'; // green vs yellow
-      el.style.border = '2px solid rgba(0,0,0,0.6)';
-      el.style.boxShadow = '0 0 6px rgba(0,0,0,0.4)';
-      el.style.cursor = 'pointer';
+      const verified = hazard.status === 'verified';
+      const el = createMarkerElement(verified);
 
       const marker = new maplibregl.Marker({ element: el })
         .setLngLat([hazard.lon, hazard.lat])
@@ -120,24 +123,21 @@ export function LiveMap() {
   }, [hazards, showUnverified]);
 
   return (
-    <div
-      style={{
-        width: '100%',
-        height: '100%',
-        minHeight: '500px',
-        position: 'relative',
-        borderRadius: '12px',
-        overflow: 'hidden',
-        background: '#0b1220',
-      }}
-    >
-      <div
-        ref={mapContainer}
-        style={{
-          position: 'absolute',
-          inset: 0,
-        }}
-      />
+    <div className="w-full h-full relative bg-ide-bg">
+      <div ref={mapContainer} className="absolute inset-0" />
+      
+      {/* Filter Toggle */}
+      <div className="absolute top-4 right-4 bg-ide-panel border border-ide-border rounded px-3 py-2 shadow-sm">
+        <label className="flex items-center gap-2 text-xs font-ui cursor-pointer">
+          <input
+            type="checkbox"
+            checked={showUnverified}
+            onChange={(e) => setShowUnverified(e.target.checked)}
+            className="w-3 h-3"
+          />
+          <span className="text-ide-text">Show Unverified</span>
+        </label>
+      </div>
     </div>
   );
 }

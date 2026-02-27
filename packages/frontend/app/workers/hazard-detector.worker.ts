@@ -98,23 +98,24 @@ class HazardDetectorWorker {
       const results = await this.session.run({ images: tensor });
       const output = results.output0.data as Float32Array;
 
-      // Parse YOLO output: [1, 84, 8400] (Column-Major/Transposed)
+      // Parse YOLO output: [batch, 84, 8400] -> [batch, 8400, 84]
       // 84 = [x, y, w, h, ...80 class scores]
       const numDetections = 8400;
       let bestDetection = null;
       let maxConfidence = 0.6; // Minimum threshold
 
       for (let i = 0; i < numDetections; i++) {
-        // Transposed indexing: row * numDetections + col
-        const x = output[0 * 8400 + i];
-        const y = output[1 * 8400 + i];
-        const w = output[2 * 8400 + i];
-        const h = output[3 * 8400 + i];
-        const confidence = output[4 * 8400 + i]; // Class 0 (pothole) confidence
+        const confidence = output[i * 84 + 4]; // Class 0 (pothole) confidence
         
         if (confidence > maxConfidence) {
           maxConfidence = confidence;
-          bestDetection = { x, y, w, h, confidence };
+          bestDetection = {
+            x: output[i * 84],
+            y: output[i * 84 + 1],
+            w: output[i * 84 + 2],
+            h: output[i * 84 + 3],
+            confidence,
+          };
         }
       }
 

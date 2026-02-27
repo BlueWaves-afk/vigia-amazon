@@ -85,16 +85,18 @@ export function VideoUploader() {
       const w = width * scaleX;
       const h = height * scaleY;
       
-      // Draw neon green bounding box
-      ctx.strokeStyle = '#10b981';
-      ctx.lineWidth = 3;
+      // Draw black bounding box (monochrome)
+      ctx.strokeStyle = '#000000';
+      ctx.lineWidth = 2;
       ctx.strokeRect(x1, y1, w, h);
       
-      // Draw label
+      // Draw label with white background
       const label = `POTHOLE ${(currentDetection.confidence * 100).toFixed(0)}%`;
-      ctx.fillStyle = '#10b981';
-      ctx.font = 'bold 14px monospace';
-      ctx.fillText(label, x1, y1 - 5);
+      ctx.fillStyle = 'rgba(255, 255, 255, 0.9)';
+      ctx.fillRect(x1, y1 - 16, ctx.measureText(label).width + 8, 16);
+      ctx.fillStyle = '#000000';
+      ctx.font = '10px monospace';
+      ctx.fillText(label, x1 + 4, y1 - 5);
     }
   };
 
@@ -179,37 +181,37 @@ export function VideoUploader() {
   }, []);
 
   return (
-    <div className="space-y-4">
+    <div className="space-y-3">
       <div>
-        <label className="block text-sm font-medium text-gray-300 mb-2">
+        <label className="block text-xs font-ui text-ide-text-secondary mb-1">
           Upload Private Key (optional - test mode enabled)
         </label>
         <input
           type="file"
           accept=".pem"
           onChange={handleKeyUpload}
-          className="block w-full text-sm text-gray-400 file:mr-4 file:py-2 file:px-4 file:rounded file:border-0 file:text-sm file:font-semibold file:bg-vigia-accent file:text-white hover:file:bg-blue-600"
+          className="block w-full text-xs text-ide-text-secondary file:mr-2 file:py-1 file:px-3 file:border file:border-ide-border file:text-xs file:bg-ide-panel file:text-ide-text hover:file:bg-ide-hover file:rounded"
         />
         {privateKeyLoaded && (
-          <p className="text-xs text-vigia-success mt-1">✓ Key loaded</p>
+          <p className="text-xs text-ide-text mt-1">✓ Key loaded</p>
         )}
       </div>
 
       <div>
-        <label className="block text-sm font-medium text-gray-300 mb-2">
+        <label className="block text-xs font-ui text-ide-text-secondary mb-1">
           Upload Video
         </label>
         <input
           type="file"
           accept="video/*"
           onChange={handleUpload}
-          className="block w-full text-sm text-gray-400 file:mr-4 file:py-2 file:px-4 file:rounded file:border-0 file:text-sm file:font-semibold file:bg-vigia-accent file:text-white hover:file:bg-blue-600"
+          className="block w-full text-xs text-ide-text-secondary file:mr-2 file:py-1 file:px-3 file:border file:border-ide-border file:text-xs file:bg-ide-panel file:text-ide-text hover:file:bg-ide-hover file:rounded"
         />
       </div>
 
       {videoFile && (
         <>
-          <div className="relative w-full h-[400px] bg-black rounded overflow-hidden">
+          <div className="relative w-full aspect-video bg-black border border-ide-border">
             <video
               ref={videoRef}
               className="w-full h-full object-cover"
@@ -223,33 +225,33 @@ export function VideoUploader() {
             
             {/* Detection Counter Overlay */}
             {isProcessing && (
-              <div className="absolute top-2 right-2 bg-black/80 backdrop-blur-sm px-3 py-2 rounded border border-vigia-accent z-10">
-                <div className="text-vigia-accent font-mono text-xs font-bold">
-                  HAZARDS DETECTED: {detectionCount}
+              <div className="absolute top-2 right-2 bg-ide-panel/90 backdrop-blur-sm px-2 py-1 border border-ide-border z-10">
+                <div className="text-ide-text font-data text-[10px]">
+                  HAZARDS: {detectionCount}
                 </div>
               </div>
             )}
 
             {/* Live Scanning Indicator */}
             {isProcessing && (
-              <div className="absolute top-2 left-2 flex items-center gap-2 bg-black/80 backdrop-blur-sm px-3 py-2 rounded border border-red-500 z-10">
+              <div className="absolute top-2 left-2 flex items-center gap-2 bg-ide-panel/90 backdrop-blur-sm px-2 py-1 border border-ide-border z-10">
                 <div className="w-2 h-2 bg-red-500 rounded-full animate-pulse"></div>
-                <span className="text-red-500 font-mono text-xs font-bold">LIVE SCANNING</span>
+                <span className="text-red-500 font-data text-[10px]">LIVE</span>
               </div>
             )}
 
             {/* Telemetry Log Overlay */}
             {isProcessing && telemetryBatch.length > 0 && (
-              <div className="absolute bottom-0 left-0 right-0 bg-gradient-to-t from-black/90 to-transparent p-3 z-10">
-                <div className="font-mono text-[10px] space-y-1 max-h-20 overflow-y-auto">
+              <div className="absolute bottom-0 left-0 right-0 bg-ide-panel/90 backdrop-blur-sm p-2 border-t border-ide-border z-10">
+                <div className="font-data text-[9px] space-y-0.5 max-h-16 overflow-y-auto">
                   {telemetryBatch.slice(-3).map((t, i) => (
-                    <div key={i} className="text-green-400 flex items-center gap-2">
-                      <span className="text-gray-600">▸</span>
-                      <span className="text-vigia-accent">{t.hazardType}</span>
-                      <span className="text-gray-500">@</span>
-                      <span className="text-gray-400">{t.lat.toFixed(4)},{t.lon.toFixed(4)}</span>
-                      <span className="text-gray-600">|</span>
-                      <span className="text-vigia-success">conf: {(t.confidence * 100).toFixed(0)}%</span>
+                    <div key={i} className="text-ide-text-secondary flex items-center gap-1">
+                      <span className="text-ide-text-tertiary">&gt;</span>
+                      <span className="text-ide-text">{t.hazardType}</span>
+                      <span className="text-ide-text-tertiary">@</span>
+                      <span>{t.lat.toFixed(4)},{t.lon.toFixed(4)}</span>
+                      <span className="text-ide-text-tertiary">|</span>
+                      <span>conf: {(t.confidence * 100).toFixed(0)}%</span>
                     </div>
                   ))}
                 </div>
@@ -257,18 +259,18 @@ export function VideoUploader() {
             )}
           </div>
 
-          <div className="flex gap-2 mt-4">
+          <div className="flex gap-2">
             <button
               onClick={startProcessing}
               disabled={isProcessing}
-              className="px-4 py-2 bg-vigia-success text-white rounded hover:bg-green-600 disabled:opacity-50"
+              className="px-3 py-1 text-xs font-ui bg-ide-panel border border-ide-border text-ide-text hover:bg-ide-hover disabled:opacity-50 transition-colors"
             >
               Start Detection
             </button>
             <button
               onClick={stopProcessing}
               disabled={!isProcessing}
-              className="px-4 py-2 bg-vigia-danger text-white rounded hover:bg-red-600 disabled:opacity-50"
+              className="px-3 py-1 text-xs font-ui bg-ide-panel border border-ide-border text-ide-text hover:bg-ide-hover disabled:opacity-50 transition-colors"
             >
               Stop
             </button>

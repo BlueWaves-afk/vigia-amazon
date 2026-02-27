@@ -7,11 +7,17 @@ export default {
   theme: {
     extend: {
       colors: {
-        'vigia-dark': '#0a0a0a',
-        'vigia-panel': '#1a1a1a',
-        'vigia-accent': '#3b82f6',
-        'vigia-danger': '#ef4444',
-        'vigia-success': '#10b981',
+        'ide-bg': '#FFFFFF',
+        'ide-panel': '#F5F5F5',
+        'ide-hover': '#E5E7EB',
+        'ide-border': '#CBD5E1',
+        'ide-text': '#000000',
+        'ide-text-secondary': '#6B7280',
+        'ide-text-tertiary': '#9CA3AF',
+      },
+      fontFamily: {
+        'ui': ['Inter', 'sans-serif'],
+        'data': ['JetBrains Mono', 'monospace'],
       },
     },
   },

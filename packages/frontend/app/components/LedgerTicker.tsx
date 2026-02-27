@@ -27,79 +27,63 @@ export function LedgerTicker() {
 
   useEffect(() => {
     fetchEntries();
-    const interval = setInterval(fetchEntries, 10000); // Refresh every 10 seconds
+    const interval = setInterval(fetchEntries, 10000);
     return () => clearInterval(interval);
   }, []);
 
   if (loading) {
     return (
-      <div className="flex items-center gap-2 text-sm text-gray-500">
-        <div className="animate-pulse">⏳</div>
-        <span>Loading ledger...</span>
+      <div className="text-ide-text-secondary font-data text-xs">
+        &gt; Loading ledger...
       </div>
     );
   }
 
   if (entries.length === 0) {
     return (
-      <div className="flex items-center gap-2 text-sm text-gray-500 italic">
-        <span className="animate-pulse">⏺</span>
-        <span>Awaiting network consensus...</span>
+      <div className="text-ide-text-secondary font-data text-xs">
+        &gt; Awaiting network consensus...
       </div>
     );
   }
 
-  // Duplicate entries for seamless loop
-  const displayEntries = [...entries, ...entries];
-
   return (
-    <div className="relative overflow-hidden w-full">
-      <div className="flex animate-marquee gap-8 whitespace-nowrap">
-        {displayEntries.map((entry, index) => {
-          // Extract hazard type from hazardId (format: geohash#timestamp)
-          const hazardType = 'POTHOLE'; // Default, could parse from hazardId if stored
-          
-          return (
-            <div
+    <div className="font-data text-[10px]">
+      <table className="w-full border-collapse">
+        <thead>
+          <tr className="border-b border-ide-border text-ide-text-secondary text-left">
+            <th className="py-2 px-3">Timestamp</th>
+            <th className="py-2 px-3">Contributor</th>
+            <th className="py-2 px-3">Hazard Type</th>
+            <th className="py-2 px-3">Location</th>
+            <th className="py-2 px-3 text-right">Reward</th>
+          </tr>
+        </thead>
+        <tbody>
+          {entries.map((entry, index) => (
+            <tr 
               key={`${entry.contributorId}-${entry.timestamp}-${index}`}
-              className="inline-flex items-center gap-2 text-sm"
+              className="border-b border-ide-border hover:bg-ide-hover transition-colors"
             >
-              <span className="text-vigia-success font-semibold">✓ [Verified]</span>
-              <span className="text-gray-300">
-                Contributor <span className="text-vigia-accent font-mono">{entry.contributorId.substring(0, 8)}</span>
-              </span>
-              <span className="text-gray-400">earned</span>
-              <span className="text-vigia-success font-bold">{entry.credits} $VIGIA</span>
-              <span className="text-gray-400">for</span>
-              <span className="text-vigia-danger">{hazardType}</span>
-              <span className="text-gray-600 mx-4">|</span>
-            </div>
-          );
-        })}
-      </div>
-
-      {/* Gradient fade on edges */}
-      <div className="absolute inset-y-0 left-0 w-20 bg-gradient-to-r from-vigia-panel to-transparent pointer-events-none"></div>
-      <div className="absolute inset-y-0 right-0 w-20 bg-gradient-to-l from-vigia-panel to-transparent pointer-events-none"></div>
-
-      <style jsx>{`
-        @keyframes marquee {
-          0% {
-            transform: translateX(0);
-          }
-          100% {
-            transform: translateX(-50%);
-          }
-        }
-
-        .animate-marquee {
-          animation: marquee 30s linear infinite;
-        }
-
-        .animate-marquee:hover {
-          animation-play-state: paused;
-        }
-      `}</style>
+              <td className="py-2 px-3 text-ide-text-tertiary">
+                {new Date(entry.timestamp).toLocaleTimeString()}
+              </td>
+              <td className="py-2 px-3 text-ide-text">
+                {entry.contributorId.substring(0, 12)}...
+              </td>
+              <td className="py-2 px-3 text-ide-text">
+                POTHOLE
+              </td>
+              <td className="py-2 px-3 text-ide-text-secondary">
+                {entry.hazardId.substring(0, 7)}
+              </td>
+              <td className="py-2 px-3 text-right text-ide-text font-semibold">
+                {entry.credits} $VIGIA
+              </td>
+            </tr>
+          ))}
+        </tbody>
+      </table>
     </div>
   );
 }

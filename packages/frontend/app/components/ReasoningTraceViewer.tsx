@@ -62,9 +62,9 @@ export function ReasoningTraceViewer() {
 
   if (loading) {
     return (
-      <div className="font-mono text-sm text-gray-500 p-4">
+      <div className="font-data text-xs text-ide-text-secondary">
         <div className="flex items-center gap-2">
-          <span className="animate-pulse">▸</span>
+          <span className="animate-pulse">&gt;</span>
           <span>Initializing AI reasoning engine...</span>
         </div>
       </div>
@@ -73,9 +73,9 @@ export function ReasoningTraceViewer() {
 
   if (!trace) {
     return (
-      <div className="font-mono text-sm text-gray-500 p-4">
+      <div className="font-data text-xs text-ide-text-secondary">
         <div className="flex items-center gap-2">
-          <span className="animate-pulse">▸</span>
+          <span className="animate-pulse">&gt;</span>
           <span>System idle. Awaiting edge telemetry...</span>
         </div>
       </div>
@@ -85,14 +85,14 @@ export function ReasoningTraceViewer() {
   const parsedLines = parseReasoning(trace.reasoning);
 
   return (
-    <div className="font-mono text-xs p-4 space-y-2 max-h-full overflow-y-auto">
+    <div className="font-data text-[10px] space-y-1">
       {/* Header */}
-      <div className="text-vigia-accent border-b border-gray-800 pb-2 mb-3">
+      <div className="text-ide-text-secondary border-b border-ide-border pb-2 mb-2">
         <div className="flex items-center justify-between">
-          <span>▸ BEDROCK AGENT TRACE</span>
-          <span className="text-gray-600">{trace.traceId.substring(0, 12)}</span>
+          <span>&gt; BEDROCK AGENT TRACE</span>
+          <span className="text-ide-text-tertiary">{trace.traceId.substring(0, 12)}</span>
         </div>
-        <div className="text-gray-500 text-[10px] mt-1">
+        <div className="text-ide-text-tertiary mt-1">
           Hazard: {trace.hazardId} | Score: {trace.verificationScore}/100
         </div>
       </div>
@@ -102,34 +102,34 @@ export function ReasoningTraceViewer() {
         {parsedLines.map((line: any) => {
           if (line.type === 'thought') {
             return (
-              <div key={line.key} className="text-yellow-400">
-                <span className="text-yellow-600">[THOUGHT]</span> {line.text.replace(/thought:/i, '').trim()}
+              <div key={line.key} className="text-ide-text-secondary">
+                <span className="text-ide-text">[THOUGHT]</span> {line.text.replace(/thought:/i, '').trim()}
               </div>
             );
           }
           if (line.type === 'action') {
             return (
-              <div key={line.key} className="text-blue-400">
-                <span className="text-blue-600">[ACTION]</span> {line.text.replace(/action:/i, '').trim()}
+              <div key={line.key} className="text-ide-text-secondary">
+                <span className="text-ide-text">[ACTION]</span> {line.text.replace(/action:/i, '').trim()}
               </div>
             );
           }
           if (line.type === 'observation') {
             return (
-              <div key={line.key} className="text-purple-400">
-                <span className="text-purple-600">[OBSERVATION]</span> {line.text.replace(/observation:/i, '').trim()}
+              <div key={line.key} className="text-ide-text-secondary">
+                <span className="text-ide-text">[OBSERVATION]</span> {line.text.replace(/observation:/i, '').trim()}
               </div>
             );
           }
           if (line.type === 'decision') {
             return (
-              <div key={line.key} className="text-vigia-success font-semibold">
-                <span className="text-green-600">[FINAL DECISION]</span> {line.text}
+              <div key={line.key} className="text-ide-text font-semibold">
+                <span>[FINAL DECISION]</span> {line.text}
               </div>
             );
           }
           return (
-            <div key={line.key} className="text-gray-400">
+            <div key={line.key} className="text-ide-text-tertiary">
               {line.text}
             </div>
           );
@@ -137,7 +137,7 @@ export function ReasoningTraceViewer() {
       </div>
 
       {/* Footer */}
-      <div className="text-gray-600 text-[10px] pt-2 border-t border-gray-800 mt-3">
+      <div className="text-ide-text-tertiary pt-2 border-t border-ide-border mt-2">
         Last updated: {new Date(trace.createdAt).toLocaleTimeString()}
       </div>
     </div>
