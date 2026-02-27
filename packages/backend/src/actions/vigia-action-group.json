@@ -1,0 +1,63 @@
+{
+  "openapi": "3.0.0",
+  "info": {
+    "title": "VIGIA Verification Actions",
+    "version": "1.0.0",
+    "description": "APIs for querying road hazards and calculating verification scores."
+  },
+  "paths": {
+    "/query-hazards": {
+      "description": "Path to query existing road hazards in the database.",
+      "get": {
+        "summary": "Queries the database for existing hazards.",
+        "description": "Queries the DynamoDB database using a geohash to find existing road hazards reported in the same area.",
+        "operationId": "queryHazards",
+        "parameters": [
+          {
+            "name": "geohash",
+            "in": "query",
+            "required": true,
+            "schema": { "type": "string" },
+            "description": "The exact geohash string of the location to query."
+          }
+        ],
+        "responses": {
+          "200": {
+            "description": "Successful response",
+            "content": { "application/json": { "schema": { "type": "object" } } }
+          }
+        }
+      }
+    },
+    "/calculate-score": {
+      "description": "Path to calculate the final verification score.",
+      "get": {
+        "summary": "Calculates the verification score.",
+        "description": "Calculates a 0-100 trust score for a reported hazard based on the AI's confidence and the number of similar crowd reports.",
+        "operationId": "calculateScore",
+        "parameters": [
+          {
+            "name": "similar_hazards_count",
+            "in": "query",
+            "required": true,
+            "schema": { "type": "integer" },
+            "description": "The total number of similar hazards found in the database for this specific area."
+          },
+          {
+            "name": "avg_confidence",
+            "in": "query",
+            "required": true,
+            "schema": { "type": "number" },
+            "description": "The average AI confidence score of the detected hazard, expressed as a float between 0 and 1."
+          }
+        ],
+        "responses": {
+          "200": {
+            "description": "Successful response",
+            "content": { "application/json": { "schema": { "type": "object" } } }
+          }
+        }
+      }
+    }
+  }
+}

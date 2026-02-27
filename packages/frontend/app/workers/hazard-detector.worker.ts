@@ -1,13 +1,17 @@
 import { expose } from 'comlink';
 import * as ort from 'onnxruntime-web';
+const baseUrl = self.location.origin;
 
+// Force the absolute path so the Blob Worker's fetch() doesn't crash
+ort.env.wasm.wasmPaths = `${baseUrl}/ort/`;
 class HazardDetectorWorker {
   private session: ort.InferenceSession | null = null;
   private privateKey: CryptoKey | null = null;
 
   async loadModel() {
     try {
-      this.session = await ort.InferenceSession.create('/models/yolo26_fp32.onnx', {
+        const modelUrl = `${baseUrl}/models/yolo26_fp32.onnx`;
+        this.session = await ort.InferenceSession.create(modelUrl, {
         executionProviders: ['wasm'],
       });
       console.log('[Worker] ONNX model loaded successfully');
@@ -63,13 +67,13 @@ class HazardDetectorWorker {
 
   preprocessFrame(frameBuffer: ArrayBuffer): Float32Array {
     const uint8Array = new Uint8Array(frameBuffer);
-    const float32Array = new Float32Array(3 * 640 * 640);
+    const float32Array = new Float32Array(3 * 320 * 320);
     
     // Convert RGBA to RGB and normalize to [0, 1]
-    for (let i = 0; i < 640 * 640; i++) {
+    for (let i = 0; i < 320 * 320; i++) {
       float32Array[i] = uint8Array[i * 4] / 255.0;                    // R
-      float32Array[640 * 640 + i] = uint8Array[i * 4 + 1] / 255.0;   // G
-      float32Array[640 * 640 * 2 + i] = uint8Array[i * 4 + 2] / 255.0; // B
+      float32Array[320 * 320 + i] = uint8Array[i * 4 + 1] / 255.0;   // G
+      float32Array[320 * 320 * 2 + i] = uint8Array[i * 4 + 2] / 255.0; // B
     }
     
     return float32Array;
@@ -86,7 +90,7 @@ class HazardDetectorWorker {
     try {
       // Preprocess
       const input = this.preprocessFrame(frameBuffer);
-      const tensor = new ort.Tensor('float32', input, [1, 3, 640, 640]);
+      const tensor = new ort.Tensor('float32', input, [1, 3, 320, 320]);
 
       // Run inference
       const results = await this.session.run({ images: tensor });

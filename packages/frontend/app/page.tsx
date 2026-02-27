@@ -1,4 +1,5 @@
 import { VideoUploader } from './components/VideoUploader';
+import { LiveMap } from './components/LiveMap';
 
 export default function Dashboard() {
   return (
@@ -22,13 +23,8 @@ export default function Dashboard() {
       </div>
 
       {/* Zone C: Living Map (Main Background - Visualization) */}
-      <div className="col-span-2 bg-vigia-dark rounded-lg border border-gray-800 relative">
-        <div className="absolute inset-0 flex items-center justify-center text-gray-600">
-          <div className="text-center">
-            <div className="text-4xl mb-2">🗺️</div>
-            <div>MapLibre GL JS will render here</div>
-          </div>
-        </div>
+      <div className="col-span-2 bg-vigia-dark rounded-lg border border-gray-800 relative overflow-hidden">
+        <LiveMap />
       </div>
 
       {/* Zone D: Road Health Ledger (Bottom Strip - DePIN) */}
