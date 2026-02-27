@@ -10,6 +10,7 @@ export type SignedTelemetry = {
   timestamp: string;
   confidence: number;
   signature: string;
+  bbox?: { x: number; y: number; width: number; height: number };
 };
 
 export function VideoUploader() {
@@ -17,8 +18,11 @@ export function VideoUploader() {
   const [isProcessing, setIsProcessing] = useState(false);
   const [telemetryBatch, setTelemetryBatch] = useState<SignedTelemetry[]>([]);
   const [privateKeyLoaded, setPrivateKeyLoaded] = useState(false);
+  const [detectionCount, setDetectionCount] = useState(0);
+  const [currentDetection, setCurrentDetection] = useState<SignedTelemetry | null>(null);
   
   const videoRef = useRef<HTMLVideoElement>(null);
+  const canvasRef = useRef<HTMLCanvasElement>(null);
   const intervalRef = useRef<NodeJS.Timeout | null>(null);
   const { processFrame, loadPrivateKey } = useHazardDetector();
 
@@ -55,10 +59,50 @@ export function VideoUploader() {
     return imageData.data.buffer;
   };
 
+  const drawDetections = () => {
+    if (!canvasRef.current || !videoRef.current) return;
+    
+    const canvas = canvasRef.current;
+    const video = videoRef.current;
+    const ctx = canvas.getContext('2d')!;
+    
+    // Match canvas size to video display size
+    canvas.width = video.clientWidth;
+    canvas.height = video.clientHeight;
+    
+    // Clear previous drawings
+    ctx.clearRect(0, 0, canvas.width, canvas.height);
+    
+    if (currentDetection?.bbox) {
+      const { x, y, width, height } = currentDetection.bbox;
+      
+      // Scale from 320x320 model input to video display size
+      const scaleX = canvas.width / 320;
+      const scaleY = canvas.height / 320;
+      
+      const x1 = x * scaleX;
+      const y1 = y * scaleY;
+      const w = width * scaleX;
+      const h = height * scaleY;
+      
+      // Draw neon green bounding box
+      ctx.strokeStyle = '#10b981';
+      ctx.lineWidth = 3;
+      ctx.strokeRect(x1, y1, w, h);
+      
+      // Draw label
+      const label = `POTHOLE ${(currentDetection.confidence * 100).toFixed(0)}%`;
+      ctx.fillStyle = '#10b981';
+      ctx.font = 'bold 14px monospace';
+      ctx.fillText(label, x1, y1 - 5);
+    }
+  };
+
   const startProcessing = () => {
-    if (!videoRef.current || !privateKeyLoaded) return;
+    if (!videoRef.current) return;
     
     setIsProcessing(true);
+    setDetectionCount(0);
     videoRef.current.play();
 
     // Extract frames at 5 FPS (every 200ms)
@@ -69,6 +113,11 @@ export function VideoUploader() {
         
         if (result) {
           setTelemetryBatch(prev => [...prev, result]);
+          setDetectionCount(prev => prev + 1);
+          setCurrentDetection(result);
+          
+          // Clear detection after 100ms
+          setTimeout(() => setCurrentDetection(null), 100);
         }
       }
     }, 200);
@@ -83,6 +132,11 @@ export function VideoUploader() {
       clearInterval(intervalRef.current);
     }
   };
+
+  // Draw bounding boxes when detection changes
+  useEffect(() => {
+    drawDetections();
+  }, [currentDetection]);
 
   // Send batch every 5 seconds
   useEffect(() => {
@@ -128,7 +182,7 @@ export function VideoUploader() {
     <div className="space-y-4">
       <div>
         <label className="block text-sm font-medium text-gray-300 mb-2">
-          Upload Private Key (for testing)
+          Upload Private Key (optional - test mode enabled)
         </label>
         <input
           type="file"
@@ -149,23 +203,64 @@ export function VideoUploader() {
           type="file"
           accept="video/*"
           onChange={handleUpload}
-          disabled={!privateKeyLoaded}
-          className="block w-full text-sm text-gray-400 file:mr-4 file:py-2 file:px-4 file:rounded file:border-0 file:text-sm file:font-semibold file:bg-vigia-accent file:text-white hover:file:bg-blue-600 disabled:opacity-50"
+          className="block w-full text-sm text-gray-400 file:mr-4 file:py-2 file:px-4 file:rounded file:border-0 file:text-sm file:font-semibold file:bg-vigia-accent file:text-white hover:file:bg-blue-600"
         />
       </div>
 
       {videoFile && (
         <>
-          <video
-            ref={videoRef}
-            controls
-            className="w-full rounded border border-gray-700"
-          />
+          <div className="relative w-full h-[400px] bg-black rounded overflow-hidden">
+            <video
+              ref={videoRef}
+              className="w-full h-full object-cover"
+            />
+            
+            {/* Canvas overlay for bounding boxes */}
+            <canvas
+              ref={canvasRef}
+              className="absolute top-0 left-0 w-full h-full pointer-events-none"
+            />
+            
+            {/* Detection Counter Overlay */}
+            {isProcessing && (
+              <div className="absolute top-2 right-2 bg-black/80 backdrop-blur-sm px-3 py-2 rounded border border-vigia-accent z-10">
+                <div className="text-vigia-accent font-mono text-xs font-bold">
+                  HAZARDS DETECTED: {detectionCount}
+                </div>
+              </div>
+            )}
 
-          <div className="flex gap-2">
+            {/* Live Scanning Indicator */}
+            {isProcessing && (
+              <div className="absolute top-2 left-2 flex items-center gap-2 bg-black/80 backdrop-blur-sm px-3 py-2 rounded border border-red-500 z-10">
+                <div className="w-2 h-2 bg-red-500 rounded-full animate-pulse"></div>
+                <span className="text-red-500 font-mono text-xs font-bold">LIVE SCANNING</span>
+              </div>
+            )}
+
+            {/* Telemetry Log Overlay */}
+            {isProcessing && telemetryBatch.length > 0 && (
+              <div className="absolute bottom-0 left-0 right-0 bg-gradient-to-t from-black/90 to-transparent p-3 z-10">
+                <div className="font-mono text-[10px] space-y-1 max-h-20 overflow-y-auto">
+                  {telemetryBatch.slice(-3).map((t, i) => (
+                    <div key={i} className="text-green-400 flex items-center gap-2">
+                      <span className="text-gray-600">▸</span>
+                      <span className="text-vigia-accent">{t.hazardType}</span>
+                      <span className="text-gray-500">@</span>
+                      <span className="text-gray-400">{t.lat.toFixed(4)},{t.lon.toFixed(4)}</span>
+                      <span className="text-gray-600">|</span>
+                      <span className="text-vigia-success">conf: {(t.confidence * 100).toFixed(0)}%</span>
+                    </div>
+                  ))}
+                </div>
+              </div>
+            )}
+          </div>
+
+          <div className="flex gap-2 mt-4">
             <button
               onClick={startProcessing}
-              disabled={isProcessing || !privateKeyLoaded}
+              disabled={isProcessing}
               className="px-4 py-2 bg-vigia-success text-white rounded hover:bg-green-600 disabled:opacity-50"
             >
               Start Detection
@@ -180,15 +275,6 @@ export function VideoUploader() {
           </div>
         </>
       )}
-
-      {/* Telemetry Feed */}
-      <div className="bg-black text-green-400 font-mono text-xs p-2 h-32 overflow-y-auto rounded">
-        {telemetryBatch.map((t, i) => (
-          <div key={i}>
-            [{t.timestamp}] {t.hazardType} @ {t.lat.toFixed(4)},{t.lon.toFixed(4)} (conf: {t.confidence.toFixed(2)})
-          </div>
-        ))}
-      </div>
     </div>
   );
 }
