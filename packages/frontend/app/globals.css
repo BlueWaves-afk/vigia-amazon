@@ -1,22 +1,151 @@
-@import url('https://fonts.googleapis.com/css2?family=Inter:wght@400;500;600;700&family=JetBrains+Mono:wght@400;500;600&display=swap');
+@import url('https://fonts.googleapis.com/css2?family=Inter:wght@300;400;500;600&family=JetBrains+Mono:wght@300;400;500&display=swap');
+
 @import "tailwindcss";
 
-:root {
-  --bg-primary: #FFFFFF;
-  --bg-secondary: #F5F5F5;
-  --bg-hover: #E5E7EB;
-  --border-default: #CBD5E1;
-  --border-active: #000000;
-  --text-primary: #000000;
-  --text-secondary: #6B7280;
-  --text-tertiary: #9CA3AF;
+/* ─────────────────────────────────────────────
+   VIGIA — Tailwind v4 Theme Tokens
+   In v4, all custom tokens live here via @theme
+   ───────────────────────────────────────────── */
+
+@theme {
+  /* Surfaces */
+  --color-ide-bg:        #0E1117;
+  --color-ide-sidebar:   #161B22;
+  --color-ide-panel:     #1A1F28;
+  --color-ide-elevated:  #252B35;
+  --color-ide-hover:     rgba(255,255,255,0.05);
+
+  /* Borders */
+  --color-ide-border:    rgba(255,255,255,0.08);
+  --color-ide-border-md: rgba(255,255,255,0.12);
+
+  /* Text */
+  --color-ide-text:           #E2E8F0;
+  --color-ide-text-secondary: #8B95A1;
+  --color-ide-text-tertiary:  #4B5563;
+
+  /* Accents */
+  --color-ide-accent:   #2563EB;
+  --color-ide-accent-2: #3B82F6;
+  --color-ide-green:    #10B981;
+  --color-ide-red:      #EF4444;
+  --color-ide-yellow:   #F59E0B;
+
+  /* Fonts */
+  --font-ui:   'Inter', system-ui, -apple-system, sans-serif;
+  --font-data: 'JetBrains Mono', 'Fira Code', monospace;
 }
 
-body {
-  background: var(--bg-primary);
-  color: var(--text-primary);
-  font-family: 'Inter', -apple-system, BlinkMacSystemFont, sans-serif;
-  margin: 0;
-  padding: 0;
+/* ─────────────────────────────────────────────
+   Base Reset
+   ───────────────────────────────────────────── */
+
+*, *::before, *::after {
+  box-sizing: border-box;
 }
 
+html, body {
+  height: 100%;
+  overflow: hidden;
+  background: #0E1117;
+  color: #E2E8F0;
+  font-family: 'Inter', system-ui, -apple-system, sans-serif;
+  -webkit-font-smoothing: antialiased;
+  -moz-osx-font-smoothing: grayscale;
+}
+
+/* ─────────────────────────────────────────────
+   Scrollbars
+   ───────────────────────────────────────────── */
+
+::-webkit-scrollbar        { width: 5px; height: 5px; }
+::-webkit-scrollbar-track  { background: transparent; }
+::-webkit-scrollbar-thumb  { background: rgba(255,255,255,0.09); border-radius: 3px; }
+::-webkit-scrollbar-thumb:hover { background: rgba(255,255,255,0.16); }
+
+/* ─────────────────────────────────────────────
+   MapLibre GL overrides — dark style
+   ───────────────────────────────────────────── */
+
+.maplibregl-canvas-container,
+.maplibregl-canvas { outline: none !important; }
+
+.maplibregl-ctrl-logo,
+.maplibregl-ctrl-attrib { display: none !important; }
+
+.maplibregl-ctrl-group {
+  background: #1A1F28 !important;
+  border: 1px solid rgba(255,255,255,0.08) !important;
+  box-shadow: none !important;
+  border-radius: 3px !important;
+}
+.maplibregl-ctrl-group button {
+  background: transparent !important;
+  border: none !important;
+  color: #8B95A1 !important;
+}
+.maplibregl-ctrl-icon { filter: invert(0.55) !important; }
+
+/* ─────────────────────────────────────────────
+   UI Utilities
+   ───────────────────────────────────────────── */
+
+/* VS Code tab active underline */
+.tab-underline {
+  position: absolute;
+  bottom: 0; left: 0; right: 0;
+  height: 2px;
+  background: #3B82F6;
+}
+
+/* Status pulse animation */
+@keyframes status-pulse {
+  0%, 100% { opacity: 1; }
+  50%       { opacity: 0.4; }
+}
+.pulse { animation: status-pulse 2.5s ease-in-out infinite; }
+
+/* Log line fade-in */
+@keyframes log-in {
+  from { opacity: 0; transform: translateY(3px); }
+  to   { opacity: 1; transform: translateY(0); }
+}
+.log-line { animation: log-in 0.14s ease-out both; }
+
+/* Resize drag handle */
+.resize-handle { cursor: ns-resize; }
+.resize-handle:hover .resize-pip {
+  background: rgba(59, 130, 246, 0.5) !important;
+}
+
+/* Context menu */
+.ctx-menu {
+  position: fixed;
+  z-index: 9999;
+  background: #252B35;
+  border: 1px solid rgba(255,255,255,0.12);
+  border-radius: 4px;
+  box-shadow: 0 10px 28px rgba(0,0,0,0.6);
+  min-width: 172px;
+  padding: 4px 0;
+}
+.ctx-item {
+  display: flex;
+  align-items: center;
+  gap: 8px;
+  padding: 6px 12px;
+  font-size: 0.76rem;
+  color: #8B95A1;
+  cursor: pointer;
+  transition: background 0.1s;
+}
+.ctx-item:hover { background: rgba(255,255,255,0.06); color: #E2E8F0; }
+.ctx-sep { height: 1px; background: rgba(255,255,255,0.08); margin: 4px 0; }
+
+/* Force any leftover light backgrounds from teammate's components to dark */
+.bg-ide-bg    { background-color: #0E1117 !important; }
+.bg-ide-panel { background-color: #1A1F28 !important; }
+.border-ide-border { border-color: rgba(255,255,255,0.08) !important; }
+.text-ide-text           { color: #E2E8F0 !important; }
+.text-ide-text-secondary { color: #8B95A1 !important; }
+.text-ide-text-tertiary  { color: #4B5563 !important; }
