@@ -197,7 +197,7 @@ export default function Dashboard() {
             setOpenTabs(newTabs);
             
             // If active tab was deleted, switch to map
-            if (sessionIds.includes(activeMainTab)) {
+            if (activeMainTab && sessionIds.includes(activeMainTab)) {
               setActiveMainTab('map');
               setSelectedSession(null);
             }
