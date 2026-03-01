@@ -18,55 +18,58 @@ type Hazard = {
 };
 
 // ── Map style resolver ────────────────────────
-function getMapStyle(style: MapStyle, showLabels: boolean): maplibregl.StyleSpecification {
-  // All styles are built as free OSM-based specs with different filter combos
-  // so there's zero dependency on AWS keys for style switching
-
-  const tileOpacity = style === 'minimal' ? 0.65 : 0.85;
-  const saturation  = style === 'satellite' ? -0.3  : style === 'terrain' ? -0.6 : -1.0;
-  const brightness  = style === 'satellite' ? 0.4   : style === 'terrain' ? 0.28 : 0.22;
-  const hueRotate   = style === 'satellite' ? 100   : style === 'terrain' ? 30   : 200;
-  const contrast    = style === 'minimal'   ? 0.05  : 0.1;
-
-  const layers: maplibregl.LayerSpecification[] = [
-    { id: 'background', type: 'background', paint: { 'background-color': '#0C1016' } },
-    {
-      id: 'osm-raster', type: 'raster', source: 'osm',
-      paint: {
-        'raster-opacity':         tileOpacity,
-        'raster-brightness-min':  0,
-        'raster-brightness-max':  brightness,
-        'raster-saturation':      saturation,
-        'raster-contrast':        contrast,
-        'raster-hue-rotate':      hueRotate,
-      },
-    },
-  ];
-
-  return {
-    version: 8,
-    sources: {
-      osm: {
-        type: 'raster',
-        tiles: ['https://tile.openstreetmap.org/{z}/{x}/{y}.png'],
-        tileSize: 256,
-        attribution: '© OpenStreetMap',
-        maxzoom: 19,
-      },
-    },
-    layers,
-  };
+function getMapStyle(style: MapStyle, showLabels: boolean): string {
+  // Use Amazon Location Service map styles
+  const mapName = process.env.NEXT_PUBLIC_MAP_NAME || 'StandardMap';
+  const apiKey = process.env.NEXT_PUBLIC_LOCATION_API_KEY || '';
+  
+  return `https://maps.geo.us-east-1.amazonaws.com/maps/v0/maps/${mapName}/style-descriptor?key=${apiKey}`;
 }
 
-export function LiveMap() {
+export function LiveMap({ selectedSession }: { selectedSession?: any }) {
   const { settings } = useSettings();
   const mapContainer = useRef<HTMLDivElement>(null);
   const map          = useRef<maplibregl.Map | null>(null);
   const markers      = useRef<maplibregl.Marker[]>([]);
+  const pendingSession = useRef<any>(null);
 
   const [hazards,        setHazards]        = useState<Hazard[]>([]);
   const [showUnverified, setShowUnverified]  = useState(true);
   const [mapReady,       setMapReady]        = useState(false);
+
+  // ── Load session hazards when selected ─────
+  useEffect(() => {
+    console.log('LiveMap selectedSession changed:', selectedSession);
+    if (selectedSession?.hazards) {
+      console.log('Session hazards:', selectedSession.hazards);
+      const sessionHazards = selectedSession.hazards.map((h: any) => ({
+        lat: h.lat,
+        lon: h.lon,
+        geohash: selectedSession.geohash7,
+        hazardType: h.type,
+        confidence: h.confidence,
+        status: 'verified',
+        timestamp: selectedSession.timestamp,
+      }));
+      console.log('Mapped hazards:', sessionHazards);
+      setHazards(sessionHazards);
+      
+      // Jump to location instantly (no animation)
+      if (map.current && sessionHazards.length > 0) {
+        console.log('Jumping to:', sessionHazards[0].lon, sessionHazards[0].lat);
+        map.current.jumpTo({
+          center: [sessionHazards[0].lon, sessionHazards[0].lat],
+          zoom: 14,
+        });
+      } else {
+        console.log('Map not ready, storing pending session');
+        pendingSession.current = selectedSession;
+      }
+    } else {
+      console.log('No session hazards, fetching default');
+      fetchHazards();
+    }
+  }, [selectedSession]);
 
   // ── Original fetch ─────────────────────────
   const fetchHazards = async () => {
@@ -107,7 +110,21 @@ export function LiveMap() {
     const ro = new ResizeObserver(() => map.current?.resize());
     ro.observe(mapContainer.current);
 
-    map.current.on('load', () => { map.current?.resize(); setMapReady(true); });
+    map.current.on('load', () => { 
+      map.current?.resize(); 
+      setMapReady(true);
+      
+      // Jump to pending session if exists
+      if (pendingSession.current?.hazards?.length > 0) {
+        console.log('Map loaded, jumping to pending session');
+        const h = pendingSession.current.hazards[0];
+        map.current?.jumpTo({
+          center: [h.lon, h.lat],
+          zoom: 14,
+        });
+        pendingSession.current = null;
+      }
+    });
 
     map.current.on('styleimagemissing', (e) => {
       const canvas = document.createElement('canvas');

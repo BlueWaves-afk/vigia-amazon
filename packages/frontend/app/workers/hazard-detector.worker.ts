@@ -1,154 +1,239 @@
 import { expose } from 'comlink';
 import * as ort from 'onnxruntime-web';
+
 const baseUrl = self.location.origin;
 
-// Force the absolute path so the Blob Worker's fetch() doesn't crash
+// WASM path (required for Next.js / workers)
 ort.env.wasm.wasmPaths = `${baseUrl}/ort/`;
+
+const INPUT_SIZE = 320;
+const CONF_THRESHOLD = 0.4;
+
+// Define your classes here
+const CLASSES = ['POTHOLE']; // extend if needed
+
 class HazardDetectorWorker {
   private session: ort.InferenceSession | null = null;
   private privateKey: CryptoKey | null = null;
 
+  // -------------------------
+  // LOAD MODEL
+  // -------------------------
   async loadModel() {
     try {
-        const modelUrl = `${baseUrl}/models/yolo26_fp32.onnx`;
-        this.session = await ort.InferenceSession.create(modelUrl, {
+      const modelUrl = `${baseUrl}/models/yolo26_fp32.onnx`;
+
+      this.session = await ort.InferenceSession.create(modelUrl, {
         executionProviders: ['wasm'],
+        graphOptimizationLevel: 'all'
       });
-      console.log('[Worker] ONNX model loaded successfully');
-    } catch (error) {
-      console.error('[Worker] Failed to load ONNX model:', error);
+
+      console.log('[Worker] Model loaded');
+    } catch (e) {
+      console.error('[Worker] Model load failed:', e);
     }
   }
 
+  // -------------------------
+  // SIGNING
+  // -------------------------
   async importPrivateKey(pemKey: string) {
     try {
-      const pemContents = pemKey
+      const pem = pemKey
         .replace(/-----BEGIN EC PRIVATE KEY-----/, '')
         .replace(/-----END EC PRIVATE KEY-----/, '')
         .replace(/\s/g, '');
-      
-      const binaryKey = Uint8Array.from(atob(pemContents), c => c.charCodeAt(0));
-      
+
+      const binary = Uint8Array.from(atob(pem), c => c.charCodeAt(0));
+
       this.privateKey = await crypto.subtle.importKey(
         'pkcs8',
-        binaryKey,
+        binary,
         { name: 'ECDSA', namedCurve: 'P-256' },
         false,
         ['sign']
       );
-      
-      console.log('[Worker] Private key imported successfully');
-    } catch (error) {
-      console.error('[Worker] Failed to import private key:', error);
+    } catch (e) {
+      console.error('[Worker] Key import failed:', e);
     }
   }
 
   async signTelemetry(payload: any): Promise<string> {
-    // Test mode: use hardcoded signature if no key loaded
-    if (!this.privateKey) {
-      console.log('[Worker] Test mode: using TEST_MODE_SIGNATURE');
-      return 'TEST_MODE_SIGNATURE';
-    }
+    if (!this.privateKey) return 'TEST_MODE_SIGNATURE';
 
-    const dataToSign = JSON.stringify({
-      hazardType: payload.hazardType,
-      lat: payload.lat,
-      lon: payload.lon,
-      timestamp: payload.timestamp,
-      confidence: payload.confidence,
-    });
+    const encoded = new TextEncoder().encode(JSON.stringify(payload));
 
-    const signature = await crypto.subtle.sign(
+    const sig = await crypto.subtle.sign(
       { name: 'ECDSA', hash: 'SHA-256' },
       this.privateKey,
-      new TextEncoder().encode(dataToSign)
+      encoded
     );
 
-    return btoa(String.fromCharCode(...new Uint8Array(signature)));
+    return btoa(String.fromCharCode(...new Uint8Array(sig)));
   }
 
-  preprocessFrame(frameBuffer: ArrayBuffer): Float32Array {
-    const uint8Array = new Uint8Array(frameBuffer);
-    const float32Array = new Float32Array(3 * 320 * 320);
-    
-    // Convert RGBA to RGB and normalize to [0, 1]
-    for (let i = 0; i < 320 * 320; i++) {
-      float32Array[i] = uint8Array[i * 4] / 255.0;                    // R
-      float32Array[320 * 320 + i] = uint8Array[i * 4 + 1] / 255.0;   // G
-      float32Array[320 * 320 * 2 + i] = uint8Array[i * 4 + 2] / 255.0; // B
+  // -------------------------
+  // SIZE PARSER (FIX)
+  // -------------------------
+  private parseSize(size: any) {
+    let width = size?.width ?? size?.videoWidth ?? size;
+    let height = size?.height ?? size?.videoHeight;
+
+    if (!width || !height || isNaN(width) || isNaN(height)) {
+      console.warn('[Worker] Invalid size, using fallback 640x480');
+      return { width: 640, height: 480 };
     }
-    
-    return float32Array;
+
+    return { width, height };
   }
 
+  // -------------------------
+  // PREPROCESS (LETTERBOX)
+  // -------------------------
+  preprocess(frameBuffer: ArrayBuffer, size: any) {
+    const { width, height } = this.parseSize(size);
+
+    const rgba = new Uint8ClampedArray(frameBuffer);
+    
+    console.log('[Worker] Preprocess - width:', width, 'height:', height, 'buffer length:', rgba.length, 'expected:', 4 * width * height);
+
+    if (rgba.length !== 4 * width * height) {
+      throw new Error(`Buffer size mismatch: got ${rgba.length}, expected ${4 * width * height} for ${width}x${height}`);
+    }
+
+    const scale = Math.min(INPUT_SIZE / width, INPUT_SIZE / height);
+    const newW = Math.round(width * scale);
+    const newH = Math.round(height * scale);
+
+    const dx = Math.floor((INPUT_SIZE - newW) / 2);
+    const dy = Math.floor((INPUT_SIZE - newH) / 2);
+
+    const canvas = new OffscreenCanvas(INPUT_SIZE, INPUT_SIZE);
+    const ctx = canvas.getContext('2d')!;
+
+    // letterbox background
+    ctx.fillStyle = 'black';
+    ctx.fillRect(0, 0, INPUT_SIZE, INPUT_SIZE);
+
+    // source image
+    const img = new ImageData(rgba, width, height);
+    const tmp = new OffscreenCanvas(width, height);
+    tmp.getContext('2d')!.putImageData(img, 0, 0);
+
+    // draw resized
+    ctx.drawImage(tmp, dx, dy, newW, newH);
+
+    const resized = ctx.getImageData(0, 0, INPUT_SIZE, INPUT_SIZE).data;
+
+    // HWC → CHW
+    const tensor = new Float32Array(3 * INPUT_SIZE * INPUT_SIZE);
+
+    for (let i = 0; i < INPUT_SIZE * INPUT_SIZE; i++) {
+      tensor[i] = resized[i * 4] / 255.0; // R
+      tensor[i + INPUT_SIZE * INPUT_SIZE] = resized[i * 4 + 1] / 255.0; // G
+      tensor[i + 2 * INPUT_SIZE * INPUT_SIZE] = resized[i * 4 + 2] / 255.0; // B
+    }
+
+    return { tensor, scale, dx, dy, srcW: width, srcH: height };
+  }
+
+  // -------------------------
+  // MAIN INFERENCE
+  // -------------------------
   async processFrame(
     frameBuffer: ArrayBuffer,
+    size: any,
     gpsCoords: { lat: number; lon: number }
-  ): Promise<any | null> {
+  ) {
     if (!this.session) return null;
 
-    const startTime = performance.now();
-
     try {
-      // Preprocess
-      const input = this.preprocessFrame(frameBuffer);
-      const tensor = new ort.Tensor('float32', input, [1, 3, 320, 320]);
+      const prep = this.preprocess(frameBuffer, size);
 
-      // Run inference
-      const results = await this.session.run({ images: tensor });
+      const inputTensor = new ort.Tensor(
+        'float32',
+        prep.tensor,
+        [1, 3, INPUT_SIZE, INPUT_SIZE]
+      );
+
+      const results = await this.session.run({ images: inputTensor });
+
       const output = results.output0.data as Float32Array;
+      const dims = results.output0.dims;
 
-      // Parse YOLO output: [batch, 84, 8400] -> [batch, 8400, 84]
-      // 84 = [x, y, w, h, ...80 class scores]
-      const numDetections = 8400;
-      let bestDetection = null;
-      let maxConfidence = 0.6; // Minimum threshold
+      const channels = dims[1];
+      const N = dims[2];
 
-      for (let i = 0; i < numDetections; i++) {
-        const confidence = output[i * 84 + 4]; // Class 0 (pothole) confidence
-        
-        if (confidence > maxConfidence) {
-          maxConfidence = confidence;
-          bestDetection = {
-            x: output[i * 84],
-            y: output[i * 84 + 1],
-            w: output[i * 84 + 2],
-            h: output[i * 84 + 3],
-            confidence,
-          };
+      let best = null;
+      let maxScore = 0;
+      let bestClassIdx = 0;
+
+      // YOLO decode
+      for (let i = 0; i < N; i++) {
+        for (let c = 4; c < channels; c++) {
+          const score = output[c * N + i];
+
+          if (score > CONF_THRESHOLD && score > maxScore) {
+            maxScore = score;
+            bestClassIdx = c - 4;
+
+            best = {
+              x: output[0 * N + i],
+              y: output[1 * N + i],
+              w: output[2 * N + i],
+              h: output[3 * N + i]
+            };
+          }
         }
       }
 
-      const inferenceTime = performance.now() - startTime;
+      if (!best) return null;
 
-      if (bestDetection) {
-        const telemetry = {
-          hazardType: 'POTHOLE',
-          lat: gpsCoords.lat,
-          lon: gpsCoords.lon,
-          timestamp: new Date().toISOString(),
-          confidence: maxConfidence,
-        };
+      console.log('[Worker] Raw detection:', best, 'INPUT_SIZE:', INPUT_SIZE);
+      console.log('[Worker] Prep params:', { scale: prep.scale, dx: prep.dx, dy: prep.dy });
 
-        const signature = await this.signTelemetry(telemetry);
-        
-        console.log(`[Worker] Pothole detected: ${maxConfidence.toFixed(2)} (${inferenceTime.toFixed(0)}ms)`);
+      // YOLO outputs are already in pixel coords [0-320], not normalized
+      const boxX = best.x;
+      const boxY = best.y;
+      const boxW = best.w;
+      const boxH = best.h;
+      
+      console.log('[Worker] Letterboxed coords:', { boxX, boxY, boxW, boxH });
 
-        return { 
-          ...telemetry, 
-          signature,
-          bbox: {
-            x: bestDetection.x - bestDetection.w / 2,
-            y: bestDetection.y - bestDetection.h / 2,
-            width: bestDetection.w,
-            height: bestDetection.h
-          }
-        };
-      }
+      // Remove letterbox padding and scale back to original image
+      const cx = (boxX - prep.dx) / prep.scale;
+      const cy = (boxY - prep.dy) / prep.scale;
+      const bw = boxW / prep.scale;
+      const bh = boxH / prep.scale;
+      
+      console.log('[Worker] Original coords:', { cx, cy, bw, bh });
 
-      return null;
-    } catch (error) {
-      console.error('[Worker] Inference error:', error);
+      const telemetry = {
+        hazardType: CLASSES[bestClassIdx] || 'UNKNOWN',
+        lat: gpsCoords.lat,
+        lon: gpsCoords.lon,
+        timestamp: new Date().toISOString(),
+        confidence: parseFloat(maxScore.toFixed(4))
+      };
+
+      const signature = await this.signTelemetry(telemetry);
+
+      const bbox = {
+        x: cx - bw / 2,
+        y: cy - bh / 2,
+        width: bw,
+        height: bh
+      };
+      
+      console.log('[Worker] Returning bbox:', bbox, 'from original size:', size);
+
+      return {
+        ...telemetry,
+        signature,
+        bbox
+      };
+    } catch (e) {
+      console.error('[Worker] Inference error:', e);
       return null;
     }
   }

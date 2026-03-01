@@ -102,7 +102,7 @@ const DEFAULTS: AppSettings = {
   density:    'default',
   showGrid:   false,
   showLabels: true,
-  fontSize:   13,
+  fontSize:   18,
 };
 
 export function SettingsProvider({ children }: { children: React.ReactNode }) {

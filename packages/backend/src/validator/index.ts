@@ -45,6 +45,13 @@ function verifySignature(payload: any, publicKeyPem: string): boolean {
 }
 
 export const handler: APIGatewayProxyHandler = async (event) => {
+  const corsHeaders = {
+    'Content-Type': 'application/json',
+    'Access-Control-Allow-Origin': '*',
+    'Access-Control-Allow-Methods': 'POST, OPTIONS',
+    'Access-Control-Allow-Headers': 'Content-Type',
+  };
+
   try {
     const payload = JSON.parse(event.body || '{}');
     
@@ -59,7 +66,7 @@ export const handler: APIGatewayProxyHandler = async (event) => {
       if (!isValid) {
         return {
           statusCode: 400,
-          headers: { 'Content-Type': 'application/json' },
+          headers: corsHeaders,
           body: JSON.stringify({ error: 'INVALID_SIGNATURE' }),
         };
       }
@@ -86,14 +93,14 @@ export const handler: APIGatewayProxyHandler = async (event) => {
     
     return {
       statusCode: 200,
-      headers: { 'Content-Type': 'application/json' },
+      headers: corsHeaders,
       body: JSON.stringify({ success: true }),
     };
   } catch (error) {
     console.error('Validator error:', error);
     return {
       statusCode: 500,
-      headers: { 'Content-Type': 'application/json' },
+      headers: corsHeaders,
       body: JSON.stringify({ error: 'INTERNAL_ERROR' }),
     };
   }

@@ -8,6 +8,7 @@ type HazardDetectorWorker = {
   importPrivateKey(pemKey: string): Promise<void>;
   processFrame(
     frameBuffer: ArrayBuffer,
+    size: { width: number; height: number },
     gpsCoords: { lat: number; lon: number }
   ): Promise<any | null>;
 };
@@ -17,30 +18,54 @@ export function useHazardDetector() {
   const apiRef = useRef<Remote<HazardDetectorWorker> | null>(null);
 
   useEffect(() => {
-    // Initialize worker
-    workerRef.current = new Worker(
+    const worker = new Worker(
       new URL('../workers/hazard-detector.worker.ts', import.meta.url),
       { type: 'module' }
     );
-    
-    apiRef.current = wrap<HazardDetectorWorker>(workerRef.current);
-    apiRef.current.loadModel();
+
+    workerRef.current = worker;
+    apiRef.current = wrap<HazardDetectorWorker>(worker);
+
+    // Load model async (don’t block UI)
+    apiRef.current.loadModel().catch(console.error);
 
     return () => {
-      workerRef.current?.terminate();
+      worker.terminate();
+      workerRef.current = null;
+      apiRef.current = null;
     };
   }, []);
 
   const loadPrivateKey = async (pemKey: string) => {
-    await apiRef.current?.importPrivateKey(pemKey);
+    if (!apiRef.current) return;
+    await apiRef.current.importPrivateKey(pemKey);
   };
 
+  /**
+   * Pass frame + dimensions (CRITICAL)
+   */
   const processFrame = async (
     frameBuffer: ArrayBuffer,
+    width: number,
+    height: number,
     gpsCoords: { lat: number; lon: number }
   ) => {
-    return apiRef.current?.processFrame(frameBuffer, gpsCoords);
+    if (!apiRef.current) return null;
+
+    if (!width || !height) {
+      console.warn('[HazardDetector] Invalid frame size:', width, height);
+      return null;
+    }
+
+    return apiRef.current.processFrame(
+      frameBuffer,
+      { width, height }, // ✅ REQUIRED FIX
+      gpsCoords
+    );
   };
 
-  return { processFrame, loadPrivateKey };
+  return {
+    processFrame,
+    loadPrivateKey,
+  };
 }

@@ -19,24 +19,26 @@ export type SignedTelemetry = {
 };
 
 // ─────────────────────────────────────────────
-// Design tokens
+// JetBrains IDE Design Tokens
 // ─────────────────────────────────────────────
 
 const C = {
-  bg:      '#0C1016',
-  panel:   '#141920',
-  elevated:'#181E27',
-  border:  'rgba(255,255,255,0.07)',
-  borderMd:'rgba(255,255,255,0.11)',
-  text:    '#DDE3ED',
-  textSec: '#7C8799',
-  textMut: '#3D4655',
-  accent:  '#1D4ED8',
-  accentBrt:'#3B82F6',
-  green:   '#0EA472',
-  red:     '#E5484D',
-  yellow:  '#E9A23B',
+  bg:       '#1E1F22',      // JetBrains dark bg
+  panel:    '#2B2D30',      // Tool window bg
+  elevated: '#3C3F41',      // Elevated surfaces
+  border:   '#393B40',      // Border color
+  borderMd: '#4E5157',      // Medium border
+  text:     '#BCBEC4',      // Primary text
+  textSec:  '#8C8C8C',      // Secondary text  
+  textMut:  '#5E6060',      // Muted text
+  accent:   '#3574F0',      // JetBrains blue
+  accentBrt:'#589DF6',      // Bright blue
+  green:    '#59A869',      // Success green
+  red:      '#F75464',      // Error red
+  yellow:   '#E8BF6A',      // Warning yellow
 };
+
+const FONT = "'JetBrains Mono', 'Fira Code', 'Consolas', monospace";
 
 // ─────────────────────────────────────────────
 // DropZone
@@ -76,13 +78,16 @@ function DropZone({ accept, onFile, label, sublabel, icon, file, compact }: Drop
       onDragLeave={() => setDragOver(false)}
       onDrop={handleDrop}
       style={{
-        borderRadius: 4,
-        padding: compact ? '10px 14px' : '18px 14px',
+        borderRadius: 3,
+        padding: compact ? '8px 12px' : '14px 12px',
         display: 'flex',
         alignItems: 'center',
-        gap: 12,
+        gap: 10,
         cursor: 'pointer',
         position: 'relative',
+        background: C.bg,
+        border: `1px solid ${dragOver ? C.accent : C.border}`,
+        transition: 'border-color 0.15s',
       }}
     >
       <input
@@ -94,15 +99,10 @@ function DropZone({ accept, onFile, label, sublabel, icon, file, compact }: Drop
       />
 
       <div style={{
-        width: compact ? 32 : 40,
-        height: compact ? 32 : 40,
-        borderRadius: 6,
-        background: file
-          ? 'rgba(14,164,114,0.12)'
-          : dragOver
-          ? 'rgba(59,130,246,0.12)'
-          : 'rgba(255,255,255,0.04)',
-        border: `1px solid ${file ? 'rgba(14,164,114,0.3)' : dragOver ? 'rgba(59,130,246,0.4)' : 'rgba(255,255,255,0.07)'}`,
+        width: compact ? 28 : 36,
+        height: compact ? 28 : 36,
+        borderRadius: 3,
+        background: file ? 'rgba(89,168,105,0.15)' : C.elevated,
         display: 'flex',
         alignItems: 'center',
         justifyContent: 'center',
@@ -110,19 +110,19 @@ function DropZone({ accept, onFile, label, sublabel, icon, file, compact }: Drop
         transition: 'all 0.15s',
         color: file ? C.green : dragOver ? C.accentBrt : C.textMut,
       }}>
-        {file ? <CheckCircle size={compact ? 14 : 18} /> : icon}
+        {file ? <CheckCircle size={compact ? 12 : 14} /> : icon}
       </div>
 
       <div style={{ flex: 1, minWidth: 0 }}>
-        <div style={{ fontSize: '0.76rem', color: C.text, fontWeight: 500, fontFamily: 'Inter, sans-serif' }}>
+        <div style={{ fontSize: '0.72rem', color: C.text, fontWeight: 500, fontFamily: FONT }}>
           {file ? file.name : label}
         </div>
         {file ? (
-          <div style={{ fontSize: '0.66rem', color: C.textSec, fontFamily: 'JetBrains Mono, monospace', marginTop: 2 }}>
+          <div style={{ fontSize: '0.65rem', color: C.textSec, fontFamily: FONT, marginTop: 2 }}>
             {(file.size / 1024 / 1024).toFixed(2)} MB · {file.type || 'unknown'}
           </div>
         ) : (
-          <div style={{ fontSize: '0.66rem', color: C.textMut, fontFamily: 'Inter, sans-serif', marginTop: 2 }}>
+          <div style={{ fontSize: '0.65rem', color: C.textMut, fontFamily: FONT, marginTop: 2 }}>
             {sublabel ?? 'Drag & drop or click to browse'}
           </div>
         )}
@@ -130,18 +130,20 @@ function DropZone({ accept, onFile, label, sublabel, icon, file, compact }: Drop
 
       {file && (
         <div style={{
-          fontSize: '0.6rem', padding: '2px 6px', borderRadius: 3,
-          background: 'rgba(14,164,114,0.12)', color: C.green,
-          fontFamily: 'JetBrains Mono, monospace', fontWeight: 600,
+          fontSize: '0.6rem', padding: '2px 6px', borderRadius: 2,
+          background: 'rgba(89,168,105,0.15)', color: C.green,
+          fontFamily: FONT, fontWeight: 600,
           flexShrink: 0,
+          textTransform: 'uppercase',
+          letterSpacing: '0.05em',
         }}>
-          READY
+          Ready
         </div>
       )}
 
       {!file && (
         <div style={{ color: C.textMut, flexShrink: 0 }}>
-          <Upload size={13} />
+          <Upload size={12} />
         </div>
       )}
     </div>
@@ -156,15 +158,15 @@ function StatBadge({ label, value, color }: { label: string; value: string | num
   return (
     <div style={{
       display: 'flex', flexDirection: 'column', alignItems: 'center',
-      gap: 2, padding: '8px 14px',
-      background: `${color}10`,
-      border: `1px solid ${color}28`,
-      borderRadius: 4, flex: 1,
+      gap: 2, padding: '6px 12px',
+      background: C.panel,
+      border: `1px solid ${C.border}`,
+      borderRadius: 3, flex: 1,
     }}>
-      <span style={{ fontSize: '1rem', fontWeight: 600, color, fontFamily: 'JetBrains Mono, monospace', lineHeight: 1 }}>
+      <span style={{ fontSize: '0.9rem', fontWeight: 500, color, fontFamily: FONT, lineHeight: 1 }}>
         {value}
       </span>
-      <span style={{ fontSize: '0.6rem', color: C.textMut, textTransform: 'uppercase', letterSpacing: '0.08em', fontFamily: 'Inter, sans-serif' }}>
+      <span style={{ fontSize: '0.6rem', color: C.textMut, textTransform: 'uppercase', letterSpacing: '0.04em', fontFamily: FONT }}>
         {label}
       </span>
     </div>
@@ -177,12 +179,18 @@ function StatBadge({ label, value, color }: { label: string; value: string | num
 
 export function VideoUploader() {
   const [videoFile,       setVideoFile]       = useState<File | null>(null);
+  const [videoUrl,        setVideoUrl]        = useState<string | null>(null);
   const [isProcessing,    setIsProcessing]    = useState(false);
   const [telemetryBatch,  setTelemetryBatch]  = useState<SignedTelemetry[]>([]);
   const [privateKeyLoaded, setPrivateKeyLoaded] = useState(false);
   const [detectionCount,  setDetectionCount]  = useState(0);
   const [currentDetection, setCurrentDetection] = useState<SignedTelemetry | null>(null);
   const [totalSent,       setTotalSent]       = useState(0);
+  const [videoReady,      setVideoReady]      = useState(false);
+  const [videoLoading,    setVideoLoading]    = useState(false);
+  const [videoError,      setVideoError]      = useState<string | null>(null);
+  const [videoDuration,   setVideoDuration]   = useState<number>(0);
+  const [videoElement,    setVideoElement]    = useState<HTMLVideoElement | null>(null);
 
   const videoRef    = useRef<HTMLVideoElement>(null);
   const canvasRef   = useRef<HTMLCanvasElement>(null);
@@ -191,12 +199,97 @@ export function VideoUploader() {
 
   const simulatedGPS = { lat: 37.7749, lon: -122.4194 };
 
-  // ── All original handlers preserved ───────
-  const handleVideoFile = (file: File) => {
-    setVideoFile(file);
+  // Callback ref to capture video element when it mounts
+  const videoCallbackRef = useCallback((node: HTMLVideoElement | null) => {
+    videoRef.current = node;
+    setVideoElement(node);
+  }, []);
+
+  // ── Handle video file selection ───────
+  const handleVideoFile = useCallback((file: File) => {
+    // Cleanup previous video URL
+    if (videoUrl) {
+      URL.revokeObjectURL(videoUrl);
+    }
+    
+    // Reset states
+    setVideoReady(false);
+    setVideoLoading(true);
+    setVideoError(null);
+    setVideoDuration(0);
+    setDetectionCount(0);
+    setTelemetryBatch([]);
+    setCurrentDetection(null);
+    
+    // Create new URL and set file
     const url = URL.createObjectURL(file);
-    if (videoRef.current) videoRef.current.src = url;
-  };
+    setVideoUrl(url);
+    setVideoFile(file);
+  }, [videoUrl]);
+
+  // ── Set up video when URL changes and video element exists ───────
+  useEffect(() => {
+    if (!videoUrl || !videoElement) {
+      console.log('[VideoUploader] Waiting for video element or URL', { videoUrl: !!videoUrl, videoElement: !!videoElement });
+      return;
+    }
+    
+    const video = videoElement;
+    
+    console.log('[VideoUploader] Setting up video with URL:', videoUrl);
+    
+    const handleLoadedMetadata = () => {
+      console.log('[VideoUploader] Metadata loaded, dimensions:', video.videoWidth, 'x', video.videoHeight);
+      setVideoDuration(video.duration);
+    };
+    
+    const handleCanPlay = () => {
+      console.log('[VideoUploader] Video can play');
+      setVideoLoading(false);
+      setVideoReady(true);
+    };
+    
+    const handleLoadedData = () => {
+      console.log('[VideoUploader] Video data loaded, dimensions:', video.videoWidth, 'x', video.videoHeight);
+      // Seek to first frame to show thumbnail
+      if (video.currentTime === 0) {
+        video.currentTime = 0.001;
+      }
+    };
+    
+    const handleError = () => {
+      console.error('[VideoUploader] Video failed to load');
+      setVideoLoading(false);
+      setVideoError('Failed to load video. Please try a different file.');
+    };
+    
+    // Add event listeners
+    video.addEventListener('loadedmetadata', handleLoadedMetadata);
+    video.addEventListener('canplay', handleCanPlay);
+    video.addEventListener('loadeddata', handleLoadedData);
+    video.addEventListener('error', handleError);
+    
+    // Set source and load
+    video.src = videoUrl;
+    video.load();
+    
+    // Cleanup
+    return () => {
+      video.removeEventListener('loadedmetadata', handleLoadedMetadata);
+      video.removeEventListener('canplay', handleCanPlay);
+      video.removeEventListener('loadeddata', handleLoadedData);
+      video.removeEventListener('error', handleError);
+    };
+  }, [videoUrl, videoElement]);
+
+  // Cleanup URL on unmount
+  useEffect(() => {
+    return () => {
+      if (videoUrl) {
+        URL.revokeObjectURL(videoUrl);
+      }
+    };
+  }, [videoUrl]);
 
   const handleKeyFile = async (file: File) => {
     const text = await file.text();
@@ -206,10 +299,12 @@ export function VideoUploader() {
 
   const extractFrame = (video: HTMLVideoElement): ArrayBuffer => {
     const canvas = document.createElement('canvas');
-    canvas.width = 640; canvas.height = 640;
+    // Use actual video dimensions
+    canvas.width = video.videoWidth;
+    canvas.height = video.videoHeight;
     const ctx = canvas.getContext('2d')!;
-    ctx.drawImage(video, 0, 0, 640, 640);
-    return ctx.getImageData(0, 0, 640, 640).data.buffer;
+    ctx.drawImage(video, 0, 0);
+    return ctx.getImageData(0, 0, canvas.width, canvas.height).data.buffer;
   };
 
   const drawDetections = () => {
@@ -223,22 +318,33 @@ export function VideoUploader() {
 
     if (currentDetection?.bbox) {
       const { x, y, width, height } = currentDetection.bbox;
-      const scaleX = canvas.width / 320;
-      const scaleY = canvas.height / 320;
-      const x1 = x * scaleX, y1 = y * scaleY;
-      const w  = width * scaleX, h = height * scaleY;
+      
+      console.log('[VideoUploader] Drawing bbox:', { x, y, width, height });
+      console.log('[VideoUploader] Video dimensions:', video.videoWidth, 'x', video.videoHeight);
+      console.log('[VideoUploader] Canvas dimensions:', canvas.width, 'x', canvas.height);
+      
+      // Bbox is already in original video dimensions, scale to canvas display size
+      const scaleX = canvas.width / video.videoWidth;
+      const scaleY = canvas.height / video.videoHeight;
+      
+      const x1 = x * scaleX;
+      const y1 = y * scaleY;
+      const w  = width * scaleX;
+      const h  = height * scaleY;
+      
+      console.log('[VideoUploader] Scaled bbox:', { x1, y1, w, h });
 
       // Glowing box for dark theme
-      ctx.strokeStyle = '#3B82F6';
+      ctx.strokeStyle = '#3574F0';
       ctx.lineWidth   = 1.5;
-      ctx.shadowColor = 'rgba(59,130,246,0.6)';
-      ctx.shadowBlur  = 8;
+      ctx.shadowColor = 'rgba(53,116,240,0.5)';
+      ctx.shadowBlur  = 6;
       ctx.strokeRect(x1, y1, w, h);
       ctx.shadowBlur  = 0;
 
       // Corner marks
       const cs = 8;
-      ctx.strokeStyle = '#3B82F6';
+      ctx.strokeStyle = '#3574F0';
       ctx.lineWidth   = 2;
       [
         [x1, y1, x1+cs, y1, x1, y1+cs],
@@ -252,12 +358,12 @@ export function VideoUploader() {
 
       // Label
       const label = `POTHOLE  ${(currentDetection.confidence * 100).toFixed(0)}%`;
-      ctx.font = '9px JetBrains Mono, monospace';
+      ctx.font = '9px JetBrains Mono, Consolas, monospace';
       const tw = ctx.measureText(label).width;
-      ctx.fillStyle = 'rgba(14,17,23,0.88)';
-      ctx.fillRect(x1, y1 - 18, tw + 10, 16);
-      ctx.fillStyle = '#3B82F6';
-      ctx.fillText(label, x1 + 5, y1 - 7);
+      ctx.fillStyle = '#2B2D30';
+      ctx.fillRect(x1, y1 - 16, tw + 8, 14);
+      ctx.fillStyle = '#3574F0';
+      ctx.fillText(label, x1 + 4, y1 - 5);
     }
   };
 
@@ -269,7 +375,9 @@ export function VideoUploader() {
     intervalRef.current = setInterval(async () => {
       if (videoRef.current && !videoRef.current.paused) {
         const frameBuffer = extractFrame(videoRef.current);
-        const result      = await processFrame(frameBuffer, simulatedGPS);
+        const width = videoRef.current.videoWidth || 640;
+        const height = videoRef.current.videoHeight || 640;
+        const result = await processFrame(frameBuffer, width, height, { lat: simulatedGPS.lat, lon: simulatedGPS.lon });
         if (result) {
           setTelemetryBatch(prev => [...prev, result]);
           setDetectionCount(prev => prev + 1);
@@ -292,56 +400,81 @@ export function VideoUploader() {
   useEffect(() => {
     if (!isProcessing) return;
     const batchInterval = setInterval(async () => {
-      if (telemetryBatch.length > 0) {
-        for (const telemetry of telemetryBatch) {
-          try {
-            const response = await fetch(`${process.env.NEXT_PUBLIC_API_URL}/telemetry`, {
-              method: 'POST',
-              headers: { 'Content-Type': 'application/json' },
-              body: JSON.stringify(telemetry),
-            });
-            if (!response.ok) console.error('Failed to send telemetry:', await response.text());
-            else setTotalSent(p => p + 1);
-          } catch (error) {
-            console.error('Network error:', error);
-          }
+      // Use functional update to get latest state without dependency
+      setTelemetryBatch(currentBatch => {
+        console.log('[VideoUploader] Batch check - telemetry count:', currentBatch.length);
+        if (currentBatch.length > 0) {
+          console.log('[VideoUploader] Sending batch of', currentBatch.length, 'telemetry items');
+          // Send telemetry sequentially to avoid rate limits
+          (async () => {
+            for (const telemetry of currentBatch) {
+              try {
+                const response = await fetch(`${process.env.NEXT_PUBLIC_API_URL}/telemetry`, {
+                  method: 'POST',
+                  headers: { 'Content-Type': 'application/json' },
+                  body: JSON.stringify(telemetry),
+                });
+                if (!response.ok) {
+                  console.error('Failed to send telemetry:', await response.text());
+                  window.dispatchEvent(new CustomEvent('vigia-trace', {
+                    detail: { type: 'error', message: `Telemetry submission failed: ${response.statusText}` }
+                  }));
+                } else {
+                  setTotalSent(p => p + 1);
+                  console.log('[VideoUploader] Telemetry sent:', telemetry.hazardType, 'confidence:', telemetry.confidence);
+                  window.dispatchEvent(new CustomEvent('vigia-trace', {
+                    detail: { 
+                      type: 'success', 
+                      message: `Telemetry sent: ${telemetry.hazardType} (confidence: ${(telemetry.confidence * 100).toFixed(1)}%)`
+                    }
+                  }));
+                }
+              } catch (error) {
+                console.error('Network error:', error);
+                window.dispatchEvent(new CustomEvent('vigia-trace', {
+                  detail: { type: 'error', message: `Network error: ${error}` }
+                }));
+              }
+            }
+          })();
+          return []; // Clear batch
         }
-        setTelemetryBatch([]);
-      }
+        return currentBatch; // Keep batch
+      });
     }, 5000);
     return () => clearInterval(batchInterval);
-  }, [isProcessing, telemetryBatch]);
+  }, [isProcessing]); // Remove telemetryBatch dependency
 
   useEffect(() => {
     return () => { if (intervalRef.current) clearInterval(intervalRef.current); };
   }, []);
 
   return (
-    <div style={{ maxWidth: 720, margin: '0 auto', display: 'flex', flexDirection: 'column', gap: 16 }}>
+    <div style={{ maxWidth: 720, margin: '0 auto', display: 'flex', flexDirection: 'column', gap: 12 }}>
 
       {/* ── Page header ───────────────────── */}
       <div style={{ display: 'flex', alignItems: 'flex-start', justifyContent: 'space-between' }}>
         <div>
-          <div style={{ display: 'flex', alignItems: 'center', gap: 8, marginBottom: 4 }}>
-            <Film size={15} style={{ color: C.accentBrt }} />
-            <span style={{ fontSize: '0.88rem', fontWeight: 600, color: C.text, letterSpacing: '-0.01em', fontFamily: 'Inter, sans-serif' }}>
+          <div style={{ display: 'flex', alignItems: 'center', gap: 8, marginBottom: 3 }}>
+            <Film size={14} style={{ color: C.accent }} />
+            <span style={{ fontSize: '0.82rem', fontWeight: 500, color: C.text, fontFamily: FONT }}>
               Sentinel Eye
             </span>
           </div>
-          <p style={{ fontSize: '0.72rem', color: C.textMut, fontFamily: 'Inter, sans-serif', margin: 0 }}>
-            ONNX-powered real-time pothole detection · edge telemetry signing
+          <p style={{ fontSize: '0.68rem', color: C.textMut, fontFamily: FONT, margin: 0 }}>
+            ONNX inference · real-time detection · edge telemetry
           </p>
         </div>
 
         {isProcessing && (
           <div style={{
             display: 'flex', alignItems: 'center', gap: 6,
-            padding: '5px 10px', borderRadius: 4,
-            background: 'rgba(229,72,77,0.1)',
-            border: '1px solid rgba(229,72,77,0.25)',
+            padding: '4px 8px', borderRadius: 3,
+            background: 'rgba(247,84,100,0.12)',
+            border: `1px solid ${C.border}`,
           }}>
-            <span style={{ width: 6, height: 6, borderRadius: '50%', background: C.red }} className="pulse" />
-            <span style={{ fontSize: '0.68rem', color: C.red, fontFamily: 'JetBrains Mono, monospace', fontWeight: 600 }}>
+            <span style={{ width: 5, height: 5, borderRadius: '50%', background: C.red }} className="pulse" />
+            <span style={{ fontSize: '0.65rem', color: C.red, fontFamily: FONT, fontWeight: 500 }}>
               SCANNING
             </span>
           </div>
@@ -352,21 +485,22 @@ export function VideoUploader() {
       <div style={{
         background: C.panel,
         border: `1px solid ${C.border}`,
-        borderRadius: 6,
+        borderRadius: 3,
         overflow: 'hidden',
       }}>
         <div style={{
-          padding: '8px 14px',
+          padding: '6px 12px',
           borderBottom: `1px solid ${C.border}`,
+          background: C.elevated,
           display: 'flex', alignItems: 'center', gap: 6,
         }}>
-          <Upload size={11} style={{ color: C.textMut }} />
-          <span style={{ fontSize: '0.68rem', color: C.textMut, textTransform: 'uppercase', letterSpacing: '0.08em', fontFamily: 'Inter, sans-serif', fontWeight: 600 }}>
+          <Upload size={10} style={{ color: C.textMut }} />
+          <span style={{ fontSize: '0.65rem', color: C.textSec, textTransform: 'uppercase', letterSpacing: '0.04em', fontFamily: FONT, fontWeight: 500 }}>
             Input Files
           </span>
         </div>
 
-        <div style={{ padding: 12, display: 'flex', flexDirection: 'column', gap: 8 }}>
+        <div style={{ padding: 10, display: 'flex', flexDirection: 'column', gap: 6 }}>
           <DropZone
             accept="video/*"
             onFile={handleVideoFile}
@@ -387,12 +521,12 @@ export function VideoUploader() {
           {privateKeyLoaded && (
             <div style={{
               display: 'flex', alignItems: 'center', gap: 6,
-              padding: '5px 10px', borderRadius: 3,
-              background: 'rgba(14,164,114,0.08)',
-              border: '1px solid rgba(14,164,114,0.2)',
+              padding: '4px 8px', borderRadius: 2,
+              background: 'rgba(89,168,105,0.1)',
+              border: `1px solid ${C.border}`,
             }}>
-              <CheckCircle size={11} style={{ color: C.green }} />
-              <span style={{ fontSize: '0.68rem', color: C.green, fontFamily: 'JetBrains Mono, monospace' }}>
+              <CheckCircle size={10} style={{ color: C.green }} />
+              <span style={{ fontSize: '0.65rem', color: C.green, fontFamily: FONT }}>
                 Private key loaded · signing enabled
               </span>
             </div>
@@ -406,21 +540,57 @@ export function VideoUploader() {
           <div style={{
             background: C.panel,
             border: `1px solid ${C.border}`,
-            borderRadius: 6,
+            borderRadius: 3,
             overflow: 'hidden',
           }}>
             {/* Video toolbar */}
             <div style={{
               display: 'flex', alignItems: 'center', gap: 8,
-              padding: '8px 14px',
+              padding: '6px 12px',
               borderBottom: `1px solid ${C.border}`,
+              background: C.elevated,
             }}>
-              <Film size={11} style={{ color: C.textMut }} />
-              <span style={{ fontSize: '0.68rem', color: C.textMut, fontFamily: 'JetBrains Mono, monospace', flex: 1, overflow: 'hidden', textOverflow: 'ellipsis', whiteSpace: 'nowrap' }}>
+              <Film size={10} style={{ color: C.textMut }} />
+              <span style={{ fontSize: '0.65rem', color: C.textSec, fontFamily: FONT, flex: 1, overflow: 'hidden', textOverflow: 'ellipsis', whiteSpace: 'nowrap' }}>
                 {videoFile.name}
               </span>
+              {videoReady && videoDuration > 0 && (
+                <span style={{ 
+                  fontSize: '0.6rem', 
+                  color: C.textMut, 
+                  fontFamily: FONT,
+                  padding: '1px 5px',
+                  background: C.bg,
+                  borderRadius: 2,
+                }}>
+                  {Math.floor(videoDuration / 60)}:{String(Math.floor(videoDuration % 60)).padStart(2, '0')}
+                </span>
+              )}
+              {videoReady && videoElement && (
+                <span style={{ 
+                  fontSize: '0.6rem', 
+                  color: C.textMut, 
+                  fontFamily: FONT,
+                  padding: '1px 5px',
+                  background: C.bg,
+                  borderRadius: 2,
+                }}>
+                  {videoElement.videoWidth}×{videoElement.videoHeight}
+                </span>
+              )}
               <button
-                onClick={() => { setVideoFile(null); stopProcessing(); }}
+                onClick={() => { 
+                  if (videoUrl) {
+                    URL.revokeObjectURL(videoUrl);
+                  }
+                  setVideoFile(null); 
+                  setVideoUrl(null);
+                  setVideoReady(false);
+                  setVideoLoading(false);
+                  setVideoError(null);
+                  setVideoDuration(0);
+                  stopProcessing(); 
+                }}
                 style={{
                   background: 'none', border: 'none',
                   color: C.textMut, cursor: 'pointer', display: 'flex', padding: 2,
@@ -433,22 +603,72 @@ export function VideoUploader() {
             </div>
 
             {/* Video canvas */}
-            <div style={{ position: 'relative', background: '#000', aspectRatio: '16/9' }}>
-              <video ref={videoRef} style={{ width: '100%', height: '100%', objectFit: 'cover', display: 'block' }} />
+            <div style={{ position: 'relative', background: '#18191B', aspectRatio: '16/9' }}>
+              <video 
+                ref={videoCallbackRef} 
+                playsInline
+                muted
+                preload="metadata"
+                style={{ 
+                  width: '100%', 
+                  height: '100%', 
+                  objectFit: 'contain', 
+                  display: 'block',
+                  opacity: videoReady ? 1 : 0,
+                  transition: 'opacity 0.15s',
+                }} 
+              />
               <canvas ref={canvasRef} style={{ position: 'absolute', inset: 0, width: '100%', height: '100%', pointerEvents: 'none' }} />
+
+              {/* Loading overlay */}
+              {videoLoading && (
+                <div style={{
+                  position: 'absolute', inset: 0,
+                  display: 'flex', flexDirection: 'column',
+                  alignItems: 'center', justifyContent: 'center',
+                  background: C.bg,
+                  gap: 10,
+                }}>
+                  <div className="spinner" style={{
+                    width: 24, height: 24,
+                    border: `2px solid ${C.border}`,
+                    borderTopColor: C.accent,
+                    borderRadius: '50%',
+                    animation: 'spin 0.8s linear infinite',
+                  }} />
+                  <span style={{ fontSize: '0.68rem', color: C.textMut, fontFamily: FONT }}>
+                    Loading video...
+                  </span>
+                </div>
+              )}
+
+              {/* Error overlay */}
+              {videoError && (
+                <div style={{
+                  position: 'absolute', inset: 0,
+                  display: 'flex', flexDirection: 'column',
+                  alignItems: 'center', justifyContent: 'center',
+                  background: C.bg,
+                  gap: 8,
+                }}>
+                  <AlertTriangle size={20} style={{ color: C.red }} />
+                  <span style={{ fontSize: '0.68rem', color: C.red, fontFamily: FONT, textAlign: 'center', maxWidth: 200 }}>
+                    {videoError}
+                  </span>
+                </div>
+              )}
 
               {/* LIVE badge */}
               {isProcessing && (
                 <div style={{
-                  position: 'absolute', top: 10, left: 10,
-                  display: 'flex', alignItems: 'center', gap: 6,
-                  padding: '4px 8px', borderRadius: 3,
-                  background: 'rgba(12,16,22,0.88)',
-                  border: '1px solid rgba(229,72,77,0.35)',
-                  backdropFilter: 'blur(6px)',
+                  position: 'absolute', top: 8, left: 8,
+                  display: 'flex', alignItems: 'center', gap: 5,
+                  padding: '3px 6px', borderRadius: 2,
+                  background: 'rgba(30,31,34,0.92)',
+                  border: `1px solid ${C.border}`,
                 }}>
-                  <span style={{ width: 6, height: 6, borderRadius: '50%', background: C.red }} className="pulse" />
-                  <span style={{ fontSize: '0.62rem', color: C.red, fontFamily: 'JetBrains Mono, monospace', fontWeight: 700, letterSpacing: '0.08em' }}>
+                  <span style={{ width: 5, height: 5, borderRadius: '50%', background: C.red }} className="pulse" />
+                  <span style={{ fontSize: '0.6rem', color: C.red, fontFamily: FONT, fontWeight: 500, letterSpacing: '0.04em' }}>
                     LIVE
                   </span>
                 </div>
@@ -457,15 +677,14 @@ export function VideoUploader() {
               {/* Detection counter */}
               {isProcessing && (
                 <div style={{
-                  position: 'absolute', top: 10, right: 10,
-                  padding: '4px 8px', borderRadius: 3,
-                  background: 'rgba(12,16,22,0.88)',
-                  border: '1px solid rgba(255,255,255,0.08)',
-                  backdropFilter: 'blur(6px)',
+                  position: 'absolute', top: 8, right: 8,
+                  padding: '3px 6px', borderRadius: 2,
+                  background: 'rgba(30,31,34,0.92)',
+                  border: `1px solid ${C.border}`,
                 }}>
-                  <div style={{ display: 'flex', alignItems: 'center', gap: 5 }}>
+                  <div style={{ display: 'flex', alignItems: 'center', gap: 4 }}>
                     <Zap size={9} style={{ color: C.yellow }} />
-                    <span style={{ fontSize: '0.65rem', color: C.text, fontFamily: 'JetBrains Mono, monospace' }}>
+                    <span style={{ fontSize: '0.6rem', color: C.text, fontFamily: FONT }}>
                       {detectionCount} detections
                     </span>
                   </div>
@@ -476,16 +695,15 @@ export function VideoUploader() {
               {isProcessing && telemetryBatch.length > 0 && (
                 <div style={{
                   position: 'absolute', bottom: 0, left: 0, right: 0,
-                  background: 'rgba(12,16,22,0.92)',
-                  borderTop: '1px solid rgba(255,255,255,0.07)',
-                  padding: '6px 10px',
-                  backdropFilter: 'blur(6px)',
+                  background: 'rgba(30,31,34,0.95)',
+                  borderTop: `1px solid ${C.border}`,
+                  padding: '5px 8px',
                 }}>
                   {telemetryBatch.slice(-3).map((t, i) => (
                     <div key={i} className="log-line" style={{
-                      display: 'flex', alignItems: 'center', gap: 6,
-                      fontSize: '0.62rem', color: C.textSec,
-                      fontFamily: 'JetBrains Mono, monospace',
+                      display: 'flex', alignItems: 'center', gap: 5,
+                      fontSize: '0.6rem', color: C.textSec,
+                      fontFamily: FONT,
                       marginBottom: i < 2 ? 2 : 0,
                     }}>
                       <span style={{ color: C.textMut }}>›</span>
@@ -493,7 +711,7 @@ export function VideoUploader() {
                       <span style={{ color: C.textMut }}>@</span>
                       <span>{t.lat.toFixed(4)},{t.lon.toFixed(4)}</span>
                       <span style={{ color: C.textMut }}>│</span>
-                      <span style={{ color: C.accentBrt }}>conf: {(t.confidence * 100).toFixed(0)}%</span>
+                      <span style={{ color: C.accent }}>conf: {(t.confidence * 100).toFixed(0)}%</span>
                     </div>
                   ))}
                 </div>
@@ -503,38 +721,38 @@ export function VideoUploader() {
 
           {/* ── Stats row ─────────────────── */}
           {isProcessing && (
-            <div style={{ display: 'flex', gap: 8 }}>
-              <StatBadge label="Detections" value={detectionCount} color={C.red}       />
-              <StatBadge label="Transmitted" value={totalSent}     color={C.green}     />
+            <div style={{ display: 'flex', gap: 6 }}>
+              <StatBadge label="Detections" value={detectionCount} color={C.red}    />
+              <StatBadge label="Transmitted" value={totalSent}     color={C.green}  />
               <StatBadge label="Queued"      value={telemetryBatch.length} color={C.yellow} />
-              <StatBadge label="FPS"         value="5"             color={C.accentBrt} />
+              <StatBadge label="FPS"         value="5"             color={C.accent} />
             </div>
           )}
 
           {/* ── Controls ──────────────────── */}
-          <div style={{ display: 'flex', gap: 8 }}>
+          <div style={{ display: 'flex', gap: 6 }}>
             <button
               onClick={startProcessing}
-              disabled={isProcessing}
+              disabled={isProcessing || !videoReady}
               style={{
-                display: 'flex', alignItems: 'center', gap: 7,
-                padding: '8px 16px', borderRadius: 4,
+                display: 'flex', alignItems: 'center', gap: 6,
+                padding: '6px 14px', borderRadius: 3,
                 border: 'none',
-                background: isProcessing ? 'rgba(29,78,216,0.3)' : C.accent,
-                color: isProcessing ? 'rgba(255,255,255,0.4)' : '#fff',
-                fontSize: '0.76rem', fontWeight: 500,
-                cursor: isProcessing ? 'not-allowed' : 'pointer',
-                fontFamily: 'Inter, sans-serif',
-                transition: 'all 0.15s',
+                background: (isProcessing || !videoReady) ? C.elevated : C.accent,
+                color: (isProcessing || !videoReady) ? C.textMut : '#fff',
+                fontSize: '0.7rem', fontWeight: 500,
+                cursor: (isProcessing || !videoReady) ? 'not-allowed' : 'pointer',
+                fontFamily: FONT,
+                transition: 'all 0.1s',
               }}
               onMouseEnter={(e) => {
-                if (!isProcessing) (e.currentTarget as HTMLElement).style.background = '#1e40af';
+                if (!isProcessing && videoReady) (e.currentTarget as HTMLElement).style.background = '#4A8AF4';
               }}
               onMouseLeave={(e) => {
-                if (!isProcessing) (e.currentTarget as HTMLElement).style.background = C.accent;
+                if (!isProcessing && videoReady) (e.currentTarget as HTMLElement).style.background = C.accent;
               }}
             >
-              <Play size={13} />
+              <Play size={12} />
               Start Detection
             </button>
 
@@ -542,30 +760,30 @@ export function VideoUploader() {
               onClick={stopProcessing}
               disabled={!isProcessing}
               style={{
-                display: 'flex', alignItems: 'center', gap: 7,
-                padding: '8px 16px', borderRadius: 4,
-                border: `1px solid ${isProcessing ? 'rgba(229,72,77,0.4)' : C.border}`,
-                background: isProcessing ? 'rgba(229,72,77,0.1)' : 'rgba(255,255,255,0.03)',
+                display: 'flex', alignItems: 'center', gap: 6,
+                padding: '6px 14px', borderRadius: 3,
+                border: `1px solid ${C.border}`,
+                background: isProcessing ? 'rgba(247,84,100,0.1)' : C.panel,
                 color: isProcessing ? C.red : C.textMut,
-                fontSize: '0.76rem', fontWeight: 500,
+                fontSize: '0.7rem', fontWeight: 500,
                 cursor: !isProcessing ? 'not-allowed' : 'pointer',
-                fontFamily: 'Inter, sans-serif',
-                transition: 'all 0.15s',
+                fontFamily: FONT,
+                transition: 'all 0.1s',
               }}
             >
-              <Square size={13} />
+              <Square size={12} />
               Stop
             </button>
 
             <div style={{ flex: 1, display: 'flex', alignItems: 'center', justifyContent: 'flex-end' }}>
               <div style={{
                 display: 'flex', alignItems: 'center', gap: 5,
-                padding: '4px 10px', borderRadius: 3,
-                background: 'rgba(255,255,255,0.03)',
+                padding: '4px 8px', borderRadius: 2,
+                background: C.bg,
                 border: `1px solid ${C.border}`,
               }}>
                 <Cpu size={10} style={{ color: C.textMut }} />
-                <span style={{ fontSize: '0.66rem', color: C.textMut, fontFamily: 'JetBrains Mono, monospace' }}>
+                <span style={{ fontSize: '0.62rem', color: C.textMut, fontFamily: FONT }}>
                   ONNX · 5fps · edge-signed
                 </span>
               </div>
