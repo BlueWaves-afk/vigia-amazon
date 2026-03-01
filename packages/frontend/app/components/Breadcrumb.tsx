@@ -2,46 +2,33 @@
 
 import { ChevronRight, Globe } from 'lucide-react';
 
-interface BreadcrumbProps {
-  path: string[];
-}
-
-// ─────────────────────────────────────────────
-// Breadcrumb — Dark IDE file path bar
-// ─────────────────────────────────────────────
-
-export function Breadcrumb({ path }: BreadcrumbProps) {
+export function Breadcrumb({ path }: { path: string[] }) {
   return (
-    <div
-      className="flex items-center gap-0 h-7 px-3 flex-shrink-0 select-none"
-      style={{
-        background: '#161B22',
-        borderBottom: '1px solid rgba(255,255,255,0.07)',
-      }}
-    >
-      <Globe size={11} className="text-ide-text-tertiary mr-2 flex-shrink-0" />
-      {path.map((segment, i) => (
-        <span key={segment} className="flex items-center gap-0">
-          <span
-            className="transition-colors cursor-default"
-            style={{
-              fontSize: '0.7rem',
-              color: i === path.length - 1 ? '#E2E8F0' : '#4B5563',
-              fontWeight: i === path.length - 1 ? 500 : 400,
-            }}
-            onMouseEnter={(e) => {
-              if (i < path.length - 1)
-                (e.currentTarget as HTMLElement).style.color = '#8B95A1';
-            }}
-            onMouseLeave={(e) => {
-              if (i < path.length - 1)
-                (e.currentTarget as HTMLElement).style.color = '#4B5563';
-            }}
+    <div style={{
+      display: 'flex', alignItems: 'center', height: 25,
+      padding: '0 12px', flexShrink: 0, userSelect: 'none',
+      background: 'var(--c-sidebar)',
+      borderBottom: '1px solid var(--c-border)',
+      gap: 2,
+    }}>
+      <Globe size={9} style={{ color: 'var(--c-text-3)', marginRight: 5, flexShrink: 0 }} />
+      {path.filter(Boolean).map((seg, i, arr) => (
+        <span key={`${seg}-${i}`} style={{ display: 'flex', alignItems: 'center', gap: 2 }}>
+          <span style={{
+            fontSize: '0.65rem',
+            fontFamily: 'IBM Plex Sans, sans-serif',
+            color: i === arr.length - 1 ? 'var(--c-text-2)' : 'var(--c-text-3)',
+            fontWeight: i === arr.length - 1 ? 500 : 400,
+            cursor: i < arr.length - 1 ? 'pointer' : 'default',
+            transition: 'color 0.1s',
+          }}
+          onMouseEnter={(e) => { if (i < arr.length - 1) (e.currentTarget as HTMLElement).style.color = 'var(--c-text-2)'; }}
+          onMouseLeave={(e) => { if (i < arr.length - 1) (e.currentTarget as HTMLElement).style.color = 'var(--c-text-3)'; }}
           >
-            {segment}
+            {seg}
           </span>
-          {i < path.length - 1 && (
-            <ChevronRight size={10} className="text-ide-text-tertiary mx-1 flex-shrink-0" />
+          {i < arr.length - 1 && (
+            <ChevronRight size={8} style={{ color: 'var(--c-rose)', opacity: 0.45, flexShrink: 0 }} />
           )}
         </span>
       ))}
