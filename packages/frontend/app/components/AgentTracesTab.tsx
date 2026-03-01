@@ -1,6 +1,7 @@
 'use client';
 
 import { useAgentTraceStore } from '@/stores/agentTraceStore';
+import type { ReActStep } from '@vigia/shared';
 import { useEffect, useState } from 'react';
 
 export function AgentTracesTab() {
@@ -74,7 +75,7 @@ export function AgentTracesTab() {
                   <div className="text-gray-500 mb-1">
                     {timestamp} | Trace #{trace.traceId.slice(-8)}
                   </div>
-                  {trace.steps.map((step, i) => (
+                  {trace.steps.map((step: ReActStep, i: number) => (
                     <div key={i} className="ml-2 mb-2">
                       {step.thought && (
                         <div className="text-gray-600 italic">
