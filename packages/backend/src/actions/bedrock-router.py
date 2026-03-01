@@ -13,9 +13,34 @@ class DecimalEncoder(json.JSONEncoder):
         return super(DecimalEncoder, self).default(obj)
 
 def query_hazards(event):
+    print(f"[Router] query_hazards called with event: {json.dumps(event)}")
+    
+    # Extract geohash from Bedrock Agent format
     geohash = event.get('geohash')
+    
+    # Bedrock Agent passes parameters as array
+    if not geohash and 'parameters' in event:
+        for param in event['parameters']:
+            if param.get('name') == 'geohash':
+                geohash = param.get('value')
+                break
+    
+    if isinstance(geohash, dict):
+        geohash = geohash.get('value') or geohash.get('S')
+    
+    print(f"[Router] Extracted geohash: {geohash} (type: {type(geohash)})")
+    
     radius_meters = event.get('radiusMeters', 500)
     hours_back = event.get('hoursBack', 24)
+    
+    # Ensure geohash is a string
+    if not isinstance(geohash, str):
+        error_msg = f'Invalid geohash type: {type(geohash)}'
+        print(f"[Router] ERROR: {error_msg}")
+        return {
+            'statusCode': 400,
+            'body': {'error': error_msg}
+        }
     
     response = table.query(
         KeyConditionExpression='geohash = :gh',

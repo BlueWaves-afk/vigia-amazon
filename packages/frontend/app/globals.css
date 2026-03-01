@@ -26,11 +26,11 @@
   --c-red:       #E5484D;
   --c-yellow:    #E9A23B;
 
-  /* Density defaults */
-  --d-row:       26px;
-  --d-pad:       8px;
-  --d-gap:       6px;
-  --d-font-size: 13px;
+  /* Density defaults - upgraded for better readability */
+  --d-row:       30px;
+  --d-pad:       10px;
+  --d-gap:       8px;
+  --d-font-size: 14px;
 }
 
 /* ─────────────────────────────────────────────

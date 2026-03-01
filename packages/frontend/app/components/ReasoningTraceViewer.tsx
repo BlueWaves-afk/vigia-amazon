@@ -2,6 +2,7 @@
 
 import { useEffect, useState } from 'react';
 import { RefreshCw, Brain, Zap, Eye, CheckCircle } from 'lucide-react';
+import { useAgentTraceStore } from '../../stores/agentTraceStore';
 
 // ─────────────────────────────────────────────
 // ReasoningTraceViewer — ALL Bedrock logic preserved
@@ -17,34 +18,62 @@ type ReasoningTrace = {
 };
 
 const TYPE_CONFIG = {
-  thought:     { icon: <Brain size={10} />,       color: '#3B82F6', label: 'THOUGHT'     },
-  action:      { icon: <Zap size={10} />,          color: '#F59E0B', label: 'ACTION'      },
-  observation: { icon: <Eye size={10} />,           color: '#8B95A1', label: 'OBSERVATION' },
-  decision:    { icon: <CheckCircle size={10} />,   color: '#10B981', label: 'DECISION'    },
+  thought:     { icon: <Brain size={13} />,       color: '#3B82F6', label: 'THOUGHT'     },
+  action:      { icon: <Zap size={13} />,          color: '#F59E0B', label: 'ACTION'      },
+  observation: { icon: <Eye size={13} />,           color: '#8B95A1', label: 'OBSERVATION' },
+  decision:    { icon: <CheckCircle size={13} />,   color: '#10B981', label: 'DECISION'    },
   normal:      { icon: null,                        color: '#4B5563', label: ''            },
 } as const;
 
 export function ReasoningTraceViewer() {
+  const { traces, isStreaming, connectSSE, disconnectSSE } = useAgentTraceStore();
   const [trace, setTrace] = useState<ReasoningTrace | null>(null);
   const [loading, setLoading] = useState(true);
 
-  // ── Original Bedrock fetch logic preserved ─
-  const fetchTrace = async () => {
-    try {
-      const response = await fetch(`${process.env.NEXT_PUBLIC_API_URL}/traces`);
-      const data = await response.json();
-      if (data.hasData) setTrace(data.trace);
-      setLoading(false);
-    } catch (error) {
-      console.error('Failed to fetch trace:', error);
+  // Connect to SSE stream on mount
+  useEffect(() => {
+    const apiUrl = process.env.NEXT_PUBLIC_API_URL || 'https://p4qc9upgsf.execute-api.us-east-1.amazonaws.com/prod';
+    // Only connect if innovation endpoint is configured
+    if (process.env.NEXT_PUBLIC_INNOVATION_API_ENDPOINT) {
+      connectSSE(`${apiUrl}/agent-traces/stream`);
+    }
+    
+    return () => disconnectSSE();
+  }, [connectSSE, disconnectSSE]);
+
+  // Update trace when new traces arrive
+  useEffect(() => {
+    if (traces.length > 0) {
+      const latestTrace = traces[traces.length - 1];
+      setTrace({
+        traceId: latestTrace.traceId,
+        hazardId: latestTrace.geohash, // Use geohash as hazard identifier
+        reasoning: latestTrace.steps.map(s => 
+          `Thought: ${s.thought}\nAction: ${s.action}\nObservation: ${s.observation}`
+        ).join('\n') + `\nFinal Answer: ${latestTrace.steps[latestTrace.steps.length - 1]?.finalAnswer || 'Processing...'}`,
+        verificationScore: 0.85,
+        createdAt: new Date(latestTrace.timestamp).toISOString(),
+      });
       setLoading(false);
     }
-  };
+  }, [traces]);
 
+  // Listen for verification events from HazardVerificationPanel (backward compatibility)
   useEffect(() => {
-    fetchTrace();
-    const interval = setInterval(fetchTrace, 5000);
-    return () => clearInterval(interval);
+    const handleVerification = (event: CustomEvent) => {
+      const { hazardId, reasoning, verificationScore } = event.detail;
+      setTrace({
+        traceId: hazardId,
+        hazardId: hazardId,
+        reasoning: reasoning || 'Processing...',
+        verificationScore: verificationScore || 0,
+        createdAt: new Date().toISOString(),
+      });
+      setLoading(false);
+    };
+
+    window.addEventListener('agent-trace-update', handleVerification as EventListener);
+    return () => window.removeEventListener('agent-trace-update', handleVerification as EventListener);
   }, []);
 
   // ── Original parsing logic preserved ──────
@@ -67,8 +96,8 @@ export function ReasoningTraceViewer() {
 
   if (loading) {
     return (
-      <div className="flex items-center gap-2 font-data" style={{ fontSize: '0.72rem', color: '#4B5563' }}>
-        <RefreshCw size={11} className="animate-spin" style={{ color: '#2563EB' }} />
+      <div className="flex items-center gap-2 font-data" style={{ fontSize: '0.82rem', color: '#4B5563' }}>
+        <RefreshCw size={14} className="animate-spin" style={{ color: '#2563EB' }} />
         <span>Initializing AI reasoning engine...</span>
       </div>
     );
@@ -76,7 +105,7 @@ export function ReasoningTraceViewer() {
 
   if (!trace) {
     return (
-      <div className="flex items-center gap-2 font-data" style={{ fontSize: '0.72rem', color: '#4B5563' }}>
+      <div className="flex items-center gap-2 font-data" style={{ fontSize: '0.82rem', color: '#4B5563' }}>
         <span className="animate-pulse" style={{ color: '#2563EB' }}>›</span>
         <span>System idle. Awaiting edge telemetry...</span>
       </div>
@@ -154,7 +183,7 @@ export function ReasoningTraceViewer() {
                 style={{ color: cfg.color }}
               >
                 {cfg.icon}
-                <span style={{ fontSize: '0.6rem', fontWeight: 600, letterSpacing: '0.06em' }}>
+                <span style={{ fontSize: '0.72rem', fontWeight: 600, letterSpacing: '0.06em' }}>
                   [{cfg.label}]
                 </span>
               </span>

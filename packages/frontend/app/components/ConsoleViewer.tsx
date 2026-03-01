@@ -49,16 +49,16 @@ export function ConsoleViewer() {
   }
 
   return (
-    <div style={{ fontFamily: 'JetBrains Mono, monospace', fontSize: '0.7rem' }}>
+    <div style={{ fontFamily: 'JetBrains Mono, monospace', fontSize: '0.8rem', lineHeight: 1.6 }}>
       {logs.map((log, i) => (
-        <div key={i} style={{ display: 'flex', gap: 8, marginBottom: 3 }}>
+        <div key={i} style={{ display: 'flex', gap: 10, marginBottom: 4 }}>
           <span style={{ color: 'var(--c-elevated)' }}>›</span>
           <span style={{ color: getColor(log.type) }}>{log.message}</span>
         </div>
       ))}
-      <div style={{ display: 'flex', gap: 8, marginTop: 3 }}>
+      <div style={{ display: 'flex', gap: 10, marginTop: 4 }}>
         <span style={{ color: 'var(--c-elevated)' }}>›</span>
-        <span style={{ display: 'inline-block', width: 7, height: 13, background: 'var(--c-accent)', animation: 'status-pulse 1s ease-in-out infinite', verticalAlign: 'text-bottom' }} />
+        <span style={{ display: 'inline-block', width: 8, height: 15, background: 'var(--c-accent)', animation: 'status-pulse 1s ease-in-out infinite', verticalAlign: 'text-bottom' }} />
       </div>
     </div>
   );

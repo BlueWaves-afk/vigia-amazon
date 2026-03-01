@@ -1,0 +1,39 @@
+{
+  "version": "1.0",
+  "sessionId": "Session-2026-03-15",
+  "timestamp": 1773582400000,
+  "hazards": [
+    {
+      "id": "h1",
+      "geohash": "9q5ct2k",
+      "type": "POTHOLE",
+      "severity": 4,
+      "timestamp": 1773582400000,
+      "signature": "0x1234567890abcdef",
+      "contributorId": "contributor-001"
+    },
+    {
+      "id": "h4",
+      "geohash": "9q5ct2p",
+      "type": "POTHOLE",
+      "severity": 3,
+      "timestamp": 1773582410000,
+      "signature": "0x9876543210fedcba",
+      "contributorId": "contributor-004"
+    },
+    {
+      "id": "h5",
+      "geohash": "9q5ct2q",
+      "type": "ACCIDENT",
+      "severity": 5,
+      "timestamp": 1773582420000,
+      "signature": "0x1111222233334444",
+      "contributorId": "contributor-005"
+    }
+  ],
+  "metadata": {
+    "totalHazards": 3,
+    "geohashBounds": ["9q5ct2k", "9q5ct2q"],
+    "contributors": ["contributor-001", "contributor-004", "contributor-005"]
+  }
+}

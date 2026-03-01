@@ -1,0 +1,39 @@
+{
+  "version": "1.0",
+  "sessionId": "Session-2026-03-01",
+  "timestamp": 1772372800000,
+  "hazards": [
+    {
+      "id": "h1",
+      "geohash": "9q5ct2k",
+      "type": "POTHOLE",
+      "severity": 3,
+      "timestamp": 1772372800000,
+      "signature": "0x1234567890abcdef",
+      "contributorId": "contributor-001"
+    },
+    {
+      "id": "h2",
+      "geohash": "9q5ct2m",
+      "type": "DEBRIS",
+      "severity": 2,
+      "timestamp": 1772372810000,
+      "signature": "0xabcdef1234567890",
+      "contributorId": "contributor-002"
+    },
+    {
+      "id": "h3",
+      "geohash": "9q5ct2n",
+      "type": "FLOODING",
+      "severity": 5,
+      "timestamp": 1772372820000,
+      "signature": "0xfedcba0987654321",
+      "contributorId": "contributor-003"
+    }
+  ],
+  "metadata": {
+    "totalHazards": 3,
+    "geohashBounds": ["9q5ct2k", "9q5ct2n"],
+    "contributors": ["contributor-001", "contributor-002", "contributor-003"]
+  }
+}

@@ -1,0 +1,10 @@
+{
+  "VigiaStack": {
+    "HazardsTableName": "VigiaStack-IngestionHazardsTable05BAEAEE-1B0GEE1NV7PU5",
+    "SessionApiEndpoint": "https://eepqy4yku7.execute-api.us-east-1.amazonaws.com/prod/",
+    "IngestionVigiaAPIEndpoint6EC1B0D1": "https://sq2ri2n51g.execute-api.us-east-1.amazonaws.com/prod/",
+    "ApiEndpoint": "https://sq2ri2n51g.execute-api.us-east-1.amazonaws.com/prod/",
+    "SessionSessionAPIEndpointC8F32A54": "https://eepqy4yku7.execute-api.us-east-1.amazonaws.com/prod/",
+    "IntelligenceWithHazardsBedrockRouterFunctionArnEA97357A": "arn:aws:lambda:us-east-1:203800220566:function:VigiaStack-IntelligenceWithHazardsBedrockRouterFun-gW5JPucnZJJG"
+  }
+}

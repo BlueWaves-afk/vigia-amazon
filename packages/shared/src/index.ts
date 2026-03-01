@@ -41,3 +41,8 @@ export interface LedgerEntry {
   previousHash: string;
   currentHash: string;
 }
+
+// Innovation features exports
+export * from './mapFile';
+export * from './agentTrace';
+export * from './economic';

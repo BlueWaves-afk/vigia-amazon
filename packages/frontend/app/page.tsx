@@ -1,6 +1,6 @@
 'use client';
 
-import { useState, useRef, useCallback } from 'react';
+import { useState, useRef, useCallback, useEffect } from 'react';
 import { X, MapPin, Video, Terminal as TerminalIcon, Database, Radio, Server } from 'lucide-react';
 import { VideoUploader }        from './components/VideoUploader';
 import { LiveMap }              from './components/LiveMap';
@@ -14,6 +14,8 @@ import { StatusBar }            from './components/StatusBar';
 import { SettingsPanel }        from './components/SettingsPanel';
 import { useSettings }          from './components/SettingsContext';
 import { NewSessionView }       from './components/NewSessionView';
+import { DetectionModeView }    from './components/DetectionModeView';
+import { NetworkMapView }       from './components/NetworkMapView';
 
 type MainTab    = 'map' | 'sentinel' | string; // Allow session IDs as tabs
 type ConsoleTab = 'traces' | 'ledger' | 'console';
@@ -29,11 +31,37 @@ export default function Dashboard() {
   const [consoleHeight,    setConsoleHeight]    = useState(220);
   const [settingsOpen,     setSettingsOpen]     = useState(false);
   const [selectedSession,  setSelectedSession]  = useState<any>(null);
-  const [sidebarActivity,  setSidebarActivity]  = useState<'explorer' | 'detection'>('explorer');
+  const [sidebarActivity,  setSidebarActivity]  = useState<'explorer' | 'detection' | 'network' | 'maintenance'>('explorer');
+  const [splitView, setSplitView] = useState<{ left: any; right: any } | null>(null);
+
+  // Listen for maintenance report requests from hazard clicks
+  useEffect(() => {
+    const handleMaintenanceReport = (event: CustomEvent) => {
+      const { hazard } = event.detail;
+      // Switch to maintenance activity
+      setSidebarActivity('maintenance');
+      
+      // Store hazard data for pre-filling the form
+      (window as any).__maintenanceHazard = hazard;
+    };
+
+    const handleSplitView = (event: CustomEvent) => {
+      const { left, right } = event.detail;
+      setSplitView({ left, right });
+    };
+
+    window.addEventListener('vigia-report-maintenance', handleMaintenanceReport as EventListener);
+    window.addEventListener('vigia-split-view', handleSplitView as EventListener);
+    
+    return () => {
+      window.removeEventListener('vigia-report-maintenance', handleMaintenanceReport as EventListener);
+      window.removeEventListener('vigia-split-view', handleSplitView as EventListener);
+    };
+  }, []);
 
   // Get current tabs based on active activity
-  const openTabs = sidebarActivity === 'explorer' ? explorerTabs : detectionTabs;
-  const setOpenTabs = sidebarActivity === 'explorer' ? setExplorerTabs : setDetectionTabs;
+  const openTabs = sidebarActivity === 'explorer' ? explorerTabs : sidebarActivity === 'detection' ? detectionTabs : [];
+  const setOpenTabs = sidebarActivity === 'explorer' ? setExplorerTabs : sidebarActivity === 'detection' ? setDetectionTabs : () => {};
 
   // ── Console resize ────────────────────────
   const isDragging  = useRef(false);
@@ -63,13 +91,13 @@ export default function Dashboard() {
   }, [consoleHeight]);
 
   const mainTabs = [
-    { id: 'map'       as MainTab,    label: 'World Map',      icon: <MapPin size={11} /> },
-    { id: 'sentinel'  as MainTab,    label: 'Detection Node', icon: <Video  size={11} /> },
+    { id: 'map'       as MainTab,    label: 'World Map',      icon: <MapPin size={14} /> },
+    { id: 'sentinel'  as MainTab,    label: 'Detection Node', icon: <Video  size={14} /> },
   ];
   const consoleTabs = [
-    { id: 'traces'    as ConsoleTab, label: 'Agent Traces', icon: <Radio    size={11} /> },
-    { id: 'ledger'    as ConsoleTab, label: 'DePIN Ledger', icon: <Database size={11} /> },
-    { id: 'console'   as ConsoleTab, label: 'Console',      icon: <Server   size={11} /> },
+    { id: 'traces'    as ConsoleTab, label: 'Agent Traces', icon: <Radio    size={14} /> },
+    { id: 'ledger'    as ConsoleTab, label: 'DePIN Ledger', icon: <Database size={14} /> },
+    { id: 'console'   as ConsoleTab, label: 'Console',      icon: <Server   size={14} /> },
   ];
 
   const handleSessionClick = (session: any) => {
@@ -156,24 +184,38 @@ export default function Dashboard() {
             
             setSidebarActivity(activity);
             
-            // Restore active tab for new activity
-            const tabs = activity === 'explorer' ? explorerTabs : detectionTabs;
-            const savedActiveTab = activity === 'explorer' ? explorerActiveTab : detectionActiveTab;
+            // For detection activity, always show the detection view
+            if (activity === 'detection') {
+              if (!detectionTabs.find(t => t.id === 'sentinel')) {
+                setDetectionTabs(prev => [...prev, { id: 'sentinel', label: 'Detection Node' }]);
+              }
+              setActiveMainTab('sentinel');
+              setSelectedSession(null);
+              return;
+            }
+            
+            // For network activity, clear active tab to show network map
+            if (activity === 'network') {
+              setActiveMainTab(null);
+              setSelectedSession(null);
+              return;
+            }
+            
+            // Restore active tab for explorer activity
+            const tabs = explorerTabs;
+            const savedActiveTab = explorerActiveTab;
             
             if (savedActiveTab && tabs.find(t => t.id === savedActiveTab)) {
               // Restore previously active tab
               setActiveMainTab(savedActiveTab);
-              // Restore session if it's an explorer tab
-              if (activity === 'explorer') {
-                const tab = tabs.find(t => t.id === savedActiveTab);
-                if (tab?.session) {
-                  setSelectedSession(tab.session);
-                }
+              const tab = tabs.find(t => t.id === savedActiveTab);
+              if (tab?.session) {
+                setSelectedSession(tab.session);
               }
             } else if (tabs.length > 0) {
               // Fallback to last tab
               setActiveMainTab(tabs[tabs.length - 1].id as MainTab);
-              if (activity === 'explorer' && tabs[tabs.length - 1].session) {
+              if (tabs[tabs.length - 1].session) {
                 setSelectedSession(tabs[tabs.length - 1].session);
               }
             } else {
@@ -208,7 +250,7 @@ export default function Dashboard() {
 
           {/* Tab bar */}
           <div style={{
-            display: 'flex', alignItems: 'flex-end', height: 34, flexShrink: 0,
+            display: 'flex', alignItems: 'flex-end', height: 40, flexShrink: 0,
             background: 'var(--c-sidebar)', borderBottom: '1px solid var(--c-border)',
             overflowX: 'auto', overflowY: 'hidden',
           }}>
@@ -221,27 +263,27 @@ export default function Dashboard() {
                   if (tab.session) setSelectedSession(tab.session);
                   else setSelectedSession(null);
                 }} style={{
-                  position: 'relative', display: 'flex', alignItems: 'center', gap: 6,
-                  height: '100%', padding: '0 14px', minWidth: 110, flexShrink: 0,
+                  position: 'relative', display: 'flex', alignItems: 'center', gap: 8,
+                  height: '100%', padding: '0 16px', minWidth: 120, flexShrink: 0,
                   cursor: 'pointer', border: 'none',
                   borderRight: '1px solid rgba(255,255,255,0.06)',
                   background: active ? 'var(--c-panel)' : 'transparent',
                   color: active ? 'var(--c-text)' : 'var(--c-text-3)',
-                  fontSize: '0.74rem', fontWeight: active ? 500 : 400,
+                  fontSize: '0.85rem', fontWeight: active ? 500 : 400,
                   fontFamily: 'Inter, sans-serif', transition: 'background 0.1s',
                 }}
                 onMouseEnter={(e) => { if (!active) (e.currentTarget as HTMLElement).style.background = 'rgba(255,255,255,0.03)'; }}
                 onMouseLeave={(e) => { if (!active) (e.currentTarget as HTMLElement).style.background = 'transparent'; }}
                 >
-                  {tab.id === 'map' && <span style={{ color: active ? 'var(--c-accent-2)' : 'var(--c-text-3)' }}><MapPin size={11} /></span>}
-                  {tab.id === 'sentinel' && <span style={{ color: active ? 'var(--c-accent-2)' : 'var(--c-text-3)' }}><Video size={11} /></span>}
+                  {tab.id === 'map' && <span style={{ color: active ? 'var(--c-accent-2)' : 'var(--c-text-3)' }}><MapPin size={14} /></span>}
+                  {tab.id === 'sentinel' && <span style={{ color: active ? 'var(--c-accent-2)' : 'var(--c-text-3)' }}><Video size={14} /></span>}
                   {tab.label}
                   {isCloseable && (
-                    <span onClick={(e) => closeTab(tab.id, e)} style={{ display: 'flex', alignItems: 'center', justifyContent: 'center', width: 16, height: 16, marginLeft: 2, color: 'var(--c-text-3)', cursor: 'pointer' }}
+                    <span onClick={(e) => closeTab(tab.id, e)} style={{ display: 'flex', alignItems: 'center', justifyContent: 'center', width: 18, height: 18, marginLeft: 4, color: 'var(--c-text-3)', cursor: 'pointer' }}
                       onMouseEnter={(e) => (e.currentTarget as HTMLElement).style.color = 'var(--c-text)'}
                       onMouseLeave={(e) => (e.currentTarget as HTMLElement).style.color = 'var(--c-text-3)'}
                     >
-                      <X size={10} />
+                      <X size={12} />
                     </span>
                   )}
                   {active && <span className="tab-line" />}
@@ -258,7 +300,9 @@ export default function Dashboard() {
           )}
 
           <div style={{ flex: 1, overflow: 'hidden', minHeight: 0 }}>
-            {!activeMainTab ? (
+            {sidebarActivity === 'network' ? (
+              <NetworkMapView />
+            ) : !activeMainTab ? (
               <div style={{ 
                 display: 'flex', 
                 alignItems: 'center', 
@@ -365,8 +409,62 @@ export default function Dashboard() {
                 </div>
               </div>
             ) : activeMainTab === 'sentinel' ? (
-              <div style={{ height: '100%', overflowY: 'auto', padding: 24, background: 'var(--c-bg)' }}>
-                <VideoUploader />
+              <DetectionModeView />
+            ) : splitView ? (
+              <div style={{ display: 'flex', height: '100%', gap: 1, background: 'var(--c-border)' }}>
+                <div style={{ flex: 1, overflow: 'hidden', position: 'relative' }}>
+                  <div style={{ 
+                    position: 'absolute', 
+                    top: 8, 
+                    left: 8, 
+                    zIndex: 10,
+                    background: 'rgba(0,0,0,0.8)',
+                    padding: '4px 8px',
+                    borderRadius: 3,
+                    fontSize: '0.7rem',
+                    color: '#fff',
+                    fontFamily: 'Inter, sans-serif'
+                  }}>
+                    {splitView.left.location?.city || 'Session'} - {new Date(splitView.left.timestamp).toLocaleDateString()}
+                  </div>
+                  <LiveMap key={splitView.left.sessionId} selectedSession={splitView.left} />
+                </div>
+                <div style={{ flex: 1, overflow: 'hidden', position: 'relative' }}>
+                  <div style={{ 
+                    position: 'absolute', 
+                    top: 8, 
+                    left: 8, 
+                    zIndex: 10,
+                    background: 'rgba(0,0,0,0.8)',
+                    padding: '4px 8px',
+                    borderRadius: 3,
+                    fontSize: '0.7rem',
+                    color: '#fff',
+                    fontFamily: 'Inter, sans-serif'
+                  }}>
+                    {splitView.right.location?.city || 'Session'} - {new Date(splitView.right.timestamp).toLocaleDateString()}
+                  </div>
+                  <LiveMap key={splitView.right.sessionId} selectedSession={splitView.right} />
+                </div>
+                <button
+                  onClick={() => setSplitView(null)}
+                  style={{
+                    position: 'absolute',
+                    top: 8,
+                    right: 8,
+                    zIndex: 20,
+                    background: 'rgba(0,0,0,0.8)',
+                    border: '1px solid var(--c-border)',
+                    borderRadius: 3,
+                    padding: '4px 8px',
+                    color: '#fff',
+                    fontSize: '0.7rem',
+                    cursor: 'pointer',
+                    fontFamily: 'Inter, sans-serif'
+                  }}
+                >
+                  Close Split
+                </button>
               </div>
             ) : selectedSession ? (
               <LiveMap key={selectedSession?.sessionId || 'default'} selectedSession={selectedSession} />
@@ -383,19 +481,19 @@ export default function Dashboard() {
             </div>
 
             <div style={{
-              display: 'flex', alignItems: 'center', height: 32, flexShrink: 0,
+              display: 'flex', alignItems: 'center', height: 38, flexShrink: 0,
               background: 'var(--c-sidebar)', borderBottom: '1px solid var(--c-border)',
             }}>
               {consoleTabs.map((tab) => {
                 const active = activeConsoleTab === tab.id;
                 return (
                   <button key={tab.id} onClick={() => setActiveConsoleTab(tab.id)} style={{
-                    position: 'relative', display: 'flex', alignItems: 'center', gap: 5,
-                    padding: '0 13px', height: '100%', cursor: 'pointer', border: 'none',
+                    position: 'relative', display: 'flex', alignItems: 'center', gap: 8,
+                    padding: '0 16px', height: '100%', cursor: 'pointer', border: 'none',
                     borderRight: '1px solid rgba(255,255,255,0.05)',
                     background: active ? 'var(--c-panel)' : 'transparent',
                     color: active ? 'var(--c-text)' : 'var(--c-text-3)',
-                    fontSize: '0.72rem', fontFamily: 'Inter, sans-serif', transition: 'background 0.1s',
+                    fontSize: '0.85rem', fontFamily: 'Inter, sans-serif', transition: 'background 0.1s',
                   }}
                   onMouseEnter={(e) => { if (!active) (e.currentTarget as HTMLElement).style.background = 'rgba(255,255,255,0.03)'; }}
                   onMouseLeave={(e) => { if (!active) (e.currentTarget as HTMLElement).style.background = 'transparent'; }}
@@ -409,7 +507,7 @@ export default function Dashboard() {
               <div style={{ flex: 1 }} />
             </div>
 
-            <div style={{ flex: 1, overflowY: 'auto', padding: '10px 14px', background: 'var(--c-deep)' }}>
+            <div style={{ flex: 1, overflowY: 'auto', padding: '12px 16px', background: 'var(--c-deep)' }}>
               {activeConsoleTab === 'traces'   && <ReasoningTraceViewer />}
               {activeConsoleTab === 'ledger'   && <LedgerTicker />}
               {activeConsoleTab === 'console'  && <ConsoleViewer />}

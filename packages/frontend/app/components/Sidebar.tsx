@@ -2,13 +2,15 @@
 
 import { useState, useRef, useCallback, useEffect } from 'react';
 import {
-  Globe, Layers, Radio, Database,
-  Settings, GitBranch, Search, AlertTriangle,
+  Globe, Radio, Database,
+  Settings, Search, AlertTriangle,
   Navigation, ChevronRight, ChevronDown,
   Folder, FolderOpen, FileText, Video,
-  Clock, MapPin, Activity,
+  Clock, MapPin, Activity, Wrench,
 } from 'lucide-react';
 import { VFSManager } from '../lib/vfs-manager';
+import { MaintenancePanel } from './MaintenancePanelIntegrated';
+import { useMapFileStore } from '../../stores/mapFileStore';
 
 interface SidebarProps {
   onSentinelEyeClick:  () => void;
@@ -18,7 +20,7 @@ interface SidebarProps {
   onSessionsDeleted?:  (sessionIds: string[]) => void;
   onNewSessionClick?:  () => void;
   onRefreshSessions?:  () => void;
-  onActivityChange?:   (activity: 'explorer' | 'detection') => void;
+  onActivityChange?:   (activity: 'explorer' | 'detection' | 'network' | 'maintenance') => void;
 }
 
 // ─────────────────────────────────────────────
@@ -57,7 +59,7 @@ function ActivityBtn({ icon, active, label, onClick }: {
       onClick={onClick}
       style={{
         width: '100%',
-        height: 40,
+        height: 48,
         display: 'flex',
         alignItems: 'center',
         justifyContent: 'center',
@@ -94,6 +96,7 @@ function ActivityBtn({ icon, active, label, onClick }: {
 function TreeNode({
   label, icon, depth = 0, isActive = false,
   onClick, onContextMenu, children, badge, badgeColor,
+  draggable, onDragStart, onDragOver, onDragLeave, onDrop, sessionData,
 }: {
   label: string;
   icon: 'folder' | 'file' | 'video' | 'session';
@@ -104,8 +107,15 @@ function TreeNode({
   children?: React.ReactNode;
   badge?: string;
   badgeColor?: string;
+  draggable?: boolean;
+  onDragStart?: (e: React.DragEvent) => void;
+  onDragOver?: (e: React.DragEvent) => void;
+  onDragLeave?: (e: React.DragEvent) => void;
+  onDrop?: (e: React.DragEvent) => void;
+  sessionData?: any;
 }) {
   const [expanded, setExpanded] = useState(depth === 0);
+  const [dragOver, setDragOver] = useState(false);
   const hasChildren = Boolean(children);
 
   const handleClick = () => {
@@ -114,11 +124,11 @@ function TreeNode({
   };
 
   const iconEl = () => {
-    if (icon === 'video')   return <Video    size={11} style={{ color: C.accent,   flexShrink: 0 }} />;
-    if (icon === 'file')    return <FileText  size={11} style={{ color: C.textMut,  flexShrink: 0 }} />;
-    if (icon === 'session') return <Clock     size={11} style={{ color: C.textMut,  flexShrink: 0 }} />;
-    if (expanded)           return <FolderOpen size={11} style={{ color: C.textSec, flexShrink: 0 }} />;
-    return                         <Folder    size={11} style={{ color: C.textMut,  flexShrink: 0 }} />;
+    if (icon === 'video')   return <Video    size={15} style={{ color: C.accent,   flexShrink: 0 }} />;
+    if (icon === 'file')    return <FileText  size={15} style={{ color: C.textMut,  flexShrink: 0 }} />;
+    if (icon === 'session') return <Clock     size={15} style={{ color: C.textMut,  flexShrink: 0 }} />;
+    if (expanded)           return <FolderOpen size={15} style={{ color: C.textSec, flexShrink: 0 }} />;
+    return                         <Folder    size={15} style={{ color: C.textMut,  flexShrink: 0 }} />;
   };
 
   return (
@@ -126,25 +136,42 @@ function TreeNode({
       <button
         onClick={handleClick}
         onContextMenu={onContextMenu}
+        draggable={draggable}
+        onDragStart={onDragStart}
+        onDragOver={(e) => {
+          if (onDragOver) {
+            e.preventDefault();
+            setDragOver(true);
+            onDragOver(e);
+          }
+        }}
+        onDragLeave={(e) => {
+          setDragOver(false);
+          onDragLeave?.(e);
+        }}
+        onDrop={(e) => {
+          setDragOver(false);
+          onDrop?.(e);
+        }}
         style={{
           width: '100%',
           display: 'flex',
           alignItems: 'center',
-          gap: 4,
-          height: 26,
-          paddingLeft: 8 + depth * 12,
-          paddingRight: 8,
+          gap: 6,
+          height: 30,
+          paddingLeft: 10 + depth * 14,
+          paddingRight: 10,
           border: 'none',
-          background: isActive ? C.accentBg : 'transparent',
-          cursor: 'pointer',
+          background: dragOver ? 'rgba(59,130,246,0.2)' : isActive ? C.accentBg : 'transparent',
+          cursor: draggable ? 'grab' : 'pointer',
           position: 'relative',
           transition: 'background 0.1s',
         }}
         onMouseEnter={(e) => {
-          if (!isActive) (e.currentTarget as HTMLElement).style.background = C.hover;
+          if (!isActive && !dragOver) (e.currentTarget as HTMLElement).style.background = C.hover;
         }}
         onMouseLeave={(e) => {
-          if (!isActive) (e.currentTarget as HTMLElement).style.background = 'transparent';
+          if (!isActive && !dragOver) (e.currentTarget as HTMLElement).style.background = 'transparent';
         }}
       >
         {isActive && (
@@ -152,11 +179,11 @@ function TreeNode({
         )}
 
         {/* Chevron */}
-        <span style={{ width: 12, display: 'flex', alignItems: 'center', justifyContent: 'center', flexShrink: 0 }}>
+        <span style={{ width: 14, display: 'flex', alignItems: 'center', justifyContent: 'center', flexShrink: 0 }}>
           {hasChildren
             ? (expanded
-              ? <ChevronDown  size={9}  style={{ color: C.textMut }} />
-              : <ChevronRight size={9}  style={{ color: C.textMut }} />)
+              ? <ChevronDown  size={12}  style={{ color: C.textMut }} />
+              : <ChevronRight size={12}  style={{ color: C.textMut }} />)
             : null}
         </span>
 
@@ -164,8 +191,8 @@ function TreeNode({
 
         <span style={{
           flex: 1,
-          fontSize: '0.74rem',
-          color: isActive ? C.text : icon === 'video' ? C.textSec : '#5C6B80',
+          fontSize: '0.85rem',
+          color: isActive ? C.text : icon === 'video' ? C.textSec : '#8B9AAE',
           fontWeight: isActive ? 500 : 400,
           overflow: 'hidden',
           textOverflow: 'ellipsis',
@@ -178,9 +205,9 @@ function TreeNode({
 
         {badge && (
           <span style={{
-            fontSize: '0.58rem',
-            padding: '1px 5px',
-            borderRadius: 3,
+            fontSize: '0.7rem',
+            padding: '2px 7px',
+            borderRadius: 4,
             background: badgeColor ? `${badgeColor}22` : 'rgba(255,255,255,0.06)',
             color: badgeColor ?? C.textMut,
             fontFamily: 'JetBrains Mono, monospace',
@@ -193,7 +220,7 @@ function TreeNode({
 
         {icon === 'video' && (
           <span style={{
-            fontSize: '0.52rem', padding: '1px 4px', borderRadius: 2,
+            fontSize: '0.65rem', padding: '2px 6px', borderRadius: 3,
             background: '#E5484D', color: '#fff', fontWeight: 700,
             letterSpacing: '0.06em', fontFamily: 'Inter, sans-serif',
             flexShrink: 0,
@@ -217,14 +244,14 @@ function StatChip({ label, value, color }: { label: string; value: string; color
       display: 'flex',
       flexDirection: 'column',
       alignItems: 'center',
-      gap: 2,
-      padding: '6px 0',
+      gap: 3,
+      padding: '8px 0',
       flex: 1,
     }}>
-      <span style={{ fontSize: '0.78rem', fontWeight: 600, color, fontFamily: 'JetBrains Mono, monospace' }}>
+      <span style={{ fontSize: '0.95rem', fontWeight: 600, color, fontFamily: 'JetBrains Mono, monospace' }}>
         {value}
       </span>
-      <span style={{ fontSize: '0.58rem', color: C.textMut, textTransform: 'uppercase', letterSpacing: '0.06em', fontFamily: 'Inter, sans-serif' }}>
+      <span style={{ fontSize: '0.7rem', color: C.textMut, textTransform: 'uppercase', letterSpacing: '0.06em', fontFamily: 'Inter, sans-serif' }}>
         {label}
       </span>
     </div>
@@ -240,6 +267,7 @@ const MAX_WIDTH = 340;
 const DEFAULT_WIDTH = 210;
 
 export function Sidebar({ onSentinelEyeClick, isSentinelEyeActive, onSettingsOpen, onSessionClick, onSessionsDeleted, onNewSessionClick, onRefreshSessions, onActivityChange }: SidebarProps) {
+  const { computeDiff } = useMapFileStore();
   const [width, setWidth]         = useState(DEFAULT_WIDTH);
   const [isDragging, setIsDragging] = useState(false);
   const [filterText, setFilterText] = useState('');
@@ -250,9 +278,11 @@ export function Sidebar({ onSentinelEyeClick, isSentinelEyeActive, onSettingsOpe
   const [searchResults, setSearchResults] = useState<any[]>([]);
   const [selectedLocation, setSelectedLocation] = useState<{ lat: number; lon: number; name: string; city?: string; region?: string; country?: string } | null>(null);
   const [isSearching, setIsSearching] = useState(false);
-  const [activeActivity, setActiveActivity] = useState<'explorer' | 'detection'>('explorer');
+  const [activeActivity, setActiveActivity] = useState<'explorer' | 'detection' | 'network' | 'maintenance'>('explorer');
   const [showMap, setShowMap] = useState(false);
   const [contextMenu, setContextMenu] = useState<{ x: number; y: number; session: any } | null>(null);
+  const [draggedSession, setDraggedSession] = useState<any>(null);
+  const [dropTarget, setDropTarget] = useState<any>(null);
   const mapRef = useRef<any>(null);
   const startX   = useRef(0);
   const startW   = useRef(DEFAULT_WIDTH);
@@ -637,7 +667,7 @@ export function Sidebar({ onSentinelEyeClick, isSentinelEyeActive, onSettingsOpe
 
       {/* ── Activity Bar ────────────────────── */}
       <div style={{
-        width: 40,
+        width: 48,
         display: 'flex',
         flexDirection: 'column',
         flexShrink: 0,
@@ -645,19 +675,18 @@ export function Sidebar({ onSentinelEyeClick, isSentinelEyeActive, onSettingsOpe
         borderRight: `1px solid ${C.border}`,
       }}>
         <div style={{ flex: 1, display: 'flex', flexDirection: 'column' }}>
-          <ActivityBtn icon={<Globe size={17} />}    active={activeActivity === 'explorer'} label="Geo Explorer" onClick={() => { setActiveActivity('explorer'); onActivityChange?.('explorer'); }} />
-          <ActivityBtn icon={<Activity size={17} />} active={activeActivity === 'detection'} label="Detection" onClick={() => { setActiveActivity('detection'); onActivityChange?.('detection'); }} />
-          <ActivityBtn icon={<Layers size={17} />}   label="Layers" />
-          <ActivityBtn icon={<Radio size={17} />}    label="Swarm" />
-          <ActivityBtn icon={<Database size={17} />} label="Ledger" />
+          <ActivityBtn icon={<Globe size={20} />}    active={activeActivity === 'explorer'} label="Geo Explorer" onClick={() => { setActiveActivity('explorer'); onActivityChange?.('explorer'); }} />
+          <ActivityBtn icon={<Activity size={20} />} active={activeActivity === 'detection'} label="Detection" onClick={() => { setActiveActivity('detection'); onActivityChange?.('detection'); }} />
+          <ActivityBtn icon={<Radio size={20} />}    active={activeActivity === 'network'} label="Network" onClick={() => { setActiveActivity('network'); onActivityChange?.('network'); }} />
+          <ActivityBtn icon={<Wrench size={20} />}   active={activeActivity === 'maintenance'} label="Maintenance" onClick={() => { setActiveActivity('maintenance'); onActivityChange?.('maintenance'); }} />
         </div>
         <div style={{ display: 'flex', flexDirection: 'column' }}>
-          <ActivityBtn icon={<GitBranch size={17} />} label="Source Control" />
-          <ActivityBtn icon={<Settings size={17} />}  label="Settings" onClick={onSettingsOpen} />
+          <ActivityBtn icon={<Settings size={20} />}  label="Settings" onClick={onSettingsOpen} />
         </div>
       </div>
 
-      {/* ── Explorer Panel ──────────────────── */}
+      {/* ── Explorer Panel - only show for explorer activity ──────────────────── */}
+      {activeActivity === 'explorer' && (
       <div style={{
         width,
         display: 'flex',
@@ -666,21 +695,21 @@ export function Sidebar({ onSentinelEyeClick, isSentinelEyeActive, onSettingsOpe
         background: C.bg,
         transition: isDragging ? 'none' : undefined,
       }}>
-        {/* Panel header */}
+        {/* Panel header - only show for explorer */}
         <div style={{
           display: 'flex',
           alignItems: 'center',
           justifyContent: 'space-between',
-          padding: '0 10px',
-          height: 32,
+          padding: '0 12px',
+          height: 38,
           flexShrink: 0,
           borderBottom: `1px solid ${C.border}`,
         }}>
           <span style={{
-            fontSize: '0.62rem',
-            color: C.textMut,
+            fontSize: '0.75rem',
+            color: C.textSec,
             fontWeight: 600,
-            letterSpacing: '0.1em',
+            letterSpacing: '0.08em',
             textTransform: 'uppercase',
             fontFamily: 'Inter, sans-serif',
           }}>
@@ -774,8 +803,7 @@ export function Sidebar({ onSentinelEyeClick, isSentinelEyeActive, onSettingsOpe
 
         {/* Tree */}
         <div style={{ flex: 1, overflowY: 'auto', paddingTop: 4, paddingBottom: 4 }}>
-          {activeActivity === 'explorer' && (
-            <TreeNode label="Sessions" icon="folder">
+          <TreeNode label="Sessions" icon="folder">
               {Object.keys(sessionsByGeo).sort().map(continent => (
                 <TreeNode 
                   key={`continent-${continent}`} 
@@ -841,6 +869,95 @@ export function Sidebar({ onSentinelEyeClick, isSentinelEyeActive, onSettingsOpe
                                     badgeColor={badgeColor}
                                     onClick={() => onSessionClick?.(session)}
                                     onContextMenu={(e) => handleSessionRightClick(e, session)}
+                                    draggable={true}
+                                    sessionData={session}
+                                    onDragStart={(e) => {
+                                      e.dataTransfer.effectAllowed = 'copy';
+                                      setDraggedSession(session);
+                                    }}
+                                    onDragOver={(e) => {
+                                      e.preventDefault();
+                                      e.dataTransfer.dropEffect = 'copy';
+                                      setDropTarget(session);
+                                    }}
+                                    onDragLeave={() => {
+                                      setDropTarget(null);
+                                    }}
+                                    onDrop={async (e) => {
+                                      e.preventDefault();
+                                      setDropTarget(null);
+                                      
+                                      if (draggedSession && draggedSession.sessionId !== session.sessionId) {
+                                        // Check if same location (city)
+                                        const sameLocation = draggedSession.location?.city === session.location?.city;
+                                        
+                                        if (sameLocation) {
+                                          // Trigger split view
+                                          window.dispatchEvent(new CustomEvent('vigia-split-view', {
+                                            detail: { left: draggedSession, right: session }
+                                          }));
+                                          
+                                          // Emit trace event
+                                          window.dispatchEvent(new CustomEvent('vigia-trace', {
+                                            detail: { 
+                                              type: 'split', 
+                                              message: `Split view: ${draggedSession.sessionId} | ${session.sessionId}` 
+                                            }
+                                          }));
+                                        } else {
+                                          // Different locations - compute diff
+                                          try {
+                                            // Add sessions to store as MapFiles
+                                            const { files } = useMapFileStore.getState();
+                                            
+                                            const fileA: any = {
+                                              version: "1.0",
+                                              sessionId: draggedSession.sessionId,
+                                              timestamp: new Date(draggedSession.timestamp).getTime(),
+                                              hazards: draggedSession.hazards || [],
+                                              metadata: {
+                                                totalHazards: draggedSession.hazardCount || 0,
+                                                geohashBounds: draggedSession.geohash7 || '',
+                                                contributors: [draggedSession.contributorId || 'unknown']
+                                              }
+                                            };
+                                            
+                                            const fileB: any = {
+                                              version: "1.0",
+                                              sessionId: session.sessionId,
+                                              timestamp: new Date(session.timestamp).getTime(),
+                                              hazards: session.hazards || [],
+                                              metadata: {
+                                                totalHazards: session.hazardCount || 0,
+                                                geohashBounds: session.geohash7 || '',
+                                                contributors: [session.contributorId || 'unknown']
+                                              }
+                                            };
+                                            
+                                            // Add to store
+                                            files.set(fileA.sessionId, fileA);
+                                            files.set(fileB.sessionId, fileB);
+                                            useMapFileStore.setState({ files: new Map(files) });
+                                            
+                                            // Compute diff
+                                            await computeDiff(fileA.sessionId, fileB.sessionId);
+                                            
+                                            // Emit trace event
+                                            window.dispatchEvent(new CustomEvent('vigia-trace', {
+                                              detail: { 
+                                                type: 'diff', 
+                                                message: `Diff computed: ${draggedSession.sessionId} → ${session.sessionId}` 
+                                              }
+                                            }));
+                                          } catch (err) {
+                                            console.error('Failed to compute diff:', err);
+                                            alert('Failed to compute diff. Sessions may not have hazard data.');
+                                          }
+                                        }
+                                        
+                                        setDraggedSession(null);
+                                      }
+                                    }}
                                   />
                                 );
                               })}
@@ -853,22 +970,9 @@ export function Sidebar({ onSentinelEyeClick, isSentinelEyeActive, onSettingsOpe
               </TreeNode>
             ))}
           </TreeNode>
-          )}
-
-          {activeActivity === 'detection' && (
-            <TreeNode label="Live End-to-End Demo" icon="folder">
-              <TreeNode
-                label="Detection Node"
-                icon="video"
-                depth={1}
-                isActive={isSentinelEyeActive}
-                onClick={onSentinelEyeClick}
-              />
-            </TreeNode>
-          )}
 
           {/* Divider */}
-          {!isCollapsed && activeActivity === 'explorer' && (
+          {!isCollapsed && (
             <>
               <div style={{ height: 1, background: 'rgba(255,255,255,0.05)', margin: '6px 8px' }} />
               <div style={{ padding: '2px 10px 4px', fontSize: '0.6rem', color: C.textMut, letterSpacing: '0.1em', textTransform: 'uppercase', fontFamily: 'Inter, sans-serif', fontWeight: 600 }}>
@@ -927,6 +1031,7 @@ export function Sidebar({ onSentinelEyeClick, isSentinelEyeActive, onSettingsOpe
           </div>
         )}
       </div>
+      )}
 
       {/* ── Drag resize handle ───────────────── */}
       <div
@@ -1157,6 +1262,19 @@ export function Sidebar({ onSentinelEyeClick, isSentinelEyeActive, onSettingsOpe
               </div>
             </div>
           </div>
+        </div>
+      )}
+
+      {/* ── Maintenance Panel ──────────────────────────────────────────────── */}
+      {activeActivity === 'maintenance' && (
+        <div style={{
+          width,
+          display: 'flex',
+          flexDirection: 'column',
+          overflow: 'hidden',
+          background: C.bg,
+        }}>
+          <MaintenancePanel />
         </div>
       )}
 

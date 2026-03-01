@@ -138,7 +138,7 @@ Verify this hazard and return your reasoning with a verification score (0-100).`
                 Item: {
                     cooldownKey,
                     processedAt: new Date().toISOString(),
-                    ttl: Math.floor(Date.now() / 1000) + 300, // 5 minutes
+                    ttl: Math.floor(Date.now() / 1000) + 30, // 30 seconds for testing
                 },
             }));
             console.log(`Processed hazard: ${cooldownKey}, score: ${result.verificationScore}`);

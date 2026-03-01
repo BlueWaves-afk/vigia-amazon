@@ -5,6 +5,7 @@ import { IntelligenceStack } from './stacks/intelligence-stack';
 import { TrustStack } from './stacks/trust-stack';
 import { VisualizationStack } from './stacks/visualization-stack';
 import { SessionStack } from './stacks/session-stack';
+import { InnovationStack } from './stacks/innovation-stack';
 
 export class VigiaStack extends cdk.Stack {
   constructor(scope: Construct, id: string, props?: cdk.StackProps) {
@@ -28,13 +29,25 @@ export class VigiaStack extends cdk.Stack {
     });
 
     // Now create intelligence components that need hazards table
-    new IntelligenceStack(this, 'IntelligenceWithHazards', {
+    const intelligenceWithHazardsStack = new IntelligenceStack(this, 'IntelligenceWithHazards', {
       hazardsTable: ingestionStack.hazardsTable,
       ledgerTable: trustStack.ledgerTable,
     });
 
+    // Update ingestion stack to use the new traces table with GSI
+    const tracesByHazardFn = ingestionStack.node.findChild('TracesByHazardFunction') as any;
+    if (tracesByHazardFn) {
+      tracesByHazardFn.addEnvironment('TRACES_TABLE_NAME', intelligenceWithHazardsStack.tracesTable.tableName);
+      intelligenceWithHazardsStack.tracesTable.grantReadData(tracesByHazardFn);
+    }
+
     // Zone 5: Visualization Layer (Amazon Location Service)
     new VisualizationStack(this, 'Visualization', {
+      hazardsTable: ingestionStack.hazardsTable,
+    });
+
+    // Innovation Features Stack
+    const innovationStack = new InnovationStack(this, 'Innovation', {
       hazardsTable: ingestionStack.hazardsTable,
     });
 
@@ -47,6 +60,11 @@ export class VigiaStack extends cdk.Stack {
     new cdk.CfnOutput(this, 'SessionApiEndpoint', {
       value: sessionStack.api.url,
       description: 'Session API Gateway endpoint URL',
+    });
+
+    new cdk.CfnOutput(this, 'InnovationApiEndpoint', {
+      value: innovationStack.api.url,
+      description: 'Innovation API Gateway endpoint URL',
     });
 
     new cdk.CfnOutput(this, 'HazardsTableName', {

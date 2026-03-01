@@ -5,6 +5,8 @@ import maplibregl from 'maplibre-gl';
 import 'maplibre-gl/dist/maplibre-gl.css';
 import { useSettings } from './SettingsContext';
 import type { MapStyle } from './SettingsContext';
+import { DiffMarkersLayer } from './DiffMarkersLayer';
+import { DiffLegend } from './DiffLegend';
 
 // ─────────────────────────────────────────────
 // LiveMap — ALL original logic preserved
@@ -36,6 +38,26 @@ export function LiveMap({ selectedSession }: { selectedSession?: any }) {
   const [hazards,        setHazards]        = useState<Hazard[]>([]);
   const [showUnverified, setShowUnverified]  = useState(true);
   const [mapReady,       setMapReady]        = useState(false);
+
+  // Listen for real-time hazard detections
+  useEffect(() => {
+    const handleHazardDetection = (event: CustomEvent) => {
+      const { type, lat, lon, confidence, timestamp } = event.detail;
+      const newHazard: Hazard = {
+        lat,
+        lon,
+        geohash: 'live',
+        hazardType: type,
+        confidence,
+        status: 'unverified',
+        timestamp,
+      };
+      setHazards(prev => [newHazard, ...prev]);
+    };
+
+    window.addEventListener('hazard-detected', handleHazardDetection as EventListener);
+    return () => window.removeEventListener('hazard-detected', handleHazardDetection as EventListener);
+  }, []);
 
   // ── Load session hazards when selected ─────
   useEffect(() => {
@@ -228,6 +250,12 @@ export function LiveMap({ selectedSession }: { selectedSession?: any }) {
           </span>
         </div>
       )}
+
+      {/* Diff Legend */}
+      {mapReady && <DiffLegend />}
+
+      {/* Diff Markers Layer */}
+      {mapReady && <DiffMarkersLayer map={map.current} />}
 
       {/* Filter toggle */}
       {mapReady && (

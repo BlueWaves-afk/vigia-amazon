@@ -41,6 +41,50 @@ const C = {
 const FONT = "'JetBrains Mono', 'Fira Code', 'Consolas', monospace";
 
 // ─────────────────────────────────────────────
+// Simple Geohash Encoder (7 chars precision)
+// ─────────────────────────────────────────────
+function encodeGeohash(lat: number, lon: number, precision: number = 7): string {
+  const BASE32 = '0123456789bcdefghjkmnpqrstuvwxyz';
+  let idx = 0;
+  let bit = 0;
+  let evenBit = true;
+  let geohash = '';
+  let latMin = -90, latMax = 90;
+  let lonMin = -180, lonMax = 180;
+
+  while (geohash.length < precision) {
+    if (evenBit) {
+      const lonMid = (lonMin + lonMax) / 2;
+      if (lon > lonMid) {
+        idx = (idx << 1) + 1;
+        lonMin = lonMid;
+      } else {
+        idx = idx << 1;
+        lonMax = lonMid;
+      }
+    } else {
+      const latMid = (latMin + latMax) / 2;
+      if (lat > latMid) {
+        idx = (idx << 1) + 1;
+        latMin = latMid;
+      } else {
+        idx = idx << 1;
+        latMax = latMid;
+      }
+    }
+    evenBit = !evenBit;
+
+    if (++bit === 5) {
+      geohash += BASE32[idx];
+      bit = 0;
+      idx = 0;
+    }
+  }
+
+  return geohash;
+}
+
+// ─────────────────────────────────────────────
 // DropZone
 // ─────────────────────────────────────────────
 
@@ -191,13 +235,42 @@ export function VideoUploader() {
   const [videoError,      setVideoError]      = useState<string | null>(null);
   const [videoDuration,   setVideoDuration]   = useState<number>(0);
   const [videoElement,    setVideoElement]    = useState<HTMLVideoElement | null>(null);
+  const [userLocation,    setUserLocation]    = useState<{ lat: number; lon: number } | null>(null);
+  const [locationStatus,  setLocationStatus]  = useState<'loading' | 'success' | 'error' | 'denied'>('loading');
 
   const videoRef    = useRef<HTMLVideoElement>(null);
   const canvasRef   = useRef<HTMLCanvasElement>(null);
   const intervalRef = useRef<NodeJS.Timeout | null>(null);
   const { processFrame, loadPrivateKey } = useHazardDetector();
 
-  const simulatedGPS = { lat: 37.7749, lon: -122.4194 };
+  // Default fallback location (Rourkela, India - project default)
+  const fallbackGPS = { lat: 22.2604, lon: 84.8536 };
+  
+  // Get current GPS location (user's real location or fallback)
+  const currentGPS = userLocation || fallbackGPS;
+
+  // Request browser geolocation on mount
+  useEffect(() => {
+    if (!navigator.geolocation) {
+      console.log('[VideoUploader] Geolocation not supported, using fallback');
+      setLocationStatus('error');
+      return;
+    }
+
+    navigator.geolocation.getCurrentPosition(
+      (position) => {
+        const { latitude, longitude } = position.coords;
+        console.log('[VideoUploader] Got user location:', latitude, longitude);
+        setUserLocation({ lat: latitude, lon: longitude });
+        setLocationStatus('success');
+      },
+      (error) => {
+        console.warn('[VideoUploader] Geolocation error:', error.message);
+        setLocationStatus(error.code === 1 ? 'denied' : 'error');
+      },
+      { enableHighAccuracy: true, timeout: 10000, maximumAge: 60000 }
+    );
+  }, []);
 
   // Callback ref to capture video element when it mounts
   const videoCallbackRef = useCallback((node: HTMLVideoElement | null) => {
@@ -371,21 +444,46 @@ export function VideoUploader() {
     if (!videoRef.current) return;
     setIsProcessing(true);
     setDetectionCount(0);
-    videoRef.current.play();
+    
+    const video = videoRef.current;
+    video.play();
+    
+    // Auto-stop when video ends
+    const handleVideoEnd = () => {
+      console.log('[VideoUploader] Video ended, stopping detection');
+      stopProcessing();
+    };
+    video.addEventListener('ended', handleVideoEnd);
+    
     intervalRef.current = setInterval(async () => {
-      if (videoRef.current && !videoRef.current.paused) {
+      if (videoRef.current && !videoRef.current.paused && !videoRef.current.ended) {
         const frameBuffer = extractFrame(videoRef.current);
         const width = videoRef.current.videoWidth || 640;
         const height = videoRef.current.videoHeight || 640;
-        const result = await processFrame(frameBuffer, width, height, { lat: simulatedGPS.lat, lon: simulatedGPS.lon });
+        const result = await processFrame(frameBuffer, width, height, { lat: currentGPS.lat, lon: currentGPS.lon });
         if (result) {
           setTelemetryBatch(prev => [...prev, result]);
           setDetectionCount(prev => prev + 1);
           setCurrentDetection(result);
+          
+          // Emit hazard detection event
+          window.dispatchEvent(new CustomEvent('hazard-detected', {
+            detail: {
+              type: result.hazardType,
+              lat: result.lat,
+              lon: result.lon,
+              confidence: result.confidence,
+              timestamp: result.timestamp,
+            }
+          }));
+          
           setTimeout(() => setCurrentDetection(null), 100);
         }
       }
     }, 200);
+    
+    // Cleanup listener
+    return () => video.removeEventListener('ended', handleVideoEnd);
   };
 
   const stopProcessing = () => {
@@ -396,54 +494,71 @@ export function VideoUploader() {
 
   useEffect(() => { drawDetections(); }, [currentDetection]);
 
-  // Batch send — original logic preserved
+  // Sequential send with cooldown delay — prevents duplicate blocking
   useEffect(() => {
     if (!isProcessing) return;
-    const batchInterval = setInterval(async () => {
-      // Use functional update to get latest state without dependency
+    
+    // Send immediately if there's a hazard in queue
+    const sendNext = () => {
       setTelemetryBatch(currentBatch => {
-        console.log('[VideoUploader] Batch check - telemetry count:', currentBatch.length);
         if (currentBatch.length > 0) {
-          console.log('[VideoUploader] Sending batch of', currentBatch.length, 'telemetry items');
-          // Send telemetry sequentially to avoid rate limits
+          const telemetry = currentBatch[0]; // Take first item
+          const geohash = encodeGeohash(telemetry.lat, telemetry.lon, 7);
+          const hazardId = `${geohash}#${telemetry.timestamp}`;
+          
+          console.log('[VideoUploader] Sending telemetry:', hazardId);
+          
+          // Send single telemetry
           (async () => {
-            for (const telemetry of currentBatch) {
-              try {
-                const response = await fetch(`${process.env.NEXT_PUBLIC_API_URL}/telemetry`, {
-                  method: 'POST',
-                  headers: { 'Content-Type': 'application/json' },
-                  body: JSON.stringify(telemetry),
-                });
-                if (!response.ok) {
-                  console.error('Failed to send telemetry:', await response.text());
-                  window.dispatchEvent(new CustomEvent('vigia-trace', {
-                    detail: { type: 'error', message: `Telemetry submission failed: ${response.statusText}` }
-                  }));
-                } else {
-                  setTotalSent(p => p + 1);
-                  console.log('[VideoUploader] Telemetry sent:', telemetry.hazardType, 'confidence:', telemetry.confidence);
-                  window.dispatchEvent(new CustomEvent('vigia-trace', {
-                    detail: { 
-                      type: 'success', 
-                      message: `Telemetry sent: ${telemetry.hazardType} (confidence: ${(telemetry.confidence * 100).toFixed(1)}%)`
-                    }
-                  }));
-                }
-              } catch (error) {
-                console.error('Network error:', error);
+            try {
+              const response = await fetch(`${process.env.NEXT_PUBLIC_API_URL}/telemetry`, {
+                method: 'POST',
+                headers: { 'Content-Type': 'application/json' },
+                body: JSON.stringify(telemetry),
+              });
+              
+              if (!response.ok) {
+                console.error('Failed to send telemetry:', await response.text());
                 window.dispatchEvent(new CustomEvent('vigia-trace', {
-                  detail: { type: 'error', message: `Network error: ${error}` }
+                  detail: { type: 'error', message: `Telemetry submission failed: ${response.statusText}` }
+                }));
+              } else {
+                setTotalSent(p => p + 1);
+                console.log('[VideoUploader] Telemetry sent:', telemetry.hazardType, 'confidence:', telemetry.confidence);
+                window.dispatchEvent(new CustomEvent('vigia-trace', {
+                  detail: { 
+                    type: 'success', 
+                    message: `Telemetry sent: ${telemetry.hazardType} (confidence: ${(telemetry.confidence * 100).toFixed(1)}%)`
+                  }
+                }));
+                
+                // Emit telemetry submission event
+                window.dispatchEvent(new CustomEvent('telemetry-submitted', {
+                  detail: { hazardIds: [hazardId] }
                 }));
               }
+            } catch (error) {
+              console.error('Network error:', error);
+              window.dispatchEvent(new CustomEvent('vigia-trace', {
+                detail: { type: 'error', message: `Network error: ${error}` }
+              }));
             }
           })();
-          return []; // Clear batch
+          
+          return currentBatch.slice(1); // Remove sent item
         }
-        return currentBatch; // Keep batch
+        return currentBatch;
       });
-    }, 5000);
-    return () => clearInterval(batchInterval);
-  }, [isProcessing]); // Remove telemetryBatch dependency
+    };
+    
+    // Send first one immediately
+    sendNext();
+    
+    // Then send every 35 seconds
+    const sendInterval = setInterval(sendNext, 35000);
+    
+    return () => clearInterval(sendInterval);
+  }, [isProcessing]);
 
   useEffect(() => {
     return () => { if (intervalRef.current) clearInterval(intervalRef.current); };
@@ -458,8 +573,18 @@ export function VideoUploader() {
           <div style={{ display: 'flex', alignItems: 'center', gap: 8, marginBottom: 3 }}>
             <Film size={14} style={{ color: C.accent }} />
             <span style={{ fontSize: '0.82rem', fontWeight: 500, color: C.text, fontFamily: FONT }}>
-              Sentinel Eye
+              Detection Mode
             </span>
+            {locationStatus === 'success' && (
+              <span style={{ fontSize: '0.6rem', color: C.green, fontFamily: FONT }}>
+                GPS: {currentGPS.lat.toFixed(4)}, {currentGPS.lon.toFixed(4)}
+              </span>
+            )}
+            {locationStatus === 'denied' && (
+              <span style={{ fontSize: '0.6rem', color: C.yellow, fontFamily: FONT }}>
+                GPS: Fallback (location denied)
+              </span>
+            )}
           </div>
           <p style={{ fontSize: '0.68rem', color: C.textMut, fontFamily: FONT, margin: 0 }}>
             ONNX inference · real-time detection · edge telemetry

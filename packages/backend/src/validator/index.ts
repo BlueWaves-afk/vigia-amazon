@@ -75,6 +75,8 @@ export const handler: APIGatewayProxyHandler = async (event) => {
     // Compute geohash
     const geohash = ngeohash.encode(payload.lat, payload.lon, 7);
     
+    console.log(`[Validator] Writing hazard: ${geohash}#${payload.timestamp}`);
+    
     // Write to DynamoDB
     await dynamodb.send(new PutCommand({
       TableName: process.env.HAZARDS_TABLE_NAME,
@@ -90,6 +92,8 @@ export const handler: APIGatewayProxyHandler = async (event) => {
         ttl: Math.floor(Date.now() / 1000) + 86400 * 30, // 30 days
       },
     }));
+    
+    console.log(`[Validator] Successfully wrote hazard: ${geohash}#${payload.timestamp}`);
     
     return {
       statusCode: 200,

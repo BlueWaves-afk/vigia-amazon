@@ -2,6 +2,7 @@
 
 import { useEffect, useState } from 'react';
 import { RefreshCw } from 'lucide-react';
+import { ROIWidget } from './ROIWidget';
 
 // ─────────────────────────────────────────────
 // LedgerTicker — ALL API logic preserved from v1
@@ -40,8 +41,8 @@ export function LedgerTicker() {
 
   if (loading) {
     return (
-      <div className="flex items-center gap-2 text-ide-text-secondary font-data" style={{ fontSize: '0.72rem' }}>
-        <RefreshCw size={11} className="animate-spin" />
+      <div className="flex items-center gap-2 text-ide-text-secondary font-data" style={{ fontSize: '0.82rem' }}>
+        <RefreshCw size={14} className="animate-spin" />
         <span>Loading ledger entries...</span>
       </div>
     );
@@ -49,7 +50,7 @@ export function LedgerTicker() {
 
   if (entries.length === 0) {
     return (
-      <div className="flex items-center gap-2 text-ide-text-secondary font-data" style={{ fontSize: '0.72rem' }}>
+      <div className="flex items-center gap-2 text-ide-text-secondary font-data" style={{ fontSize: '0.82rem' }}>
         <span className="animate-pulse text-ide-accent-2">›</span>
         <span>Awaiting network consensus...</span>
       </div>
@@ -57,26 +58,33 @@ export function LedgerTicker() {
   }
 
   return (
-    <div className="font-data w-full" style={{ fontSize: '0.68rem' }}>
-      <table className="w-full border-collapse">
-        <thead>
-          <tr style={{ borderBottom: '1px solid rgba(255,255,255,0.07)' }}>
-            {['Timestamp', 'Contributor', 'Hazard Type', 'Location', 'Reward'].map((h, i) => (
-              <th
-                key={h}
-                className="py-1.5 px-3 text-left font-medium uppercase tracking-widest"
-                style={{
-                  fontSize: '0.6rem',
-                  color: '#4B5563',
-                  letterSpacing: '0.08em',
-                  textAlign: i === 4 ? 'right' : 'left',
-                }}
-              >
-                {h}
-              </th>
-            ))}
-          </tr>
-        </thead>
+    <div className="font-data w-full h-full flex flex-col" style={{ fontSize: '0.78rem' }}>
+      {/* ROI Widget */}
+      <div style={{ padding: '12px', borderBottom: '1px solid rgba(255,255,255,0.05)', flexShrink: 0 }}>
+        <ROIWidget sessionId="current" />
+      </div>
+
+      {/* Ledger Table */}
+      <div style={{ flex: 1, overflow: 'auto' }}>
+        <table className="w-full border-collapse">
+          <thead>
+            <tr style={{ borderBottom: '1px solid rgba(255,255,255,0.07)' }}>
+              {['Timestamp', 'Contributor', 'Hazard Type', 'Location', 'Reward'].map((h, i) => (
+                <th
+                  key={h}
+                  className="py-2 px-3 text-left font-medium uppercase tracking-widest"
+                  style={{
+                    fontSize: '0.7rem',
+                    color: '#6B7280',
+                    letterSpacing: '0.08em',
+                    textAlign: i === 4 ? 'right' : 'left',
+                  }}
+                >
+                  {h}
+                </th>
+              ))}
+            </tr>
+          </thead>
         <tbody>
           {entries.map((entry, index) => (
             <tr
@@ -86,30 +94,30 @@ export function LedgerTicker() {
               onMouseEnter={(e) => (e.currentTarget as HTMLElement).style.background = 'rgba(255,255,255,0.03)'}
               onMouseLeave={(e) => (e.currentTarget as HTMLElement).style.background = ''}
             >
-              <td className="py-1.5 px-3" style={{ color: '#4B5563' }}>
+              <td className="py-2 px-3" style={{ color: '#6B7280' }}>
                 {new Date(entry.timestamp).toLocaleTimeString()}
               </td>
-              <td className="py-1.5 px-3" style={{ color: '#8B95A1' }}>
+              <td className="py-2 px-3" style={{ color: '#8B95A1' }}>
                 {entry.contributorId.substring(0, 8)}
                 <span style={{ color: '#4B5563' }}>…</span>
               </td>
-              <td className="py-1.5 px-3">
+              <td className="py-2 px-3">
                 <span
-                  className="px-1.5 py-0.5 rounded"
+                  className="px-2 py-1 rounded"
                   style={{
                     background: 'rgba(239,68,68,0.12)',
                     color: '#EF4444',
-                    fontSize: '0.62rem',
+                    fontSize: '0.72rem',
                     fontWeight: 500,
                   }}
                 >
                   POTHOLE
                 </span>
               </td>
-              <td className="py-1.5 px-3" style={{ color: '#6B7280' }}>
+              <td className="py-2 px-3" style={{ color: '#6B7280' }}>
                 {entry.hazardId.substring(0, 7)}
               </td>
-              <td className="py-1.5 px-3 text-right">
+              <td className="py-2 px-3 text-right">
                 <span style={{ color: '#10B981', fontWeight: 600 }}>
                   {entry.credits}
                 </span>
@@ -119,6 +127,7 @@ export function LedgerTicker() {
           ))}
         </tbody>
       </table>
+      </div>
     </div>
   );
 }

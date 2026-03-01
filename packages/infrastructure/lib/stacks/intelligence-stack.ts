@@ -36,6 +36,14 @@ export class IntelligenceStack extends Construct {
       removalPolicy: cdk.RemovalPolicy.DESTROY,
     });
 
+    // Add GSI for querying by hazardId
+    this.tracesTable.addGlobalSecondaryIndex({
+      indexName: 'HazardIdIndex',
+      partitionKey: { name: 'hazardId', type: dynamodb.AttributeType.STRING },
+      sortKey: { name: 'createdAt', type: dynamodb.AttributeType.STRING },
+      projectionType: dynamodb.ProjectionType.ALL,
+    });
+
     // Bedrock Action Router Lambda (Python) - only if hazards table provided
     if (props.hazardsTable) {
       this.bedrockRouterFn = new lambda.Function(this, 'BedrockRouterFunction', {

@@ -156,8 +156,35 @@ N0xK7gprg8zInHZ7odGma+CeBbpavlw7C4X1AWFRR31XVgRszSmzFeBs/w==
     props.tracesTable.grantReadData(tracesGetterFn);
 
     // GET /traces endpoint
-    const traces = this.api.root.addResource('traces');
+    const traces = this.api.root.addResource('traces', {
+      defaultCorsPreflightOptions: {
+        allowOrigins: apigateway.Cors.ALL_ORIGINS,
+        allowMethods: ['GET', 'OPTIONS'],
+        allowHeaders: ['Content-Type', 'Authorization'],
+      },
+    });
     traces.addMethod('GET', new apigateway.LambdaIntegration(tracesGetterFn));
+
+    // Lambda Traces By Hazard Getter Function
+    const tracesByHazardFn = new lambdaNodejs.NodejsFunction(this, 'TracesByHazardFunction', {
+      entry: path.join(__dirname, '../../../backend/src/traces/get-by-hazard.ts'),
+      handler: 'handler',
+      runtime: lambda.Runtime.NODEJS_20_X,
+      timeout: cdk.Duration.seconds(10),
+      bundling: {
+        externalModules: ['@aws-sdk/*'],
+      },
+      environment: {
+        TRACES_TABLE_NAME: props.tracesTable.tableName,
+      },
+    });
+
+    // Grant read access to traces table
+    props.tracesTable.grantReadData(tracesByHazardFn);
+
+    // GET /traces/{hazardId} endpoint
+    const tracesByHazard = traces.addResource('{hazardId}');
+    tracesByHazard.addMethod('GET', new apigateway.LambdaIntegration(tracesByHazardFn));
 
     // Lambda Hazards Getter Function
     const hazardsGetterFn = new lambdaNodejs.NodejsFunction(this, 'HazardsGetterFunction', {

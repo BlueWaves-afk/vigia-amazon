@@ -325,10 +325,109 @@
 
 ---
 
+## Phase 8: Hazard Verification Pipeline
+
+### TASK-UI-8.1: Create HazardVerificationPanel Component
+- [x] Create `HazardVerificationPanel.tsx` component
+- [x] Replace explorer in detection mode with verification panel
+- [x] Display hazard list with status badges (pending, unverified, verifying, verified, rejected)
+- [x] Add expandable hazard details with agent reasoning
+- [x] Add footer stats (pending, verifying, verified counts)
+
+**Dependencies**: Phase 5  
+**Estimated Time**: 2 hours  
+**Status**: ✅ COMPLETED
+
+### TASK-UI-8.2: Integrate Event System
+- [x] Emit `hazard-detected` event from VideoUploader when hazard is detected
+- [x] Emit `telemetry-submitted` event after batch telemetry is sent
+- [x] Listen for events in HazardVerificationPanel
+- [x] Update hazard status based on events
+
+**Dependencies**: TASK-UI-8.1  
+**Estimated Time**: 1 hour  
+**Status**: ✅ COMPLETED
+
+### TASK-UI-8.3: Implement Agent Trace Polling
+- [x] Poll `/traces/{hazardId}` API after telemetry submission
+- [x] Retry polling every 5 seconds (max 20 attempts)
+- [x] Update hazard status based on verification score
+- [x] Display agent reasoning in expanded view
+- [x] Remove verified/rejected hazards after 5 seconds
+
+**Dependencies**: TASK-UI-8.2  
+**Estimated Time**: 1.5 hours  
+**Status**: ✅ COMPLETED
+
+### TASK-UI-8.4: Update DetectionModeView Layout
+- [x] Add HazardVerificationPanel as left panel (20% width)
+- [x] Keep Detection Node in center (45% width)
+- [x] Keep Live Map on right (35% width)
+- [x] Add resize handles between panels
+- [x] Test three-panel layout
+
+**Dependencies**: TASK-UI-8.1  
+**Estimated Time**: 1 hour  
+**Status**: ✅ COMPLETED
+
+### TASK-UI-8.5: Create Backend API Endpoint
+- [x] Create `get-by-hazard.ts` Lambda function
+- [x] Query traces table by hazardId using GSI
+- [x] Return 404 if trace not found
+- [x] Add CORS headers
+- [x] Handle errors gracefully
+
+**Dependencies**: None  
+**Estimated Time**: 45 minutes  
+**Status**: ✅ COMPLETED
+
+### TASK-UI-8.6: Update CDK Infrastructure
+- [x] Add GSI to traces table (HazardIdIndex on hazardId + createdAt)
+- [x] Create Lambda function for GET /traces/{hazardId}
+- [x] Add API Gateway route
+- [x] Grant read permissions to traces table
+- [x] Deploy and test
+
+**Dependencies**: TASK-UI-8.5  
+**Estimated Time**: 30 minutes  
+**Status**: ✅ COMPLETED
+
+### TASK-UI-8.7: Write Frontend Tests
+- [x] Test hazard detection event handling
+- [x] Test telemetry submission event handling
+- [x] Test agent trace polling logic
+- [x] Test status transitions (pending → unverified → verifying → verified/rejected)
+- [x] Test error handling
+- [x] Test UI rendering (empty state, hazard list, expanded details)
+
+**Dependencies**: TASK-UI-8.3  
+**Estimated Time**: 2 hours  
+**Status**: ✅ COMPLETED
+
+### TASK-UI-8.8: Write Backend Tests
+- [x] Test GET /traces/{hazardId} endpoint
+- [x] Test missing hazardId parameter
+- [x] Test trace not found (404)
+- [x] Test successful trace retrieval
+- [x] Test DynamoDB query parameters
+- [x] Test error handling
+- [x] Test CORS headers
+
+**Dependencies**: TASK-UI-8.5  
+**Estimated Time**: 1.5 hours  
+**Status**: ✅ COMPLETED
+
+---
+
 ## Summary
 
-**Total Tasks**: 35  
-**Estimated Total Time**: 13 hours 30 minutes  
+**Total Tasks**: 43 (35 original + 8 new)  
+**Estimated Total Time**: 23 hours 45 minutes (13.5 hours original + 10.25 hours new)  
+
+**Phase 8 Summary**:
+- **Total Tasks**: 8
+- **Estimated Time**: 10 hours 15 minutes
+- **Status**: ✅ ALL COMPLETED
 
 **Critical Path**:
 1. Layout Skeleton (Phase 1) → 1 hour
@@ -338,15 +437,7 @@
 5. Sentinel Eye Docking (Phase 5) → 2 hours
 6. Polish & Refinement (Phase 6) → 3.5 hours
 7. Documentation (Phase 7) → 1 hour
-
-**Priority Order**:
-1. Phase 1 (Foundation)
-2. Phase 2 (Sidebar)
-3. Phase 3 (Map)
-4. Phase 4 (Console)
-5. Phase 5 (Sentinel Eye)
-6. Phase 6 (Polish)
-7. Phase 7 (Docs)
+8. **Hazard Verification Pipeline (Phase 8) → 10.25 hours** ✅
 
 ---
 
