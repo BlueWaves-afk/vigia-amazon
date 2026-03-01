@@ -3,7 +3,7 @@
 import { useMapFileStore } from '@/stores/mapFileStore';
 import { useEffect, useRef, useState } from 'react';
 import maplibregl from 'maplibre-gl';
-import type { ScenarioBranch, Hazard } from '@vigia/shared';
+import type { ScenarioBranch, Hazard } from '@/types/shared';
 
 export function BranchLayer({ map }: { map: maplibregl.Map | null }) {
   const { files, activeFileId, updateBranchChanges } = useMapFileStore();

@@ -1,5 +1,5 @@
 import { describe, it, expect, beforeEach } from '@jest/globals';
-import type { MapFile, Hazard } from '@vigia/shared';
+import type { MapFile, Hazard } from '../../types/shared';
 
 // Mock diff worker
 function computeDiff(fileA: MapFile, fileB: MapFile) {

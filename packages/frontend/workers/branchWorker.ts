@@ -1,4 +1,4 @@
-import type { MapFile, ScenarioBranch, Hazard } from '@vigia/shared';
+import type { MapFile, ScenarioBranch, Hazard } from '../types/shared';
 import { v4 as uuidv4 } from 'uuid';
 
 interface BranchWorkerMessage {

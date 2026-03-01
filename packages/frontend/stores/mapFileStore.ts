@@ -1,5 +1,5 @@
 import { create } from 'zustand';
-import type { MapFile, ScenarioBranch, DiffResult } from '@vigia/shared';
+import type { MapFile, ScenarioBranch, DiffResult } from '@/types/shared';
 import { mapFileDB } from '@/lib/storage/mapFileDB';
 
 interface MapFileStore {

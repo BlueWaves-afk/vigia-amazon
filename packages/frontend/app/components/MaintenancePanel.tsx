@@ -2,7 +2,7 @@
 
 import { useEconomicStore } from '@/stores/economicStore';
 import { useState } from 'react';
-import type { MaintenanceReport } from '@vigia/shared';
+import type { MaintenanceReport } from '@/types/shared';
 
 interface MaintenancePanelProps {
   prefilledHazard?: {

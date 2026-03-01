@@ -1,5 +1,5 @@
 import { create } from 'zustand';
-import type { ReActTrace } from '@vigia/shared';
+import type { ReActTrace } from '@/types/shared';
 
 interface AgentTraceStore {
   traces: ReActTrace[];

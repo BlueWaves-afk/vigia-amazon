@@ -2,7 +2,7 @@
 
 import { useEffect, useState } from 'react';
 import { useMapFileStore } from '@/stores/mapFileStore';
-import type { MapFile, ScenarioBranch } from '@vigia/shared';
+import type { MapFile, ScenarioBranch } from '@/types/shared';
 
 export function MapFileExplorer() {
   const { files, activeFileId, setActiveFile, loadFiles, loadFile, createBranch, computeDiff } = useMapFileStore();

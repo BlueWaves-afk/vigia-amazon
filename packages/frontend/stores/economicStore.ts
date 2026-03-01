@@ -1,5 +1,5 @@
 import { create } from 'zustand';
-import type { EconomicMetrics, MaintenanceReport } from '@vigia/shared';
+import type { EconomicMetrics, MaintenanceReport } from '@/types/shared';
 
 interface EconomicStore {
   metrics: EconomicMetrics | null;

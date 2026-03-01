@@ -1,4 +1,4 @@
-import type { MapFile, ScenarioBranch } from '@vigia/shared';
+import type { MapFile, ScenarioBranch } from '@/types/shared';
 
 const DB_NAME = 'VigiaMapFiles';
 const DB_VERSION = 1;

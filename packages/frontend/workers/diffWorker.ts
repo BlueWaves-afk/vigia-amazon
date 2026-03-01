@@ -1,4 +1,4 @@
-import type { MapFile, Hazard, DiffResult } from '@vigia/shared';
+import type { MapFile, Hazard, DiffResult } from '../types/shared';
 
 interface DiffWorkerMessage {
   type: 'COMPUTE_DIFF';
