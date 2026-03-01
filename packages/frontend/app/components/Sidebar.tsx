@@ -38,6 +38,7 @@ const C = {
   green:   '#0EA472',
   red:     '#E5484D',
   yellow:  '#E9A23B',
+  panel:   '#1E2530',
 };
 
 // ─────────────────────────────────────────────
@@ -280,7 +281,7 @@ export function Sidebar({ onSentinelEyeClick, isSentinelEyeActive, onSettingsOpe
 
   const loadSessions = async (manager: VFSManager) => {
     try {
-      const data = await manager.listSessions('default');
+      const data = await manager.listSessions();
       setSessions(data);
     } catch (err) {
       console.error('Failed to load sessions:', err);
@@ -424,15 +425,15 @@ export function Sidebar({ onSentinelEyeClick, isSentinelEyeActive, onSettingsOpe
       // Extract string values from location (Places API returns nested objects)
       const city = typeof selectedLocation.city === 'string' 
         ? selectedLocation.city 
-        : selectedLocation.city?.Name || selectedLocation.name.split(',')[0]?.trim() || 'Unknown';
+        : (selectedLocation.city as any)?.Name || selectedLocation.name.split(',')[0]?.trim() || 'Unknown';
       
       const region = typeof selectedLocation.region === 'string'
         ? selectedLocation.region
-        : selectedLocation.region?.Name || selectedLocation.name.split(',')[1]?.trim() || 'Unknown';
+        : (selectedLocation.region as any)?.Name || selectedLocation.name.split(',')[1]?.trim() || 'Unknown';
       
       const country = typeof selectedLocation.country === 'string'
         ? selectedLocation.country
-        : selectedLocation.country?.Name || selectedLocation.name.split(',').pop()?.trim() || 'Unknown';
+        : (selectedLocation.country as any)?.Name || selectedLocation.name.split(',').pop()?.trim() || 'Unknown';
       
       // Determine continent from country
       const continentMap: Record<string, string> = {
@@ -784,8 +785,8 @@ export function Sidebar({ onSentinelEyeClick, isSentinelEyeActive, onSettingsOpe
                   onContextMenu={(e) => handleSessionRightClick(e, { 
                     label: continent, 
                     folderPath: continent,
-                    sessions: Object.values(sessionsByGeo[continent]).flatMap(c => 
-                      Object.values(c).flatMap(r => Object.values(r).flat())
+                    sessions: Object.values(sessionsByGeo[continent] as any).flatMap((c: any) => 
+                      Object.values(c).flatMap((r: any) => Object.values(r).flat())
                     )
                   })}
                 >
@@ -798,7 +799,7 @@ export function Sidebar({ onSentinelEyeClick, isSentinelEyeActive, onSettingsOpe
                       onContextMenu={(e) => handleSessionRightClick(e, { 
                         label: country, 
                         folderPath: `${continent}/${country}`,
-                        sessions: Object.values(sessionsByGeo[continent][country]).flatMap(r => Object.values(r).flat())
+                        sessions: Object.values(sessionsByGeo[continent][country] as any).flatMap((r: any) => Object.values(r).flat())
                       })}
                   >
                     {Object.keys(sessionsByGeo[continent][country]).sort().map(region => (
@@ -826,8 +827,8 @@ export function Sidebar({ onSentinelEyeClick, isSentinelEyeActive, onSettingsOpe
                             })}
                           >
                             {sessionsByGeo[continent][country][region][city]
-                              .sort((a, b) => b.timestamp.localeCompare(a.timestamp))
-                              .map(session => {
+                              .sort((a: any, b: any) => b.timestamp.localeCompare(a.timestamp))
+                              .map((session: any) => {
                                 const label = formatSessionLabel(session);
                                 const badgeColor = session.hazardCount > 5 ? C.red : session.hazardCount > 2 ? C.yellow : C.green;
                                 return (
