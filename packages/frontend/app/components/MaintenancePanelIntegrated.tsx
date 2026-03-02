@@ -32,12 +32,12 @@ export function MaintenancePanel() {
   };
 
   const C = {
-    bg: '#141920',
-    border: 'rgba(255,255,255,0.07)',
-    text: '#DDE3ED',
-    textSec: '#7C8799',
-    textMut: '#3D4655',
-    hover: 'rgba(255,255,255,0.04)',
+    bg: 'var(--c-panel)',
+    border: 'var(--c-border)',
+    text: 'var(--c-text)',
+    textSec: 'var(--c-text-2)',
+    textMut: 'var(--c-text-3)',
+    hover: 'rgba(59,130,246,0.08)',
   };
 
   return (

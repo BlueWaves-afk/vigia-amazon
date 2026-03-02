@@ -12,73 +12,87 @@ import { Breadcrumb }           from './components/Breadcrumb';
 import { TopBar }               from './components/TopBar';
 import { StatusBar }            from './components/StatusBar';
 import { SettingsPanel }        from './components/SettingsPanel';
+import { CommandPalette }       from './components/CommandPalette';
+import { ToastContainer, toast } from './components/ToastSystem';
 import { useSettings }          from './components/SettingsContext';
 import { NewSessionView }       from './components/NewSessionView';
 import { DetectionModeView }    from './components/DetectionModeView';
 import { NetworkMapView }       from './components/NetworkMapView';
 
-type MainTab    = 'map' | 'sentinel' | string; // Allow session IDs as tabs
+type MainTab    = 'map' | 'sentinel' | string;
 type ConsoleTab = 'traces' | 'ledger' | 'console';
 
 export default function Dashboard() {
   const { settings } = useSettings();
-  const [activeMainTab,    setActiveMainTab]    = useState<MainTab | null>(null);
-  const [explorerTabs,     setExplorerTabs]     = useState<Array<{id: string, label: string, session?: any, isNewSession?: boolean}>>([]);
-  const [detectionTabs,    setDetectionTabs]    = useState<Array<{id: string, label: string, session?: any, isNewSession?: boolean}>>([]);
-  const [explorerActiveTab, setExplorerActiveTab] = useState<MainTab | null>(null);
+  const [activeMainTab,      setActiveMainTab]      = useState<MainTab | null>(null);
+  const [explorerTabs,       setExplorerTabs]       = useState<Array<{id: string; label: string; session?: any; isNewSession?: boolean}>>([]);
+  const [detectionTabs,      setDetectionTabs]      = useState<Array<{id: string; label: string; session?: any; isNewSession?: boolean}>>([]);
+  const [explorerActiveTab,  setExplorerActiveTab]  = useState<MainTab | null>(null);
   const [detectionActiveTab, setDetectionActiveTab] = useState<MainTab | null>(null);
-  const [activeConsoleTab, setActiveConsoleTab] = useState<ConsoleTab>('traces');
-  const [consoleHeight,    setConsoleHeight]    = useState(220);
-  const [settingsOpen,     setSettingsOpen]     = useState(false);
-  const [selectedSession,  setSelectedSession]  = useState<any>(null);
-  const [sidebarActivity,  setSidebarActivity]  = useState<'explorer' | 'detection' | 'network' | 'maintenance'>('explorer');
-  const [splitView, setSplitView] = useState<{ left: any; right: any } | null>(null);
+  const [activeConsoleTab,   setActiveConsoleTab]   = useState<ConsoleTab>('traces');
+  const [consoleHeight,      setConsoleHeight]      = useState(220);
+  const [settingsOpen,       setSettingsOpen]       = useState(false);
+  const [cmdOpen,            setCmdOpen]            = useState(false);
+  const [selectedSession,    setSelectedSession]    = useState<any>(null);
+  const [sidebarActivity,    setSidebarActivity]    = useState<'explorer' | 'detection' | 'network' | 'maintenance'>('explorer');
+  const [splitView,          setSplitView]          = useState<{ left: any; right: any } | null>(null);
+  // Track which content tab is showing for crossfade key
+  const [mainTabKey,         setMainTabKey]         = useState(0);
+  const [consoleTabKey,      setConsoleTabKey]      = useState(0);
 
-  // Listen for maintenance report requests from hazard clicks
+  // ── ⌘K global listener ───────────────────
+  useEffect(() => {
+    const handler = (e: KeyboardEvent) => {
+      if ((e.metaKey || e.ctrlKey) && e.key === 'k') {
+        e.preventDefault();
+        setCmdOpen(v => !v);
+      }
+      if ((e.metaKey || e.ctrlKey) && e.key === ',') {
+        e.preventDefault();
+        setSettingsOpen(true);
+      }
+    };
+    window.addEventListener('keydown', handler);
+    return () => window.removeEventListener('keydown', handler);
+  }, []);
+
+  // ── Custom events ─────────────────────────
   useEffect(() => {
     const handleMaintenanceReport = (event: CustomEvent) => {
-      const { hazard } = event.detail;
-      // Switch to maintenance activity
       setSidebarActivity('maintenance');
-      
-      // Store hazard data for pre-filling the form
-      (window as any).__maintenanceHazard = hazard;
+      (window as any).__maintenanceHazard = event.detail.hazard;
     };
-
     const handleSplitView = (event: CustomEvent) => {
-      const { left, right } = event.detail;
-      setSplitView({ left, right });
+      setSplitView(event.detail);
+      toast.info('Split View', 'Comparing two sessions side by side');
     };
-
     window.addEventListener('vigia-report-maintenance', handleMaintenanceReport as EventListener);
     window.addEventListener('vigia-split-view', handleSplitView as EventListener);
-    
     return () => {
       window.removeEventListener('vigia-report-maintenance', handleMaintenanceReport as EventListener);
       window.removeEventListener('vigia-split-view', handleSplitView as EventListener);
     };
   }, []);
 
-  // Get current tabs based on active activity
-  const openTabs = sidebarActivity === 'explorer' ? explorerTabs : sidebarActivity === 'detection' ? detectionTabs : [];
+  const openTabs   = sidebarActivity === 'explorer' ? explorerTabs : sidebarActivity === 'detection' ? detectionTabs : [];
   const setOpenTabs = sidebarActivity === 'explorer' ? setExplorerTabs : sidebarActivity === 'detection' ? setDetectionTabs : () => {};
 
   // ── Console resize ────────────────────────
-  const isDragging  = useRef(false);
-  const startY      = useRef(0);
-  const startHeight = useRef(0);
+  const isDragging = useRef(false);
+  const startY     = useRef(0);
+  const startH     = useRef(0);
 
   const onResizeDown = useCallback((e: React.MouseEvent) => {
     e.preventDefault();
-    isDragging.current  = true;
-    startY.current      = e.clientY;
-    startHeight.current = consoleHeight;
-    document.body.style.cursor     = 'ns-resize';
+    isDragging.current = true;
+    startY.current = e.clientY;
+    startH.current = consoleHeight;
+    document.body.style.cursor = document.body.style.userSelect = '';
+    document.body.style.cursor = 'ns-resize';
     document.body.style.userSelect = 'none';
     const onMove = (ev: MouseEvent) => {
       if (!isDragging.current) return;
-      const delta = startY.current - ev.clientY;
-      setConsoleHeight(Math.max(80, Math.min(window.innerHeight * 0.55, startHeight.current + delta)));
+      setConsoleHeight(Math.max(80, Math.min(window.innerHeight * 0.55, startH.current + startY.current - ev.clientY)));
     };
     const onUp = () => {
       isDragging.current = false;
@@ -90,68 +104,68 @@ export default function Dashboard() {
     window.addEventListener('mouseup', onUp);
   }, [consoleHeight]);
 
-  const mainTabs = [
-    { id: 'map'       as MainTab,    label: 'World Map',      icon: <MapPin size={14} /> },
-    { id: 'sentinel'  as MainTab,    label: 'Detection Node', icon: <Video  size={14} /> },
-  ];
-  const consoleTabs = [
-    { id: 'traces'    as ConsoleTab, label: 'Agent Traces', icon: <Radio    size={14} /> },
-    { id: 'ledger'    as ConsoleTab, label: 'DePIN Ledger', icon: <Database size={14} /> },
-    { id: 'console'   as ConsoleTab, label: 'Console',      icon: <Server   size={14} /> },
-  ];
+  // ── Tab switching with crossfade key ──────
+  const switchMainTab = useCallback((id: MainTab) => {
+    setActiveMainTab(id);
+    setMainTabKey(k => k + 1);
+  }, []);
 
+  const switchConsoleTab = useCallback((id: ConsoleTab) => {
+    setActiveConsoleTab(id);
+    setConsoleTabKey(k => k + 1);
+  }, []);
+
+  // ── Session handling ──────────────────────
   const handleSessionClick = (session: any) => {
     if (session.status === 'creating') {
       setSelectedSession(session);
-      setActiveMainTab('map');
+      switchMainTab('map');
       return;
     }
-
-    // Check if tab already exists
     const existingTab = explorerTabs.find(t => t.id === session.sessionId);
     if (existingTab) {
-      setActiveMainTab(session.sessionId);
+      switchMainTab(session.sessionId);
       setSelectedSession(session);
     } else {
-      // Create new tab with location name
-      const city = session.location?.city || 'Unknown';
+      const city   = session.location?.city   || 'Unknown';
       const region = session.location?.region || '';
-      const label = region ? `${city}, ${region}` : city;
-      
-      setExplorerTabs([...explorerTabs, { id: session.sessionId, label, session }]);
-      setActiveMainTab(session.sessionId);
+      const label  = region ? `${city}, ${region}` : city;
+      setExplorerTabs(prev => [...prev, { id: session.sessionId, label, session }]);
+      switchMainTab(session.sessionId);
       setSelectedSession(session);
+      toast.info('Session opened', label);
     }
   };
 
   const closeTab = (tabId: string, e: React.MouseEvent) => {
     e.stopPropagation();
-    if (sidebarActivity === 'explorer') {
-      const newTabs = explorerTabs.filter(t => t.id !== tabId);
-      setExplorerTabs(newTabs);
-      
-      if (activeMainTab === tabId) {
-        if (newTabs.length > 0) {
-          setActiveMainTab(newTabs[newTabs.length - 1].id as MainTab);
-        } else {
-          setActiveMainTab(null);
-          setSelectedSession(null);
-        }
-      }
-    } else {
-      const newTabs = detectionTabs.filter(t => t.id !== tabId);
-      setDetectionTabs(newTabs);
-      
-      if (activeMainTab === tabId) {
-        if (newTabs.length > 0) {
-          setActiveMainTab(newTabs[newTabs.length - 1].id as MainTab);
-        } else {
-          setActiveMainTab(null);
-          setSelectedSession(null);
-        }
-      }
+    const newTabs = openTabs.filter(t => t.id !== tabId);
+    setOpenTabs(newTabs as any);
+    if (activeMainTab === tabId) {
+      const next = newTabs[newTabs.length - 1];
+      if (next) { switchMainTab(next.id); if (next.session) setSelectedSession(next.session); }
+      else { setActiveMainTab(null); setSelectedSession(null); }
     }
   };
+
+  const consoleTabs = [
+    { id: 'traces'  as ConsoleTab, label: 'Agent Traces', icon: <Radio    size={13} /> },
+    { id: 'ledger'  as ConsoleTab, label: 'DePIN Ledger', icon: <Database size={13} /> },
+    { id: 'console' as ConsoleTab, label: 'Console',      icon: <Server   size={13} /> },
+  ];
+
+  // ── Tab button style ──────────────────────
+  const tabBtn = (active: boolean): React.CSSProperties => ({
+    position: 'relative', display: 'flex', alignItems: 'center', gap: 7,
+    height: '100%', padding: '0 14px', minWidth: 110, flexShrink: 0,
+    cursor: 'pointer', border: 'none',
+    borderRight: '1px solid rgba(255,255,255,0.05)',
+    background: active ? 'var(--c-panel)' : 'transparent',
+    color: active ? 'var(--c-text)' : 'var(--c-text-3)',
+    fontSize: '0.76rem', fontWeight: active ? 500 : 400,
+    fontFamily: 'IBM Plex Sans, sans-serif',
+    transition: 'background 0.12s, color 0.12s',
+  });
 
   return (
     <div style={{
@@ -159,131 +173,91 @@ export default function Dashboard() {
       width: '100vw', height: '100vh', overflow: 'hidden',
       background: 'var(--c-bg)',
       fontSize: `${settings.fontSize}px`,
-      transition: 'background 0.2s, font-size 0.1s',
+      transition: 'background 0.18s, font-size 0.1s',
     }}>
-      <TopBar onSettingsOpen={() => setSettingsOpen(true)} />
+      <TopBar
+        onSettingsOpen={() => setSettingsOpen(true)}
+        onCommandOpen={() => setCmdOpen(true)}
+      />
 
       <div style={{ display: 'flex', flex: 1, overflow: 'hidden', minHeight: 0, position: 'relative' }}>
         <Sidebar
           onSentinelEyeClick={() => {
-            if (!detectionTabs.find(t => t.id === 'sentinel')) {
-              setDetectionTabs([...detectionTabs, { id: 'sentinel', label: 'Detection Node' }]);
-            }
-            setActiveMainTab('sentinel');
+            if (!detectionTabs.find(t => t.id === 'sentinel'))
+              setDetectionTabs(prev => [...prev, { id: 'sentinel', label: 'Detection Node' }]);
+            switchMainTab('sentinel');
           }}
           isSentinelEyeActive={activeMainTab === 'sentinel'}
           onSettingsOpen={() => setSettingsOpen(true)}
           onSessionClick={handleSessionClick}
           onActivityChange={(activity) => {
-            // Save current active tab for current activity
-            if (sidebarActivity === 'explorer') {
-              setExplorerActiveTab(activeMainTab);
-            } else {
-              setDetectionActiveTab(activeMainTab);
-            }
-            
+            if (sidebarActivity === 'explorer') setExplorerActiveTab(activeMainTab);
+            else setDetectionActiveTab(activeMainTab);
             setSidebarActivity(activity);
-            
-            // For detection activity, always show the detection view
             if (activity === 'detection') {
-              if (!detectionTabs.find(t => t.id === 'sentinel')) {
+              if (!detectionTabs.find(t => t.id === 'sentinel'))
                 setDetectionTabs(prev => [...prev, { id: 'sentinel', label: 'Detection Node' }]);
-              }
-              setActiveMainTab('sentinel');
-              setSelectedSession(null);
-              return;
+              switchMainTab('sentinel'); setSelectedSession(null); return;
             }
-            
-            // For network activity, clear active tab to show network map
-            if (activity === 'network') {
-              setActiveMainTab(null);
-              setSelectedSession(null);
-              return;
-            }
-            
-            // Restore active tab for explorer activity
+            if (activity === 'network') { setActiveMainTab(null); setSelectedSession(null); return; }
             const tabs = explorerTabs;
-            const savedActiveTab = explorerActiveTab;
-            
-            if (savedActiveTab && tabs.find(t => t.id === savedActiveTab)) {
-              // Restore previously active tab
-              setActiveMainTab(savedActiveTab);
-              const tab = tabs.find(t => t.id === savedActiveTab);
-              if (tab?.session) {
-                setSelectedSession(tab.session);
-              }
+            const saved = explorerActiveTab;
+            if (saved && tabs.find(t => t.id === saved)) {
+              switchMainTab(saved);
+              const tab = tabs.find(t => t.id === saved);
+              if (tab?.session) setSelectedSession(tab.session);
             } else if (tabs.length > 0) {
-              // Fallback to last tab
-              setActiveMainTab(tabs[tabs.length - 1].id as MainTab);
-              if (tabs[tabs.length - 1].session) {
-                setSelectedSession(tabs[tabs.length - 1].session);
-              }
-            } else {
-              setActiveMainTab(null);
-              setSelectedSession(null);
-            }
+              switchMainTab(tabs[tabs.length - 1].id as MainTab);
+              if (tabs[tabs.length - 1].session) setSelectedSession(tabs[tabs.length - 1].session);
+            } else { setActiveMainTab(null); setSelectedSession(null); }
           }}
           onNewSessionClick={() => {
-            const newTabId = 'new-session-' + Date.now();
-            setExplorerTabs([...explorerTabs, { id: newTabId, label: 'New Session', isNewSession: true }]);
-            setActiveMainTab(newTabId);
+            const id = 'new-session-' + Date.now();
+            setExplorerTabs(prev => [...prev, { id, label: 'New Session', isNewSession: true }]);
+            switchMainTab(id);
           }}
-          onRefreshSessions={() => {
-            if ((window as any).__refreshSessions) {
-              (window as any).__refreshSessions();
-            }
-          }}
+          onRefreshSessions={() => { if ((window as any).__refreshSessions) (window as any).__refreshSessions(); }}
           onSessionsDeleted={(sessionIds) => {
-            // Close tabs for deleted sessions
             const newTabs = openTabs.filter(t => !sessionIds.includes(t.id));
-            setOpenTabs(newTabs);
-            
-            // If active tab was deleted, switch to map
+            setOpenTabs(newTabs as any);
             if (activeMainTab && sessionIds.includes(activeMainTab)) {
-              setActiveMainTab('map');
-              setSelectedSession(null);
+              setActiveMainTab(null); setSelectedSession(null);
             }
+            toast.success('Sessions deleted', `${sessionIds.length} session(s) removed`);
           }}
         />
 
         <div style={{ display: 'flex', flexDirection: 'column', flex: 1, overflow: 'hidden', minWidth: 0 }}>
 
-          {/* Tab bar */}
+          {/* ── Main Tab Bar ─────────────── */}
           <div style={{
-            display: 'flex', alignItems: 'flex-end', height: 40, flexShrink: 0,
+            display: 'flex', alignItems: 'flex-end', height: 36, flexShrink: 0,
             background: 'var(--c-sidebar)', borderBottom: '1px solid var(--c-border)',
             overflowX: 'auto', overflowY: 'hidden',
           }}>
             {openTabs.map((tab) => {
               const active = activeMainTab === tab.id;
-              const isCloseable = tab.id !== 'map' && tab.id !== 'sentinel';
+              const closeable = tab.id !== 'map' && tab.id !== 'sentinel';
               return (
-                <button key={tab.id} onClick={() => {
-                  setActiveMainTab(tab.id);
-                  if (tab.session) setSelectedSession(tab.session);
-                  else setSelectedSession(null);
-                }} style={{
-                  position: 'relative', display: 'flex', alignItems: 'center', gap: 8,
-                  height: '100%', padding: '0 16px', minWidth: 120, flexShrink: 0,
-                  cursor: 'pointer', border: 'none',
-                  borderRight: '1px solid rgba(255,255,255,0.06)',
-                  background: active ? 'var(--c-panel)' : 'transparent',
-                  color: active ? 'var(--c-text)' : 'var(--c-text-3)',
-                  fontSize: '0.85rem', fontWeight: active ? 500 : 400,
-                  fontFamily: 'Inter, sans-serif', transition: 'background 0.1s',
-                }}
-                onMouseEnter={(e) => { if (!active) (e.currentTarget as HTMLElement).style.background = 'rgba(255,255,255,0.03)'; }}
-                onMouseLeave={(e) => { if (!active) (e.currentTarget as HTMLElement).style.background = 'transparent'; }}
+                <button key={tab.id}
+                  onClick={() => { switchMainTab(tab.id); if (tab.session) setSelectedSession(tab.session); else setSelectedSession(null); }}
+                  style={tabBtn(active)}
+                  onMouseEnter={(e) => { if (!active) (e.currentTarget as HTMLElement).style.background = 'rgba(255,255,255,0.03)'; }}
+                  onMouseLeave={(e) => { if (!active) (e.currentTarget as HTMLElement).style.background = 'transparent'; }}
                 >
-                  {tab.id === 'map' && <span style={{ color: active ? 'var(--c-accent-2)' : 'var(--c-text-3)' }}><MapPin size={14} /></span>}
-                  {tab.id === 'sentinel' && <span style={{ color: active ? 'var(--c-accent-2)' : 'var(--c-text-3)' }}><Video size={14} /></span>}
+                  {tab.id === 'map'      && <span style={{ color: active ? 'var(--c-accent-2)' : 'var(--c-text-3)' }}><MapPin size={12} /></span>}
+                  {tab.id === 'sentinel' && <span style={{ color: active ? 'var(--c-accent-2)' : 'var(--c-text-3)' }}><Video  size={12} /></span>}
                   {tab.label}
-                  {isCloseable && (
-                    <span onClick={(e) => closeTab(tab.id, e)} style={{ display: 'flex', alignItems: 'center', justifyContent: 'center', width: 18, height: 18, marginLeft: 4, color: 'var(--c-text-3)', cursor: 'pointer' }}
-                      onMouseEnter={(e) => (e.currentTarget as HTMLElement).style.color = 'var(--c-text)'}
-                      onMouseLeave={(e) => (e.currentTarget as HTMLElement).style.color = 'var(--c-text-3)'}
+                  {closeable && (
+                    <span onClick={(e) => closeTab(tab.id, e)} style={{
+                      display: 'flex', alignItems: 'center', justifyContent: 'center',
+                      width: 16, height: 16, marginLeft: 2, color: 'var(--c-text-3)',
+                      cursor: 'pointer', borderRadius: 3, transition: 'background 0.1s, color 0.1s',
+                    }}
+                    onMouseEnter={(e) => { (e.currentTarget as HTMLElement).style.background = 'rgba(255,255,255,0.08)'; (e.currentTarget as HTMLElement).style.color = 'var(--c-text)'; }}
+                    onMouseLeave={(e) => { (e.currentTarget as HTMLElement).style.background = 'transparent'; (e.currentTarget as HTMLElement).style.color = 'var(--c-text-3)'; }}
                     >
-                      <X size={12} />
+                      <X size={10} />
                     </span>
                   )}
                   {active && <span className="tab-line" />}
@@ -294,117 +268,60 @@ export default function Dashboard() {
           </div>
 
           {activeMainTab === 'map' && (
-            selectedSession && selectedSession.status !== 'creating'
-              ? <Breadcrumb path={['World', selectedSession.location?.country || 'Unknown', selectedSession.location?.region || '', selectedSession.location?.city || ''].filter(Boolean)} />
-              : <Breadcrumb path={['World', 'India', 'Odisha', 'Rourkela']} />
+            <Breadcrumb path={
+              selectedSession?.status !== 'creating'
+                ? ['World', selectedSession?.location?.country, selectedSession?.location?.region, selectedSession?.location?.city].filter(Boolean)
+                : ['World', 'India', 'Odisha', 'Rourkela']
+            } />
           )}
 
-          <div style={{ flex: 1, overflow: 'hidden', minHeight: 0 }}>
+          {/* ── Main Content — crossfade ─── */}
+          <div key={mainTabKey} className="panel-fade" style={{ flex: 1, overflow: 'hidden', minHeight: 0 }}>
             {sidebarActivity === 'network' ? (
               <NetworkMapView />
             ) : !activeMainTab ? (
-              <div style={{ 
-                display: 'flex', 
-                alignItems: 'center', 
-                justifyContent: 'center', 
-                height: '100%',
-                flexDirection: 'column',
-                gap: 16,
+              <div style={{
+                display: 'flex', alignItems: 'center', justifyContent: 'center',
+                height: '100%', flexDirection: 'column', gap: 14,
                 background: 'var(--c-bg)',
               }}>
-                {sidebarActivity === 'explorer' ? (
-                  <>
-                    <MapPin size={64} style={{ color: 'var(--c-text-3)', opacity: 0.3 }} />
-                    <div style={{ 
-                      fontSize: '1.2rem', 
-                      color: 'var(--c-text-2)', 
-                      fontFamily: 'Inter, sans-serif',
-                      fontWeight: 600,
-                    }}>
-                      Explore, Plan & Solve Road Infrastructure
-                    </div>
-                    <div style={{ 
-                      fontSize: '0.85rem', 
-                      color: 'var(--c-text-3)', 
-                      fontFamily: 'Inter, sans-serif',
-                      textAlign: 'center',
-                      maxWidth: 400,
-                    }}>
-                      Select a session from the explorer or create a new one to visualize hazards on the map
-                    </div>
-                  </>
-                ) : (
-                  <>
-                    <Video size={64} style={{ color: 'var(--c-text-3)', opacity: 0.3 }} />
-                    <div style={{ 
-                      fontSize: '1.2rem', 
-                      color: 'var(--c-text-2)', 
-                      fontFamily: 'Inter, sans-serif',
-                      fontWeight: 600,
-                    }}>
-                      Real-Time Hazard Detection
-                    </div>
-                    <div style={{ 
-                      fontSize: '0.85rem', 
-                      color: 'var(--c-text-3)', 
-                      fontFamily: 'Inter, sans-serif',
-                      textAlign: 'center',
-                      maxWidth: 400,
-                    }}>
-                      Click Detection Node to upload dashcam footage and detect potholes in real-time
-                    </div>
-                  </>
-                )}
+                <MapPin size={48} style={{ color: 'var(--c-text-3)', opacity: 0.2 }} />
+                <div style={{ fontSize: '1rem', color: 'var(--c-text-2)', fontFamily: 'IBM Plex Sans, sans-serif', fontWeight: 600 }}>
+                  {sidebarActivity === 'explorer' ? 'Explore Road Infrastructure' : 'Real-Time Hazard Detection'}
+                </div>
+                <div style={{ fontSize: '0.76rem', color: 'var(--c-text-3)', fontFamily: 'IBM Plex Sans, sans-serif', textAlign: 'center', maxWidth: 360, lineHeight: 1.6 }}>
+                  {sidebarActivity === 'explorer'
+                    ? 'Select a session from the explorer or create a new one'
+                    : 'Click Detection Node to upload dashcam footage'}
+                </div>
               </div>
             ) : openTabs.find(t => t.id === activeMainTab)?.isNewSession ? (
-              <NewSessionView 
-                onRefreshSessions={() => {
-                  if ((window as any).__refreshSessions) {
-                    (window as any).__refreshSessions();
-                  }
-                }}
+              <NewSessionView
+                onRefreshSessions={() => { if ((window as any).__refreshSessions) (window as any).__refreshSessions(); }}
                 onSessionCreated={(session) => {
-                  console.log('Session created:', session);
-                  // Replace "New Session" tab with actual session
-                  const newTabs = explorerTabs.map(t => 
-                    t.id === activeMainTab 
-                      ? { 
-                          id: session.sessionId, 
-                          label: `${session.location?.city || 'Unknown'}, ${session.location?.region || ''}`.replace(/, $/, ''),
-                          session 
-                        }
+                  const newTabs = explorerTabs.map(t =>
+                    t.id === activeMainTab
+                      ? { id: session.sessionId, label: `${session.location?.city || 'Unknown'}${session.location?.region ? ', ' + session.location.region : ''}`, session }
                       : t
                   );
-                  console.log('New tabs:', newTabs);
                   setExplorerTabs(newTabs);
-                  setActiveMainTab(session.sessionId);
+                  switchMainTab(session.sessionId);
                   setSelectedSession(session);
-                  console.log('Selected session set to:', session);
+                  toast.success('Session created', session.location?.city || 'New session ready');
                 }}
               />
             ) : selectedSession?.status === 'creating' ? (
-              <div style={{ 
-                display: 'flex', 
-                alignItems: 'center', 
-                justifyContent: 'center', 
-                height: '100%',
-                flexDirection: 'column',
-                gap: 16,
-                background: 'var(--c-bg)',
+              <div style={{
+                display: 'flex', alignItems: 'center', justifyContent: 'center',
+                height: '100%', flexDirection: 'column', gap: 16, background: 'var(--c-bg)',
               }}>
-                <div style={{ 
-                  width: 40, 
-                  height: 40, 
-                  border: '3px solid var(--c-border)', 
-                  borderTop: '3px solid var(--c-accent)', 
-                  borderRadius: '50%',
-                  animation: 'spin 1s linear infinite',
+                <div style={{
+                  width: 32, height: 32, borderRadius: '50%',
+                  border: '2px solid var(--c-border)',
+                  borderTop: '2px solid var(--c-rose)',
+                  animation: 'spin 0.9s linear infinite',
                 }} />
-                <div style={{ 
-                  fontSize: '0.85rem', 
-                  color: 'var(--c-text-2)', 
-                  fontFamily: 'Inter, sans-serif',
-                }}>
+                <div style={{ fontSize: '0.78rem', color: 'var(--c-text-2)', fontFamily: 'IBM Plex Sans, sans-serif' }}>
                   Creating session at {selectedSession.location?.name}...
                 </div>
               </div>
@@ -412,57 +329,25 @@ export default function Dashboard() {
               <DetectionModeView />
             ) : splitView ? (
               <div style={{ display: 'flex', height: '100%', gap: 1, background: 'var(--c-border)' }}>
-                <div style={{ flex: 1, overflow: 'hidden', position: 'relative' }}>
-                  <div style={{ 
-                    position: 'absolute', 
-                    top: 8, 
-                    left: 8, 
-                    zIndex: 10,
-                    background: 'rgba(0,0,0,0.8)',
-                    padding: '4px 8px',
-                    borderRadius: 3,
-                    fontSize: '0.7rem',
-                    color: '#fff',
-                    fontFamily: 'Inter, sans-serif'
-                  }}>
-                    {splitView.left.location?.city || 'Session'} - {new Date(splitView.left.timestamp).toLocaleDateString()}
+                {[splitView.left, splitView.right].map((s, i) => (
+                  <div key={i} style={{ flex: 1, overflow: 'hidden', position: 'relative' }}>
+                    <div style={{
+                      position: 'absolute', top: 8, left: 8, zIndex: 10,
+                      background: 'rgba(0,0,0,0.8)', padding: '4px 8px', borderRadius: 3,
+                      fontSize: '0.68rem', color: '#fff', fontFamily: 'IBM Plex Sans, sans-serif',
+                      border: '1px solid var(--c-rose-border)',
+                    }}>
+                      {s.location?.city || 'Session'} — {new Date(s.timestamp).toLocaleDateString()}
+                    </div>
+                    <LiveMap key={s.sessionId} selectedSession={s} />
                   </div>
-                  <LiveMap key={splitView.left.sessionId} selectedSession={splitView.left} />
-                </div>
-                <div style={{ flex: 1, overflow: 'hidden', position: 'relative' }}>
-                  <div style={{ 
-                    position: 'absolute', 
-                    top: 8, 
-                    left: 8, 
-                    zIndex: 10,
-                    background: 'rgba(0,0,0,0.8)',
-                    padding: '4px 8px',
-                    borderRadius: 3,
-                    fontSize: '0.7rem',
-                    color: '#fff',
-                    fontFamily: 'Inter, sans-serif'
-                  }}>
-                    {splitView.right.location?.city || 'Session'} - {new Date(splitView.right.timestamp).toLocaleDateString()}
-                  </div>
-                  <LiveMap key={splitView.right.sessionId} selectedSession={splitView.right} />
-                </div>
-                <button
-                  onClick={() => setSplitView(null)}
-                  style={{
-                    position: 'absolute',
-                    top: 8,
-                    right: 8,
-                    zIndex: 20,
-                    background: 'rgba(0,0,0,0.8)',
-                    border: '1px solid var(--c-border)',
-                    borderRadius: 3,
-                    padding: '4px 8px',
-                    color: '#fff',
-                    fontSize: '0.7rem',
-                    cursor: 'pointer',
-                    fontFamily: 'Inter, sans-serif'
-                  }}
-                >
+                ))}
+                <button onClick={() => { setSplitView(null); toast.info('Split view closed'); }} style={{
+                  position: 'absolute', top: 8, right: 8, zIndex: 20,
+                  background: 'var(--c-elevated)', border: '1px solid var(--c-rose-border)',
+                  borderRadius: 3, padding: '4px 10px', color: 'var(--c-rose-2)',
+                  fontSize: '0.70rem', cursor: 'pointer', fontFamily: 'IBM Plex Sans, sans-serif',
+                }}>
                   Close Split
                 </button>
               </div>
@@ -471,34 +356,41 @@ export default function Dashboard() {
             ) : null}
           </div>
 
-          {/* Console */}
+          {/* ── Console ──────────────────── */}
           <div style={{ display: 'flex', flexDirection: 'column', flexShrink: 0, height: consoleHeight, borderTop: '1px solid var(--c-border)' }}>
+
+            {/* Resize handle */}
             <div className="drag-handle-y" onMouseDown={onResizeDown} style={{
-              height: 10, flexShrink: 0, display: 'flex', alignItems: 'center', justifyContent: 'center',
+              height: 8, flexShrink: 0, display: 'flex', alignItems: 'center', justifyContent: 'center',
               background: 'var(--c-sidebar)', cursor: 'ns-resize',
             }}>
-              <div className="drag-pip" style={{ width: 28, height: 2, borderRadius: 2, background: 'rgba(255,255,255,0.09)', transition: 'background 0.15s' }} />
+              <div className="drag-pip" style={{ width: 24, height: 2, borderRadius: 2, background: 'rgba(255,255,255,0.08)', transition: 'background 0.15s' }} />
             </div>
 
+            {/* Console Tab Bar */}
             <div style={{
-              display: 'flex', alignItems: 'center', height: 38, flexShrink: 0,
+              display: 'flex', alignItems: 'center', height: 34, flexShrink: 0,
               background: 'var(--c-sidebar)', borderBottom: '1px solid var(--c-border)',
             }}>
+              <div style={{
+                display: 'flex', alignItems: 'center', gap: 6,
+                padding: '0 12px', height: '100%',
+                borderRight: '1px solid var(--c-border)', color: 'var(--c-text-3)',
+              }}>
+                <TerminalIcon size={11} />
+                <span style={{ fontSize: '0.60rem', letterSpacing: '0.09em', textTransform: 'uppercase', fontFamily: 'IBM Plex Sans, sans-serif', fontWeight: 600 }}>
+                  Console
+                </span>
+              </div>
+
               {consoleTabs.map((tab) => {
                 const active = activeConsoleTab === tab.id;
                 return (
-                  <button key={tab.id} onClick={() => setActiveConsoleTab(tab.id)} style={{
-                    position: 'relative', display: 'flex', alignItems: 'center', gap: 8,
-                    padding: '0 16px', height: '100%', cursor: 'pointer', border: 'none',
-                    borderRight: '1px solid rgba(255,255,255,0.05)',
-                    background: active ? 'var(--c-panel)' : 'transparent',
-                    color: active ? 'var(--c-text)' : 'var(--c-text-3)',
-                    fontSize: '0.85rem', fontFamily: 'Inter, sans-serif', transition: 'background 0.1s',
-                  }}
+                  <button key={tab.id} onClick={() => switchConsoleTab(tab.id)} style={tabBtn(active)}
                   onMouseEnter={(e) => { if (!active) (e.currentTarget as HTMLElement).style.background = 'rgba(255,255,255,0.03)'; }}
                   onMouseLeave={(e) => { if (!active) (e.currentTarget as HTMLElement).style.background = 'transparent'; }}
                   >
-                    <span style={{ color: active ? 'var(--c-accent-2)' : 'var(--c-text-3)' }}>{tab.icon}</span>
+                    <span style={{ color: active ? 'var(--c-rose)' : 'var(--c-text-3)' }}>{tab.icon}</span>
                     {tab.label}
                     {active && <span className="tab-line" />}
                   </button>
@@ -507,10 +399,11 @@ export default function Dashboard() {
               <div style={{ flex: 1 }} />
             </div>
 
-            <div style={{ flex: 1, overflowY: 'auto', padding: '12px 16px', background: 'var(--c-deep)' }}>
-              {activeConsoleTab === 'traces'   && <ReasoningTraceViewer />}
-              {activeConsoleTab === 'ledger'   && <LedgerTicker />}
-              {activeConsoleTab === 'console'  && <ConsoleViewer />}
+            {/* Console content — crossfade */}
+            <div key={consoleTabKey} className="panel-fade" style={{ flex: 1, overflowY: 'auto', padding: '10px 14px', background: 'var(--c-deep)' }}>
+              {activeConsoleTab === 'traces'  && <ReasoningTraceViewer />}
+              {activeConsoleTab === 'ledger'  && <LedgerTicker />}
+              {activeConsoleTab === 'console' && <ConsoleViewer />}
             </div>
           </div>
         </div>
@@ -519,6 +412,15 @@ export default function Dashboard() {
       </div>
 
       <StatusBar />
+
+      {/* ── Overlays ─────────────────────── */}
+      <CommandPalette
+        open={cmdOpen}
+        onClose={() => setCmdOpen(false)}
+        onNavigate={(tab) => switchMainTab(tab as MainTab)}
+        onSettingsOpen={() => setSettingsOpen(true)}
+      />
+      <ToastContainer />
     </div>
   );
 }

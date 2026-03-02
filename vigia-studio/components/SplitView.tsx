@@ -27,8 +27,10 @@ interface SplitViewProps {
 function SplitDivider() {
   return (
     <div
-      className="w-px flex-shrink-0 relative"
-      style={{ background: 'rgba(255,255,255,0.08)', cursor: 'col-resize' }}
+      className="w-px flex-shrink-0 relative transition-all"
+      style={{ background: 'rgba(255,255,255,0.10)', cursor: 'col-resize', transition: 'background var(--transition-fast)' }}
+      onMouseEnter={e => (e.currentTarget.style.background = 'rgba(37,99,235,0.18)')}
+      onMouseLeave={e => (e.currentTarget.style.background = 'rgba(255,255,255,0.10)')}
     >
       <div
         className="absolute inset-y-0 -left-1 -right-1"

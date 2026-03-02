@@ -74,14 +74,16 @@ export function TabBar({
               key={tab.id}
               onClick={() => onTabClick(tab.id)}
               onContextMenu={(e) => showContextMenu(e, tab.id)}
-              className="relative flex items-center gap-1.5 h-full flex-shrink-0 cursor-pointer group select-none"
+              className={`relative flex items-center gap-1.5 h-full flex-shrink-0 cursor-pointer group select-none transition-all ${isActive ? 'bg-tab-active text-text-primary font-semibold' : 'bg-tab-inactive text-text-secondary'} hover:bg-bg-hover rounded-t-sm focus:outline-none focus:ring-2 focus:ring-border-focus`}
               style={{
                 minWidth: 100,
                 maxWidth: 180,
                 paddingLeft: 10,
-                paddingRight: 6,
-                background: isActive ? '#1F242D' : 'transparent',
-                borderRight: '1px solid rgba(255,255,255,0.06)',
+                paddingRight: 10,
+                fontSize: '0.75rem',
+                transition: 'all var(--transition-fast)',
+                borderBottom: isActive ? '2px solid #3B82F6' : '2px solid transparent',
+                zIndex: isActive ? 2 : 1,
               }}
             >
               <MapPin size={11} style={{ color: isActive ? '#3B82F6' : '#4B5563', flexShrink: 0 }} />

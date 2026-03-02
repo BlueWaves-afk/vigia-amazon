@@ -33,10 +33,11 @@ function StatusIndicator({ label, icon, status }: StatusIndicatorProps) {
 export function TopBar() {
   return (
     <header
-      className="flex items-center justify-between h-8 flex-shrink-0 select-none"
+      className="flex items-center justify-between h-8 flex-shrink-0 select-none shadow-sm"
       style={{
         background: '#0D1117',
         borderBottom: '1px solid rgba(255,255,255,0.07)',
+        boxShadow: '0 1px 0 0 rgba(37,99,235,0.04)',
       }}
     >
       {/* Left — Branding + Menu Items */}
@@ -71,8 +72,8 @@ export function TopBar() {
         {['File', 'View', 'Analysis', 'Swarm', 'Ledger', 'Help'].map((item) => (
           <button
             key={item}
-            className="px-3 h-full text-text-muted hover:text-text-secondary hover:bg-white/[0.04] transition-colors"
-            style={{ fontSize: '0.72rem' }}
+            className="px-3 h-full text-text-muted hover:text-text-primary hover:bg-bg-hover transition-colors rounded-sm focus:outline-none focus:ring-2 focus:ring-border-focus"
+            style={{ fontSize: '0.72rem', transition: 'all var(--transition-fast)' }}
           >
             {item}
           </button>

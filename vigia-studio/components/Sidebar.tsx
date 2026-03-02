@@ -43,10 +43,11 @@ function CityRow({ city, onOpen, isActive, depth = 0 }: CityRowProps) {
   return (
     <button
       onClick={() => onOpen(city.id)}
-      className="w-full flex items-center gap-2 h-7 group relative text-left transition-colors"
+      className={`w-full flex items-center gap-2 h-7 group relative text-left transition-colors rounded-sm focus:outline-none focus:ring-2 focus:ring-border-focus ${isActive ? 'bg-[rgba(37,99,235,0.12)]' : ''}`}
       style={{
         paddingLeft,
         background: isActive ? 'rgba(37,99,235,0.12)' : undefined,
+        transition: 'all var(--transition-fast)',
       }}
       onMouseEnter={(e) => {
         if (!isActive) (e.currentTarget as HTMLElement).style.background = 'rgba(255,255,255,0.04)';
@@ -70,6 +71,7 @@ function CityRow({ city, onOpen, isActive, depth = 0 }: CityRowProps) {
           fontSize: '0.78rem',
           color: isActive ? '#E2E8F0' : '#8B95A1',
           fontWeight: isActive ? 500 : 400,
+          transition: 'color var(--transition-fast)',
         }}
       >
         {city.name}
@@ -79,10 +81,13 @@ function CityRow({ city, onOpen, isActive, depth = 0 }: CityRowProps) {
       <span
         className="mr-2 opacity-0 group-hover:opacity-100 transition-opacity"
         style={{
-          fontSize: '0.58rem',
-          color: threatColor,
-          fontFamily: 'JetBrains Mono, monospace',
+          background: threatColor,
+          borderRadius: '3px',
+          padding: '2px 6px',
+          fontSize: '0.65rem',
+          color: '#fff',
           fontWeight: 500,
+          transition: 'opacity var(--transition-fast)',
         }}
       >
         {city.threatLevel}

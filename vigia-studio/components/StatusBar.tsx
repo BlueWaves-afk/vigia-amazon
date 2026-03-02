@@ -13,100 +13,25 @@ interface StatusBarProps {
 
 export function StatusBar({ openTabCount, activeCityName }: StatusBarProps) {
   return (
-    <div
-      className="flex items-center justify-between h-5 flex-shrink-0 px-0 select-none"
+    <footer
+      className="flex items-center justify-between h-7 px-4 text-2xs text-text-muted bg-bg-panel border-t border-border-subtle shadow-sm"
       style={{
-        background: '#1B2028',
-        borderTop: '1px solid rgba(255,255,255,0.06)',
+        fontFamily: 'JetBrains Mono, Fira Code, monospace',
+        fontSize: '0.68rem',
+        letterSpacing: '-0.01em',
+        boxShadow: '0 -1px 0 0 rgba(37,99,235,0.04)',
       }}
     >
-      {/* Left */}
-      <div className="flex items-center h-full">
-        {/* Branch / build info */}
-        <div
-          className="flex items-center gap-1.5 px-3 h-full"
-          style={{ background: '#2563EB' }}
-        >
-          <GitBranch size={10} style={{ color: '#fff' }} />
-          <span style={{ fontSize: '0.62rem', color: '#fff', fontWeight: 500 }}>main</span>
-        </div>
-
-        <div
-          className="flex items-center gap-1.5 px-3 h-full border-r"
-          style={{ borderColor: 'rgba(255,255,255,0.07)' }}
-        >
-          <CheckCircle size={10} className="text-accent-green" />
-          <span className="text-text-muted" style={{ fontSize: '0.62rem' }}>
-            No errors
-          </span>
-        </div>
-
+      <div className="flex items-center gap-3">
+        <span>Tabs: <span className="text-text-primary font-semibold">{openTabCount}</span></span>
         {activeCityName && (
-          <div className="flex items-center gap-1.5 px-3 h-full border-r" style={{ borderColor: 'rgba(255,255,255,0.07)' }}>
-            <span className="text-text-muted" style={{ fontSize: '0.62rem', fontFamily: 'JetBrains Mono, monospace' }}>
-              {activeCityName}
-            </span>
-          </div>
+          <span className="ml-2 text-accent-blue">Active: {activeCityName}</span>
         )}
-
-        <div className="flex items-center gap-1.5 px-3 h-full">
-          <AlertTriangle size={10} className="text-accent-yellow" />
-          <span className="text-text-muted" style={{ fontSize: '0.62rem' }}>
-            7 hazards
-          </span>
-        </div>
       </div>
-
-      {/* Right */}
-      <div className="flex items-center h-full">
-        <div
-          className="flex items-center gap-1.5 px-3 h-full border-l"
-          style={{ borderColor: 'rgba(255,255,255,0.07)' }}
-        >
-          <Activity size={10} className="text-text-muted" />
-          <span className="text-text-muted" style={{ fontSize: '0.62rem', fontFamily: 'JetBrains Mono, monospace' }}>
-            48 nodes
-          </span>
-        </div>
-
-        <div
-          className="flex items-center gap-1.5 px-3 h-full border-l"
-          style={{ borderColor: 'rgba(255,255,255,0.07)' }}
-        >
-          <Cpu size={10} className="text-text-muted" />
-          <span className="text-text-muted" style={{ fontSize: '0.62rem', fontFamily: 'JetBrains Mono, monospace' }}>
-            GPU 63%
-          </span>
-        </div>
-
-        <div
-          className="flex items-center gap-1.5 px-3 h-full border-l"
-          style={{ borderColor: 'rgba(255,255,255,0.07)' }}
-        >
-          <Wifi size={10} className="text-text-muted" />
-          <span className="text-text-muted" style={{ fontSize: '0.62rem', fontFamily: 'JetBrains Mono, monospace' }}>
-            8ms
-          </span>
-        </div>
-
-        <div
-          className="flex items-center gap-1.5 px-3 h-full border-l"
-          style={{ borderColor: 'rgba(255,255,255,0.07)' }}
-        >
-          <span className="text-text-muted" style={{ fontSize: '0.62rem' }}>
-            {openTabCount} open
-          </span>
-        </div>
-
-        <div
-          className="flex items-center gap-1.5 px-3 h-full border-l"
-          style={{ borderColor: 'rgba(255,255,255,0.07)' }}
-        >
-          <span className="text-text-muted" style={{ fontSize: '0.62rem' }}>
-            GeoJSON · UTF-8
-          </span>
-        </div>
+      <div className="flex items-center gap-2">
+        <span className="opacity-60">VIGIA Studio</span>
+        <span className="opacity-40">© 2026</span>
       </div>
-    </div>
+    </footer>
   );
 }

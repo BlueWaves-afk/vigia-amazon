@@ -166,7 +166,8 @@ export function SettingsPanel({ onClose }: SettingsPanelProps) {
             <div style={{ display: 'flex', gap: 6 }}>
               <OptionPill label="Dark"    active={settings.theme === 'dark'}           onClick={() => update({ theme: 'dark' })}           icon={<Moon   size={10} />} />
               <OptionPill label="Darker"  active={settings.theme === 'darker'}         onClick={() => update({ theme: 'darker' })}         icon={<Monitor size={10} />} />
-              <OptionPill label="Hi-Con"  active={settings.theme === 'high-contrast'}  onClick={() => update({ theme: 'high-contrast' })}  icon={<Sun    size={10} />} />
+              <OptionPill label="Light"   active={settings.theme === 'light'}          onClick={() => update({ theme: 'light' })}          icon={<Sun    size={10} />} />
+              <OptionPill label="Hi-Con"  active={settings.theme === 'high-contrast'}  onClick={() => update({ theme: 'high-contrast' })}  icon={<Eye    size={10} />} />
             </div>
           </div>
 

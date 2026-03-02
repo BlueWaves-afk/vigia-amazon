@@ -28,19 +28,19 @@ interface SidebarProps {
 // ─────────────────────────────────────────────
 
 const C = {
-  bg:      '#141920',
-  actBar:  '#0C1016',
-  border:  'rgba(255,255,255,0.07)',
-  text:    '#DDE3ED',
-  textSec: '#7C8799',
-  textMut: '#3D4655',
-  accent:  '#3B82F6',
+  bg:      'var(--c-sidebar)',
+  actBar:  'var(--c-bg)',
+  border:  'var(--c-border)',
+  text:    'var(--c-text)',
+  textSec: 'var(--c-text-2)',
+  textMut: 'var(--c-text-3)',
+  accent:  'var(--c-accent-2)',
   accentBg:'rgba(59,130,246,0.12)',
-  hover:   'rgba(255,255,255,0.04)',
-  green:   '#0EA472',
-  red:     '#E5484D',
-  yellow:  '#E9A23B',
-  panel:   '#1E2530',
+  hover:   'rgba(59,130,246,0.08)',
+  green:   'var(--c-green)',
+  red:     'var(--c-red)',
+  yellow:  'var(--c-yellow)',
+  panel:   'var(--c-panel)',
 };
 
 // ─────────────────────────────────────────────
