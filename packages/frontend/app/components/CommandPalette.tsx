@@ -225,11 +225,11 @@ export function CommandPalette({ open, onClose, onNavigate, onSettingsOpen }: Co
             <button
               onClick={() => setQuery('')}
               style={{
-                background: 'none', border: 'none', color: 'var(--c-text-3)',
+                color: 'var(--c-text-3)',
                 cursor: 'pointer', fontSize: '0.62rem', fontFamily: 'IBM Plex Mono, monospace',
                 padding: '2px 6px', borderRadius: 3,
                 background: 'var(--c-panel)', border: '1px solid var(--c-border)',
-              } as any}
+              }}
             >
               esc
             </button>
