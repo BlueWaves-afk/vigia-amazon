@@ -3,9 +3,13 @@ import * as lambda from 'aws-cdk-lib/aws-lambda';
 import * as lambdaNodejs from 'aws-cdk-lib/aws-lambda-nodejs';
 import * as lambdaEventSources from 'aws-cdk-lib/aws-lambda-event-sources';
 import * as iam from 'aws-cdk-lib/aws-iam';
+import * as sfn from 'aws-cdk-lib/aws-stepfunctions';
+import * as tasks from 'aws-cdk-lib/aws-stepfunctions-tasks';
+import * as location from 'aws-cdk-lib/aws-location';
 import * as cdk from 'aws-cdk-lib';
 import { Construct } from 'constructs';
 import * as path from 'path';
+import * as fs from 'fs';
 import { BedrockAgentConfig } from '../constructs/bedrock-agent';
 
 export interface IntelligenceStackProps {
@@ -22,6 +26,8 @@ export class IntelligenceStack extends Construct {
   public readonly networkIntelligenceFn?: lambda.Function;
   public readonly maintenanceLogisticsFn?: lambda.Function;
   public readonly urbanPlannerFn?: lambda.Function;
+  public readonly urbanPlannerStateMachine?: sfn.StateMachine;
+  public readonly geofenceCollection?: location.CfnGeofenceCollection;
   public readonly bedrockAgentConfig?: BedrockAgentConfig;
   public readonly verifyHazardSyncFn?: lambdaNodejs.NodejsFunction;
 
@@ -218,6 +224,114 @@ export class IntelligenceStack extends Construct {
       new cdk.CfnOutput(this, 'UrbanPlannerFunctionArn', {
         value: this.urbanPlannerFn.functionArn,
         description: 'ARN of Urban Planner Lambda',
+      });
+
+      // ═══════════════════════════════════════════════════════════
+      // PHASE 3: Amazon Location Service Geofences
+      // ═══════════════════════════════════════════════════════════
+
+      this.geofenceCollection = new location.CfnGeofenceCollection(this, 'VigiaRestrictedZones', {
+        collectionName: 'VigiaRestrictedZones',
+        description: 'Geofence collection for urban planning zone restrictions',
+      });
+
+      // Note: Geofences are added via API calls in the Lambda functions
+      // The collection is created here, but individual geofences are managed dynamically
+      // For demo purposes, we'll add them via AWS CLI or SDK after deployment:
+      //
+      // aws location put-geofence \
+      //   --collection-name VigiaRestrictedZones \
+      //   --geofence-id residential-zone-1 \
+      //   --geometry 'Polygon=[[[-71.06,42.36],[-71.05,42.36],[-71.05,42.37],[-71.06,42.37],[-71.06,42.36]]]'
+      //
+      // Repeat for commercial-zone-1, industrial-zone-1, protected-zone-1
+
+      // ═══════════════════════════════════════════════════════════
+      // PHASE 1: Step Functions Urban Planner Workflow
+      // ═══════════════════════════════════════════════════════════
+
+      // Create 3 micro-Lambdas for Step Functions
+      const generateBezierPathFn = new lambda.Function(this, 'GenerateBezierPathFunction', {
+        runtime: lambda.Runtime.PYTHON_3_12,
+        handler: 'generate-bezier-path.lambda_handler',
+        code: lambda.Code.fromAsset(path.join(__dirname, '../../../backend/src/actions/step-functions')),
+        timeout: cdk.Duration.seconds(10),
+        environment: {
+          GEOFENCE_COLLECTION_NAME: this.geofenceCollection.collectionName!,
+        },
+      });
+
+      const calculateLandCostFn = new lambda.Function(this, 'CalculateLandCostFunction', {
+        runtime: lambda.Runtime.PYTHON_3_12,
+        handler: 'calculate-land-cost.lambda_handler',
+        code: lambda.Code.fromAsset(path.join(__dirname, '../../../backend/src/actions/step-functions')),
+        timeout: cdk.Duration.seconds(5),
+      });
+
+      const checkZoneRegulationsFn = new lambda.Function(this, 'CheckZoneRegulationsFunction', {
+        runtime: lambda.Runtime.PYTHON_3_12,
+        handler: 'check-zone-regulations.lambda_handler',
+        code: lambda.Code.fromAsset(path.join(__dirname, '../../../backend/src/actions/step-functions')),
+        timeout: cdk.Duration.seconds(10),
+        environment: {
+          GEOFENCE_COLLECTION_NAME: this.geofenceCollection.collectionName!,
+        },
+      });
+
+      // Grant Location Service permissions
+      generateBezierPathFn.addToRolePolicy(
+        new iam.PolicyStatement({
+          actions: ['geo:BatchEvaluateGeofences'],
+          resources: [this.geofenceCollection.attrArn],
+        })
+      );
+
+      checkZoneRegulationsFn.addToRolePolicy(
+        new iam.PolicyStatement({
+          actions: ['geo:BatchEvaluateGeofences'],
+          resources: [this.geofenceCollection.attrArn],
+        })
+      );
+
+      // Load ASL definition and substitute Lambda ARNs
+      const aslPath = path.join(__dirname, '../../../backend/src/workflows/urban-planner.asl.json');
+      const aslTemplate = fs.readFileSync(aslPath, 'utf-8');
+      const aslDefinition = aslTemplate
+        .replace(/\$\{GenerateBezierPathLambdaArn\}/g, generateBezierPathFn.functionArn)
+        .replace(/\$\{CalculateLandCostLambdaArn\}/g, calculateLandCostFn.functionArn)
+        .replace(/\$\{CheckZoneRegulationsLambdaArn\}/g, checkZoneRegulationsFn.functionArn);
+
+      // Create Step Functions State Machine (Express Workflow)
+      this.urbanPlannerStateMachine = new sfn.StateMachine(this, 'UrbanPlannerStateMachine', {
+        definitionBody: sfn.DefinitionBody.fromString(aslDefinition),
+        stateMachineType: sfn.StateMachineType.EXPRESS,
+        timeout: cdk.Duration.seconds(30),
+      });
+
+      // Grant State Machine permission to invoke Lambdas
+      generateBezierPathFn.grantInvoke(this.urbanPlannerStateMachine);
+      calculateLandCostFn.grantInvoke(this.urbanPlannerStateMachine);
+      checkZoneRegulationsFn.grantInvoke(this.urbanPlannerStateMachine);
+
+      // Grant Bedrock Agent permission to invoke State Machine
+      this.urbanPlannerStateMachine.grantStartSyncExecution(
+        new iam.ServicePrincipal('bedrock.amazonaws.com')
+      );
+
+      // Update Urban Planner Lambda to use State Machine as proxy
+      this.urbanPlannerFn.addEnvironment('STATE_MACHINE_ARN', this.urbanPlannerStateMachine.stateMachineArn);
+      this.urbanPlannerFn.addEnvironment('USE_STEP_FUNCTIONS', 'true');
+      this.urbanPlannerStateMachine.grantStartSyncExecution(this.urbanPlannerFn);
+
+      // Output State Machine ARN
+      new cdk.CfnOutput(this, 'UrbanPlannerStateMachineArn', {
+        value: this.urbanPlannerStateMachine.stateMachineArn,
+        description: 'ARN of Urban Planner Step Functions Workflow',
+      });
+
+      new cdk.CfnOutput(this, 'GeofenceCollectionName', {
+        value: this.geofenceCollection.collectionName!,
+        description: 'Name of Location Service Geofence Collection',
       });
 
       // ═══════════════════════════════════════════════════════════

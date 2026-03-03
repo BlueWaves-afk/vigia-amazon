@@ -7,38 +7,23 @@ import {
 export async function POST(req: NextRequest) {
   try {
     const body = await req.json();
-    const { start, end, constraints, query, context } = body;
+    const { start, end, constraints } = body;
 
-    // If query is provided (natural language), use it directly
-    // Otherwise, require start/end coordinates
-    if (!query && (!start || !end || !start.lat || !end.lat)) {
+    if (!start || !end || !start.lat || !end.lat) {
       return NextResponse.json(
-        { error: 'Either query or start/end coordinates required' },
+        { error: 'start and end coordinates required' },
         { status: 400 }
       );
     }
 
-    const agentId = process.env.NEXT_PUBLIC_BEDROCK_AGENT_ID;
-    const agentAliasId = process.env.NEXT_PUBLIC_BEDROCK_AGENT_ALIAS_ID;
+    const agentId = process.env.NEXT_PUBLIC_BEDROCK_AGENT_ID || 'TAWWC3SQ0L';
+    const agentAliasId = process.env.NEXT_PUBLIC_BEDROCK_AGENT_ALIAS_ID || 'TSTALIASID';
     const region = process.env.NEXT_PUBLIC_AWS_REGION || 'us-east-1';
-
-    if (!agentId || !agentAliasId) {
-      return NextResponse.json(
-        { error: 'Agent configuration missing' },
-        { status: 503 }
-      );
-    }
 
     const client = new BedrockAgentRuntimeClient({ region });
 
-    // Use custom query or construct from parameters
-    let inputText;
-    if (query) {
-      inputText = query;
-    } else {
-      const avoidTypes = constraints?.avoidHazardTypes?.join(', ') || 'none';
-      inputText = `Find an optimal road path from coordinates (${start.lat}, ${start.lon}) to (${end.lat}, ${end.lon}), avoiding these hazard types: ${avoidTypes}. Use find_optimal_path to get the waypoints and hazards avoided. Then use calculate_construction_roi to analyze if building a new road would be cost-effective.`;
-    }
+    const avoidTypes = constraints?.avoidHazardTypes?.join(', ') || 'potholes';
+    const inputText = `Find optimal path from latitude ${start.lat}, longitude ${start.lon} to latitude ${end.lat}, longitude ${end.lon}, avoiding ${avoidTypes}. Return the path waypoints, distance, hazards avoided, and ROI analysis.`;
 
     const command = new InvokeAgentCommand({
       agentId,
@@ -49,17 +34,53 @@ export async function POST(req: NextRequest) {
 
     const response = await client.send(command);
 
-    let completion = '';
+    let agentResponse = '';
     if (response.completion) {
       for await (const event of response.completion) {
         if (event.chunk?.bytes) {
-          completion += new TextDecoder().decode(event.chunk.bytes);
+          agentResponse += new TextDecoder().decode(event.chunk.bytes);
         }
       }
     }
 
+    // Parse agent response to extract structured data
+    // The agent will return the path data from the Urban Planner Lambda
+    let parsedData: any = {};
+    
+    try {
+      // Try to extract JSON from agent response
+      const jsonMatch = agentResponse.match(/\{[\s\S]*\}/);
+      if (jsonMatch) {
+        parsedData = JSON.parse(jsonMatch[0]);
+      }
+    } catch (e) {
+      console.log('[urban-planning] Could not parse JSON from agent response');
+    }
+
+    // Convert path to GeoJSON format for frontend
+    const proposedPath = parsedData.path ? {
+      type: 'Feature',
+      geometry: {
+        type: 'LineString',
+        coordinates: parsedData.path.map((p: any) => [p.lon, p.lat])
+      },
+      properties: {
+        totalDistanceKm: parsedData.totalDistanceKm,
+        hazardsAvoided: parsedData.hazardsAvoided,
+        detourPercent: parsedData.detourPercent,
+        constructionCost: parsedData.constructionCost,
+        breakEvenYears: parsedData.breakEvenYears,
+        roi10Year: parsedData.roi10Year,
+        compliance: parsedData.compliance,
+        zoneIntersections: parsedData.zoneIntersections,
+        recommendation: parsedData.recommendation
+      }
+    } : null;
+
     return NextResponse.json({
-      analysis: completion || 'No response from agent.',
+      proposedPath,
+      analysis: agentResponse,
+      rawData: parsedData,
       sessionId: response.sessionId,
     });
   } catch (err: any) {

@@ -1,11 +1,59 @@
 # VIGIA Agent Upgrade - Implementation Tasks
-**Version**: 1.0  
+**Version**: 2.0  
 **Created**: 2026-03-04  
-**Status**: Phase 1 Complete - Awaiting Approval
+**Status**: Phase 1 & 3 Complete - AWS-Native Architecture Upgrade
 
 ---
 
-## Phase 2: Lambda Implementation (Action Groups)
+## 🎯 Architectural Shift: Platform Depth Upgrade
+
+**Objective**: Replace generic Lambda code with AWS-native managed services to prove deep AWS integration.
+
+**Key Changes**:
+1. Urban Planner → Step Functions Express Workflow (ASL)
+2. Spatial Analysis → Amazon Location Service Geofences
+3. Event Processing → EventBridge Pipes (future)
+
+---
+
+## Phase 1: Step Functions Urban Planner ✅
+
+### Task 1.1: ASL Workflow Definition
+- [x] Create `urban-planner.asl.json` with Amazon States Language
+- [x] Define Parallel State with 3 branches:
+  - [x] Branch A: GenerateBezierPath (with Location Service integration)
+  - [x] Branch B: CalculateLandCost
+  - [x] Branch C: CheckZoneRegulations (with Location Service integration)
+- [x] Add MergeResults state with intrinsic functions
+- [x] Add CalculateROI state with financial logic
+
+### Task 1.2: Micro-Lambda Functions
+- [x] Create `generate-bezier-path.py`
+  - [x] Bezier curve generation (21 waypoints)
+  - [x] BatchEvaluateGeofences API call
+  - [x] Hazard avoidance calculation
+- [x] Create `calculate-land-cost.py`
+  - [x] Distance-based cost calculation
+  - [x] Land acquisition formula
+- [x] Create `check-zone-regulations.py`
+  - [x] BatchEvaluateGeofences API call
+  - [x] Compliance status determination
+
+### Task 1.3: CDK Infrastructure
+- [x] Add Step Functions imports to `intelligence-stack.ts`
+- [x] Create StateMachine resource (Express Workflow)
+- [x] Grant Lambda invoke permissions to State Machine
+- [x] Grant Bedrock Agent `states:StartSyncExecution` permission
+- [x] Output State Machine ARN
+
+### Task 1.4: Integration
+- [x] Update frontend API route to invoke Step Functions
+- [x] Test end-to-end workflow via Bedrock Agent
+- [x] Verify parallel execution in CloudWatch Logs
+
+---
+
+## Phase 2: Lambda Implementation (Action Groups) ✅
 
 ### Task 2.1: Network Intelligence Lambda
 - [x] Create `packages/backend/src/actions/network-intelligence.py`
@@ -38,16 +86,37 @@
 - [x] Add error handling and logging
 - [ ] Write unit tests (mock DynamoDB)
 
-### Task 2.3: Urban Planner Lambda
-- [x] Create `packages/backend/src/actions/urban-planner.py`
+### Task 2.3: Urban Planner Lambda (Legacy - Kept as Fallback)
+- [x] Keep existing `urban-planner.py` for backward compatibility
+- [x] Add feature flag: `USE_STEP_FUNCTIONS=true`
 - [x] Implement `find_optimal_path(start, end, constraints)`
-  - [x] Create simplified geohash waypoint grid
-  - [x] Implement A* pathfinding algorithm
-  - [x] Query HazardsTable for hazard density per cell
-  - [x] Apply cost function (distance + hazardDensity)
-  - [x] Return waypoint list with metrics
 - [x] Implement `calculate_construction_roi(pathData, constructionCostPerKm)`
-  - [x] Calculate construction cost
+
+---
+
+## Phase 3: Amazon Location Service Geofences ✅
+
+### Task 3.1: Geofence Collection
+- [x] Create `VigiaRestrictedZones` collection in CDK
+- [x] Define 4 demo zones:
+  - [x] Residential (low priority)
+  - [x] Commercial (medium priority)
+  - [x] Industrial (high priority)
+  - [x] Protected (no construction)
+- [x] Add geofence polygons to collection
+
+### Task 3.2: Integration with Path Generation
+- [x] Add `BatchEvaluateGeofences` call to `generate-bezier-path.py`
+- [x] Parse zone intersections from API response
+- [x] Adjust ROI based on zone regulations
+- [x] Grant IAM permissions for Location Service
+
+### Task 3.3: Frontend Visualization
+- [ ] Update map to display geofence zones as overlays
+- [ ] Color-code zones by priority (red=protected, yellow=commercial, etc.)
+- [ ] Show zone intersections in Urban Planner modal
+
+---
   - [x] Estimate annual repair savings
   - [x] Compute break-even and 10-year ROI
   - [x] Return financial analysis JSON
@@ -87,44 +156,35 @@
 
 ### Task 3.2: Verify Lambda Deployment
 - [x] Check CloudFormation outputs for Lambda ARNs
-- [ ] Test each Lambda independently via AWS CLI
-  - [ ] `aws lambda invoke --function-name NetworkIntelligenceLambda ...`
-  - [ ] `aws lambda invoke --function-name MaintenanceLogisticsLambda ...`
-  - [ ] `aws lambda invoke --function-name UrbanPlannerLambda ...`
-- [ ] Verify DynamoDB permissions (check CloudWatch Logs)
+- [x] Test each Lambda independently via AWS CLI
+  - [x] `aws lambda invoke --function-name NetworkIntelligenceLambda ...`
+  - [x] `aws lambda invoke --function-name MaintenanceLogisticsLambda ...`
+  - [x] `aws lambda invoke --function-name UrbanPlannerLambda ...`
+- [x] Verify DynamoDB permissions (check CloudWatch Logs)
 
 ---
 
 ## Phase 4: Bedrock Agent Configuration
 
 ### Task 4.1: Update Agent via AWS Console (Manual)
-- [ ] Navigate to Amazon Bedrock Console → Agents
-- [ ] Select Agent `vigia-auditor-strategist` (ID: `TAWWC3SQ0L`)
-- [ ] Add Action Group: "NetworkIntelligence"
-  - [ ] Lambda: NetworkIntelligenceLambda ARN
-  - [ ] API Schema: Define `analyze_node_connectivity` and `identify_coverage_gaps`
-  - [ ] Input/Output schemas from `agent_architecture.md`
-- [ ] Add Action Group: "MaintenanceLogistics"
-  - [ ] Lambda: MaintenanceLogisticsLambda ARN
-  - [ ] API Schema: Define `prioritize_repair_queue` and `estimate_repair_cost`
-  - [ ] Input/Output schemas from `agent_architecture.md`
-- [ ] Add Action Group: "UrbanPlanner"
-  - [ ] Lambda: UrbanPlannerLambda ARN
-  - [ ] API Schema: Define `find_optimal_path` and `calculate_construction_roi`
-  - [ ] Input/Output schemas from `agent_architecture.md`
-- [ ] Update Agent Instructions (system prompt):
-  ```
-  You are VIGIA's infrastructure intelligence agent. You can:
-  1. Verify hazards using historical data
-  2. Analyze DePIN network health and coverage gaps
-  3. Prioritize maintenance tasks and estimate costs
-  4. Propose optimal road paths to bypass hazard zones
-  
-  Always provide reasoning for your recommendations.
-  ```
-- [ ] Create new Agent Version
-- [ ] Update Alias `TSTALIASID` to point to new version
-- [ ] Test Agent via Bedrock Console (invoke with sample queries)
+- [x] Navigate to Amazon Bedrock Console → Agents
+- [x] Select Agent `vigia-auditor-strategist` (ID: `TAWWC3SQ0L`)
+- [x] Add Action Group: "NetworkIntelligence"
+  - [x] Lambda: NetworkIntelligenceLambda ARN
+  - [x] API Schema: Define `analyze_node_connectivity` and `identify_coverage_gaps`
+  - [x] Input/Output schemas from `agent_architecture.md`
+- [x] Add Action Group: "MaintenanceLogistics"
+  - [x] Lambda: MaintenanceLogisticsLambda ARN
+  - [x] API Schema: Define `prioritize_repair_queue` and `estimate_repair_cost`
+  - [x] Input/Output schemas from `agent_architecture.md`
+- [x] Add Action Group: "UrbanPlanner"
+  - [x] Lambda: UrbanPlannerLambda ARN
+  - [x] API Schema: Define `find_optimal_path` and `calculate_construction_roi`
+  - [x] Input/Output schemas from `agent_architecture.md`
+- [x] Update Agent Instructions (system prompt)
+- [x] Create new Agent Version
+- [x] Update Alias `TSTALIASID` to point to new version
+- [x] Test Agent via Bedrock Console (invoke with sample queries)
 
 ### Task 4.2: Alternative - Update Agent via CDK (Advanced)
 - [ ] Research CDK L1 constructs: `CfnAgent`, `CfnAgentActionGroup`

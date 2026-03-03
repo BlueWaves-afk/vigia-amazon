@@ -1,0 +1,127 @@
+{
+  "Comment": "VIGIA Urban Planner - AWS-Native Parallel Workflow",
+  "StartAt": "ParallelPathAnalysis",
+  "States": {
+    "ParallelPathAnalysis": {
+      "Type": "Parallel",
+      "Branches": [
+        {
+          "StartAt": "GenerateBezierPath",
+          "States": {
+            "GenerateBezierPath": {
+              "Type": "Task",
+              "Resource": "arn:aws:states:::lambda:invoke",
+              "Parameters": {
+                "FunctionName": "${GenerateBezierPathLambdaArn}",
+                "Payload": {
+                  "start.$": "$.start",
+                  "end.$": "$.end",
+                  "constraints.$": "$.constraints"
+                }
+              },
+              "ResultSelector": {
+                "path.$": "$.Payload.path",
+                "totalDistanceKm.$": "$.Payload.totalDistanceKm",
+                "hazardsAvoided.$": "$.Payload.hazardsAvoided",
+                "detourPercent.$": "$.Payload.detourPercent"
+              },
+              "End": true
+            }
+          }
+        },
+        {
+          "StartAt": "CalculateLandCost",
+          "States": {
+            "CalculateLandCost": {
+              "Type": "Task",
+              "Resource": "arn:aws:states:::lambda:invoke",
+              "Parameters": {
+                "FunctionName": "${CalculateLandCostLambdaArn}",
+                "Payload": {
+                  "start.$": "$.start",
+                  "end.$": "$.end"
+                }
+              },
+              "ResultSelector": {
+                "landAcquisition.$": "$.Payload.landAcquisition",
+                "constructionCostPerKm.$": "$.Payload.constructionCostPerKm"
+              },
+              "End": true
+            }
+          }
+        },
+        {
+          "StartAt": "CheckZoneRegulations",
+          "States": {
+            "CheckZoneRegulations": {
+              "Type": "Task",
+              "Resource": "arn:aws:states:::lambda:invoke",
+              "Parameters": {
+                "FunctionName": "${CheckZoneRegulationsLambdaArn}",
+                "Payload": {
+                  "start.$": "$.start",
+                  "end.$": "$.end"
+                }
+              },
+              "ResultSelector": {
+                "compliance.$": "$.Payload.compliance",
+                "zoneIntersections.$": "$.Payload.zoneIntersections"
+              },
+              "End": true
+            }
+          }
+        }
+      ],
+      "ResultPath": "$.parallelResults",
+      "Next": "MergeResults"
+    },
+    "MergeResults": {
+      "Type": "Pass",
+      "Parameters": {
+        "path.$": "$.parallelResults[0].path",
+        "totalDistanceKm.$": "$.parallelResults[0].totalDistanceKm",
+        "hazardsAvoided.$": "$.parallelResults[0].hazardsAvoided",
+        "detourPercent.$": "$.parallelResults[0].detourPercent",
+        "landAcquisition.$": "$.parallelResults[1].landAcquisition",
+        "constructionCostPerKm.$": "$.parallelResults[1].constructionCostPerKm",
+        "compliance.$": "$.parallelResults[2].compliance",
+        "zoneIntersections.$": "$.parallelResults[2].zoneIntersections"
+      },
+      "Next": "CalculateROI"
+    },
+    "CalculateROI": {
+      "Type": "Task",
+      "Resource": "arn:aws:states:::lambda:invoke",
+      "Parameters": {
+        "FunctionName": "${CalculateLandCostLambdaArn}",
+        "Payload": {
+          "path.$": "$.path",
+          "totalDistanceKm.$": "$.totalDistanceKm",
+          "hazardsAvoided.$": "$.hazardsAvoided",
+          "detourPercent.$": "$.detourPercent",
+          "landAcquisition.$": "$.landAcquisition",
+          "constructionCostPerKm.$": "$.constructionCostPerKm",
+          "compliance.$": "$.compliance",
+          "zoneIntersections.$": "$.zoneIntersections",
+          "calculateROI": true
+        }
+      },
+      "ResultSelector": {
+        "path.$": "$.Payload.path",
+        "totalDistanceKm.$": "$.Payload.totalDistanceKm",
+        "hazardsAvoided.$": "$.Payload.hazardsAvoided",
+        "detourPercent.$": "$.Payload.detourPercent",
+        "constructionCost.$": "$.Payload.constructionCost",
+        "landAcquisition.$": "$.Payload.landAcquisition",
+        "totalProjectCost.$": "$.Payload.totalProjectCost",
+        "annualRepairSavings.$": "$.Payload.annualRepairSavings",
+        "breakEvenYears.$": "$.Payload.breakEvenYears",
+        "roi10Year.$": "$.Payload.roi10Year",
+        "compliance.$": "$.Payload.compliance",
+        "zoneIntersections.$": "$.Payload.zoneIntersections",
+        "recommendation.$": "$.Payload.recommendation"
+      },
+      "End": true
+    }
+  }
+}

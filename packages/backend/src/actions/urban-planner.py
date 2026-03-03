@@ -5,13 +5,56 @@ import math
 from decimal import Decimal
 
 dynamodb = boto3.resource('dynamodb')
+stepfunctions = boto3.client('stepfunctions')
 hazards_table = dynamodb.Table(os.environ['HAZARDS_TABLE_NAME'])
+
+# State Machine ARN from environment variable
+STATE_MACHINE_ARN = os.environ.get('STATE_MACHINE_ARN', '')
+USE_STEP_FUNCTIONS = os.environ.get('USE_STEP_FUNCTIONS', 'true').lower() == 'true'
 
 class DecimalEncoder(json.JSONEncoder):
     def default(self, obj):
         if isinstance(obj, Decimal):
             return float(obj)
         return super(DecimalEncoder, self).default(obj)
+
+def invoke_state_machine(event):
+    """Invoke Step Functions State Machine for urban planning"""
+    print(f"[UrbanPlanner] Invoking State Machine: {STATE_MACHINE_ARN}")
+    
+    # Extract parameters from Bedrock Agent format
+    start = event.get('start', {})
+    end = event.get('end', {})
+    constraints = event.get('constraints', {})
+    
+    if 'parameters' in event:
+        for param in event['parameters']:
+            if param.get('name') == 'start':
+                start = json.loads(param.get('value', '{}'))
+            elif param.get('name') == 'end':
+                end = json.loads(param.get('value', '{}'))
+            elif param.get('name') == 'constraints':
+                constraints = json.loads(param.get('value', '{}'))
+    
+    # Invoke State Machine synchronously
+    response = stepfunctions.start_sync_execution(
+        stateMachineArn=STATE_MACHINE_ARN,
+        input=json.dumps({
+            'start': start,
+            'end': end,
+            'constraints': constraints
+        })
+    )
+    
+    if response['status'] == 'SUCCEEDED':
+        output = json.loads(response['output'])
+        print(f"[UrbanPlanner] State Machine succeeded: {json.dumps(output)}")
+        return output
+    else:
+        error = response.get('error', 'Unknown error')
+        cause = response.get('cause', 'No cause provided')
+        print(f"[UrbanPlanner] State Machine failed: {error} - {cause}")
+        raise Exception(f"State Machine execution failed: {error}")
 
 def haversine_distance(lat1, lon1, lat2, lon2):
     """Calculate distance in km between two points"""
@@ -30,6 +73,12 @@ def find_optimal_path(event):
     """Find optimal path avoiding hazards using Bezier bypass"""
     print(f"[UrbanPlanner] find_optimal_path: {json.dumps(event)}")
     
+    # If Step Functions is enabled, use State Machine
+    if USE_STEP_FUNCTIONS and STATE_MACHINE_ARN:
+        result = invoke_state_machine(event)
+        return {'statusCode': 200, 'body': result}
+    
+    # Otherwise, use legacy implementation
     start = event.get('start', {})
     end = event.get('end', {})
     constraints = event.get('constraints', {})
