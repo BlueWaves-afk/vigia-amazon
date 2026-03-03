@@ -5,6 +5,7 @@ import { SettingsProvider } from './components/SettingsContext';
 export const metadata: Metadata = {
   title: 'VIGIA — Sentient Road Infrastructure',
   description: 'Road hazard detection, DePIN ledger, and swarm intelligence IDE',
+  icons: { icon: '/logo.svg' },
 };
 
 export default function RootLayout({ children }: { children: React.ReactNode }) {

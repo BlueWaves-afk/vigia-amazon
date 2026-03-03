@@ -36,13 +36,9 @@ export function TopBar({ onSettingsOpen, onCommandOpen }: TopBarProps) {
             opacity: 0.6,
           }} />
 
-          {/* 2×2 grid mark */}
-          <svg width="15" height="15" viewBox="0 0 14 14" fill="none">
-            <rect x="1" y="1" width="5" height="5" stroke="var(--c-accent-2)"  strokeWidth="1.4" />
-            <rect x="8" y="1" width="5" height="5" stroke="var(--c-accent-2)"  strokeWidth="1.4" />
-            <rect x="1" y="8" width="5" height="5" stroke="var(--c-rose)"      strokeWidth="1.4" opacity="0.65" />
-            <rect x="8" y="8" width="5" height="5" stroke="var(--c-rose)"      strokeWidth="1.4" opacity="0.28" />
-          </svg>
+          {/* Project logo */}
+          {/* eslint-disable-next-line @next/next/no-img-element */}
+          <img src="/logo.svg" alt="VIGIA" width={20} height={20} style={{ display: 'block', flexShrink: 0 }} />
 
           <span style={{
             fontSize: '0.82rem', fontWeight: 600,

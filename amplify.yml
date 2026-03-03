@@ -6,8 +6,10 @@ applications:
         preBuild:
           commands:
             - nvm use 20
-            # Install all workspace deps from monorepo root so hoisted packages resolve
-            - cd ../.. && npm ci
+            # Install all workspace deps from monorepo root without changing cwd.
+            # Using --prefix keeps us in packages/frontend so the build phase
+            # runs Next.js only, not the root "build --workspaces" script.
+            - npm ci --prefix ../..
         build:
           commands:
             - npm run build

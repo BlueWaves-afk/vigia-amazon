@@ -1,0 +1,128 @@
+<svg
+  xmlns="http://www.w3.org/2000/svg"
+  viewBox="0 0 48 48"
+  width="400"
+  height="400"
+  fill="none"
+>
+  <defs>
+
+    <linearGradient id="g-stroke" x1="2" y1="2" x2="46" y2="46" gradientUnits="userSpaceOnUse">
+      <stop offset="0%"   stop-color="#5A90FF"/>
+      <stop offset="45%"  stop-color="#8B68D0"/>
+      <stop offset="100%" stop-color="#7B5482"/>
+    </linearGradient>
+
+    <linearGradient id="g-fill" x1="2" y1="2" x2="46" y2="46" gradientUnits="userSpaceOnUse">
+      <stop offset="0%"   stop-color="#4F8AFF" stop-opacity="0.13"/>
+      <stop offset="100%" stop-color="#7B5482" stop-opacity="0.06"/>
+    </linearGradient>
+
+    <linearGradient id="g-sheen" x1="2" y1="2" x2="21" y2="21" gradientUnits="userSpaceOnUse">
+      <stop offset="0%"   stop-color="#ffffff" stop-opacity="0.20"/>
+      <stop offset="100%" stop-color="#ffffff" stop-opacity="0.00"/>
+    </linearGradient>
+
+    <linearGradient id="g-dot" x1="0" y1="0" x2="1" y2="1" gradientUnits="objectBoundingBox">
+      <stop offset="0%"   stop-color="#7AABFF"/>
+      <stop offset="100%" stop-color="#9A72A2"/>
+    </linearGradient>
+
+    <filter id="f-glow" x="-40%" y="-40%" width="180%" height="180%" color-interpolation-filters="sRGB">
+      <feGaussianBlur in="SourceGraphic" stdDeviation="0.65" result="blur"/>
+      <feMerge>
+        <feMergeNode in="blur"/>
+        <feMergeNode in="SourceGraphic"/>
+      </feMerge>
+    </filter>
+
+    <filter id="f-ambient" x="-50%" y="-50%" width="200%" height="200%" color-interpolation-filters="sRGB">
+      <feGaussianBlur in="SourceGraphic" stdDeviation="4" result="blur"/>
+      <feColorMatrix in="blur" type="matrix"
+        values="0.22 0 0 0 0.18
+                0    0 0 0 0.10
+                0    0 0 0 0.52
+                0    0 0 0 0.50 0"
+        result="tinted"
+      />
+      <feMerge>
+        <feMergeNode in="tinted"/>
+        <feMergeNode in="SourceGraphic"/>
+      </feMerge>
+    </filter>
+
+    <filter id="f-dot-glow" x="-100%" y="-100%" width="300%" height="300%">
+      <feGaussianBlur in="SourceGraphic" stdDeviation="0.8" result="blur"/>
+      <feMerge>
+        <feMergeNode in="blur"/>
+        <feMergeNode in="SourceGraphic"/>
+      </feMerge>
+    </filter>
+
+  </defs>
+
+  <!-- Ambient glow -->
+  <g filter="url(#f-ambient)">
+    <polygon points="5,2 22,2 22,22 2,22 2,5"   fill="#4A7CF6" opacity="0.30"/>
+    <polygon points="26,2 43,2 46,5 46,22 26,22" fill="#7B5EA8" opacity="0.14"/>
+    <polygon points="2,26 22,26 22,46 5,46 2,43" fill="#7B5EA8" opacity="0.11"/>
+    <polygon points="26,26 46,26 46,43 43,46 26,46" fill="#7B5482" opacity="0.08"/>
+  </g>
+
+  <!-- TL — chamfer top-left, stroke 1.6, full opacity -->
+  <g opacity="1.0" filter="url(#f-glow)">
+    <polygon
+      points="5,2  22,2  22,22  2,22  2,5"
+      fill="url(#g-fill)"
+      stroke="url(#g-stroke)"
+      stroke-width="1.6"
+      stroke-linejoin="miter"
+    />
+    <polygon points="5,2  22,2  22,22  2,22  2,5" fill="url(#g-sheen)"/>
+    <line x1="6"   y1="2.8" x2="21"  y2="2.8" stroke="#ffffff" stroke-width="0.45" stroke-opacity="0.25" stroke-linecap="round"/>
+    <line x1="2.8" y1="6"   x2="2.8" y2="21"  stroke="#ffffff" stroke-width="0.35" stroke-opacity="0.15" stroke-linecap="round"/>
+  </g>
+
+  <!-- TR — chamfer top-right, stroke 1.3, opacity 0.68 -->
+  <g opacity="0.68" filter="url(#f-glow)">
+    <polygon
+      points="26,2  43,2  46,5  46,22  26,22"
+      fill="url(#g-fill)"
+      stroke="url(#g-stroke)"
+      stroke-width="1.3"
+      stroke-linejoin="miter"
+    />
+    <line x1="27" y1="2.8" x2="42" y2="2.8" stroke="#ffffff" stroke-width="0.35" stroke-opacity="0.14" stroke-linecap="round"/>
+  </g>
+
+  <!-- BL — chamfer bottom-left, stroke 1.1, opacity 0.44 -->
+  <g opacity="0.44" filter="url(#f-glow)">
+    <polygon
+      points="2,26  22,26  22,46  5,46  2,43"
+      fill="url(#g-fill)"
+      stroke="url(#g-stroke)"
+      stroke-width="1.1"
+      stroke-linejoin="miter"
+    />
+  </g>
+
+  <!-- BR — chamfer bottom-right, stroke 0.9, opacity 0.20 -->
+  <g opacity="0.20">
+    <polygon
+      points="26,26  46,26  46,43  43,46  26,46"
+      fill="url(#g-fill)"
+      stroke="url(#g-stroke)"
+      stroke-width="0.9"
+      stroke-linejoin="miter"
+    />
+  </g>
+
+  <!-- Corner dots at inner junctions -->
+  <g filter="url(#f-dot-glow)">
+    <circle cx="21.8" cy="21.8" r="1.4" fill="url(#g-dot)" opacity="0.90"/>
+    <circle cx="26.2" cy="21.8" r="1.2" fill="url(#g-dot)" opacity="0.65"/>
+    <circle cx="21.8" cy="26.2" r="1.2" fill="url(#g-dot)" opacity="0.50"/>
+    <circle cx="26.2" cy="26.2" r="1.0" fill="url(#g-dot)" opacity="0.28"/>
+  </g>
+
+</svg>
