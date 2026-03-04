@@ -49,7 +49,7 @@ export function ConsoleViewer() {
   }
 
   return (
-    <div style={{ fontFamily: "'IBM Plex Mono', monospace", fontSize: '0.8rem', lineHeight: 1.6 }}>
+    <div style={{ fontFamily: 'var(--v-font-mono)', fontSize: '0.8rem', lineHeight: 1.6 }}>
       {logs.map((log, i) => (
         <div key={i} style={{ display: 'flex', gap: 10, marginBottom: 4 }}>
           <span style={{ color: 'var(--c-elevated)' }}>›</span>

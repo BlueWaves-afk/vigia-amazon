@@ -6,7 +6,7 @@ import {
   Settings, Search, AlertTriangle,
   Navigation, ChevronRight, ChevronDown,
   Folder, FolderOpen, FileText, Video,
-  Clock, MapPin, Activity, Wrench, Map,
+  Clock, MapPin, Activity, Wrench, Map, User,
 } from 'lucide-react';
 import { VFSManager } from '../lib/vfs-manager';
 import { useMapFileStore } from '../../stores/mapFileStore';
@@ -29,63 +29,48 @@ interface SidebarProps {
 // ─────────────────────────────────────────────
 
 const C = {
-  bg:      'var(--c-sidebar)',
-  actBar:  'var(--c-bg)',
-  border:  'var(--c-border)',
-  text:    'var(--c-text)',
-  textSec: 'var(--c-text-2)',
-  textMut: 'var(--c-text-3)',
-  accent:  'var(--c-accent-2)',
-  accentBg:'var(--c-accent-glow)',
-  hover:   'var(--c-hover)',
-  green:   'var(--c-green)',
-  red:     'var(--c-red)',
-  yellow:  'var(--c-yellow)',
-  panel:   'var(--c-panel)',
+  bg:      'var(--v-panel-bg)',
+  border:  'var(--v-panel-border)',
+  text:    'var(--v-text-primary)',
+  textSec: 'var(--v-text-secondary)',
+  textMut: 'var(--v-panel-header-txt)',
+  accent:  'var(--v-accent)',
+  accentBg:'var(--v-accent-muted)',
+  hover:   'var(--v-panel-hover)',
+  active:  'var(--v-panel-active)',
+  green:   'var(--v-success)',
+  red:     'var(--v-danger)',
+  yellow:  'var(--v-warning)',
+  blue:    '#60a5fa',
+  panel:   'var(--v-bg-elevated)',
 };
 
 // ─────────────────────────────────────────────
-// Activity bar icon
+// Activity rail button
 // ─────────────────────────────────────────────
 
-function ActivityBtn({ icon, active, label, onClick }: {
+function ActivityBtn({ icon, active, label, onClick, isAvatar = false }: {
   icon: React.ReactNode;
   active?: boolean;
   label: string;
   onClick?: () => void;
+  isAvatar?: boolean;
 }) {
   return (
     <button
-      title={label}
       onClick={onClick}
-      style={{
-        width: '100%',
-        height: 44,
-        display: 'flex',
-        alignItems: 'center',
-        justifyContent: 'center',
-        border: 'none',
-        background: active ? 'var(--c-accent-glow)' : 'transparent',
-        color: active ? 'var(--c-accent-2)' : C.textMut,
-        borderLeft: active ? '2px solid var(--c-accent-2)' : '2px solid transparent',
-        cursor: 'pointer',
-        transition: 'color var(--dur-fast), background var(--dur-fast), border-color var(--dur-fast)',
-        position: 'relative',
-      }}
-      onMouseEnter={(e) => {
-        if (!active) {
-          (e.currentTarget as HTMLElement).style.color = C.textSec;
-          (e.currentTarget as HTMLElement).style.background = 'var(--c-hover)';
-        }
-      }}
-      onMouseLeave={(e) => {
-        if (!active) {
-          (e.currentTarget as HTMLElement).style.color = C.textMut;
-          (e.currentTarget as HTMLElement).style.background = 'transparent';
-        }
-      }}
+      className={`rail-btn${active ? ' rail-btn--active' : ''}`}
+      aria-label={label}
     >
-      {icon}
+      {isAvatar ? (
+        <span className="rail-avatar">
+          {icon}
+          <span className="rail-avatar-ring" />
+        </span>
+      ) : (
+        icon
+      )}
+      <span className="rail-tooltip">{label}</span>
     </button>
   );
 }
@@ -158,25 +143,25 @@ function TreeNode({
           width: '100%',
           display: 'flex',
           alignItems: 'center',
-          gap: 6,
-          height: 30,
-          paddingLeft: 10 + depth * 14,
-          paddingRight: 10,
+          gap: 5,
+          height: 32,
+          paddingLeft: 8 + depth * 12,
+          paddingRight: 8,
           border: 'none',
-          background: dragOver ? 'var(--c-accent-glow-strong)' : isActive ? C.accentBg : 'transparent',
+          background: dragOver ? 'var(--v-accent-glow)' : isActive ? 'var(--v-panel-active)' : 'transparent',
           cursor: draggable ? 'grab' : 'pointer',
           position: 'relative',
-          transition: 'background 0.1s',
+          transition: 'background 120ms ease',
         }}
         onMouseEnter={(e) => {
-          if (!isActive && !dragOver) (e.currentTarget as HTMLElement).style.background = C.hover;
+          if (!isActive && !dragOver) (e.currentTarget as HTMLElement).style.background = 'var(--v-panel-hover)';
         }}
         onMouseLeave={(e) => {
           if (!isActive && !dragOver) (e.currentTarget as HTMLElement).style.background = 'transparent';
         }}
       >
         {isActive && (
-          <span style={{ position: 'absolute', left: 0, top: 0, bottom: 0, width: 2, background: C.accent }} />
+          <span style={{ position: 'absolute', left: 0, top: 0, bottom: 0, width: 2, background: 'var(--v-accent)' }} />
         )}
 
         {/* Chevron */}
@@ -192,14 +177,14 @@ function TreeNode({
 
         <span style={{
           flex: 1,
-          fontSize: '0.73rem',
+          fontSize: 13,
           color: isActive ? C.text : icon === 'folder' ? C.textSec : C.textMut,
           fontWeight: isActive ? 500 : 400,
           overflow: 'hidden',
           textOverflow: 'ellipsis',
           whiteSpace: 'nowrap',
           textAlign: 'left',
-          fontFamily: "'IBM Plex Sans', system-ui, sans-serif",
+          fontFamily: 'Inter, system-ui, sans-serif',
           letterSpacing: '-0.005em',
         }}>
           {label}
@@ -207,15 +192,15 @@ function TreeNode({
 
         {badge && (
           <span style={{
-            fontSize: '0.58rem',
-            padding: '1px 5px',
-            borderRadius: 3,
-            background: badgeColor ? `${badgeColor}1A` : 'rgba(255,255,255,0.06)',
+            fontSize: 11,
+            padding: '1px 6px',
+            borderRadius: 20,
+            background: badgeColor ? `${badgeColor}1A` : 'var(--v-hover)',
             color: badgeColor ?? C.textMut,
-            fontFamily: "'IBM Plex Mono', monospace",
+            fontFamily: 'Inter, system-ui, sans-serif',
             fontWeight: 600,
             flexShrink: 0,
-            letterSpacing: '0.02em',
+            letterSpacing: '0.01em',
           }}>
             {badge}
           </span>
@@ -223,9 +208,9 @@ function TreeNode({
 
         {icon === 'video' && (
           <span style={{
-            fontSize: '0.65rem', padding: '2px 6px', borderRadius: 3,
-            background: 'var(--c-red)', color: '#fff', fontWeight: 700,
-            letterSpacing: '0.06em', fontFamily: "'IBM Plex Sans', sans-serif",
+            fontSize: 10, padding: '2px 6px', borderRadius: 3,
+            background: C.red, color: '#fff', fontWeight: 700,
+            letterSpacing: '0.06em', fontFamily: 'Inter, system-ui, sans-serif',
             flexShrink: 0,
           }}>
             LIVE
@@ -238,25 +223,14 @@ function TreeNode({
 }
 
 // ─────────────────────────────────────────────
-// Quick-stat chip
+// Stat card — replaces old StatChip
 // ─────────────────────────────────────────────
 
-function StatChip({ label, value, color }: { label: string; value: string; color: string }) {
+function StatCard({ label, value, color }: { label: string; value: string; color: string }) {
   return (
-    <div style={{
-      display: 'flex',
-      flexDirection: 'column',
-      alignItems: 'center',
-      gap: 3,
-      padding: '8px 0',
-      flex: 1,
-    }}>
-      <span style={{ fontSize: '0.78rem', fontWeight: 600, color, fontFamily: "'IBM Plex Mono', monospace", letterSpacing: '-0.02em' }}>
-        {value}
-      </span>
-      <span style={{ fontSize: '0.58rem', color: C.textMut, textTransform: 'uppercase', letterSpacing: '0.07em', fontFamily: "'IBM Plex Sans', system-ui, sans-serif" }}>
-        {label}
-      </span>
+    <div className="stat-card">
+      <span className="stat-card__num" style={{ color }}>{value}</span>
+      <span className="stat-card__lbl">{label}</span>
     </div>
   );
 }
@@ -265,9 +239,9 @@ function StatChip({ label, value, color }: { label: string; value: string; color
 // Sidebar Component
 // ─────────────────────────────────────────────
 
-const MIN_WIDTH = 0;  // Allow full collapse
-const MAX_WIDTH = 340;
-const DEFAULT_WIDTH = 210;
+const MIN_WIDTH = 0;   // Allow full collapse
+const MAX_WIDTH = 400;
+const DEFAULT_WIDTH = 240;
 
 export function Sidebar({ onSentinelEyeClick, isSentinelEyeActive, onSettingsOpen, onSessionClick, onSessionsDeleted, onNewSessionClick, onRefreshSessions, onActivityChange }: SidebarProps) {
   const { computeDiff } = useMapFileStore();
@@ -752,146 +726,88 @@ export function Sidebar({ onSentinelEyeClick, isSentinelEyeActive, onSettingsOpe
       <div
         className="vigia-activity-bar"
         style={{
-        width: 44,
-        display: 'flex',
-        flexDirection: 'column',
-        flexShrink: 0,
-        background: C.actBar,
-        borderRight: 'none',
-        boxShadow: 'none',
-      }}>
-        <div style={{ flex: 1, display: 'flex', flexDirection: 'column' }}>
-          <ActivityBtn icon={<Globe size={20} />}    active={activeActivity === 'explorer'} label="Geo Explorer" onClick={() => { setActiveActivity('explorer'); onActivityChange?.('explorer'); }} />
-          <ActivityBtn icon={<Activity size={20} />} active={activeActivity === 'detection'} label="Detection" onClick={() => { setActiveActivity('detection'); onActivityChange?.('detection'); }} />
-          <ActivityBtn icon={<Radio size={20} />}    active={activeActivity === 'network'} label="Network" onClick={() => { setActiveActivity('network'); onActivityChange?.('network'); }} />
-          <ActivityBtn icon={<Wrench size={20} />}   active={activeActivity === 'maintenance'} label="Maintenance" onClick={() => { setActiveActivity('maintenance'); onActivityChange?.('maintenance'); }} />
+          display: 'flex',
+          flexDirection: 'column',
+          flexShrink: 0,
+        }}>
+        {/* Top: navigation icons */}
+        <div style={{ flex: 1, display: 'flex', flexDirection: 'column', paddingTop: 4 }}>
+          <ActivityBtn icon={<Globe size={20} />}    active={activeActivity === 'explorer'}    label="Geo Explorer"  onClick={() => { setActiveActivity('explorer');    onActivityChange?.('explorer');    }} />
+          <ActivityBtn icon={<Activity size={20} />} active={activeActivity === 'detection'}   label="Detection"     onClick={() => { setActiveActivity('detection');   onActivityChange?.('detection');   }} />
+          <ActivityBtn icon={<Radio size={20} />}    active={activeActivity === 'network'}     label="Network"       onClick={() => { setActiveActivity('network');     onActivityChange?.('network');     }} />
+          <ActivityBtn icon={<Wrench size={20} />}   active={activeActivity === 'maintenance'} label="Maintenance"   onClick={() => { setActiveActivity('maintenance'); onActivityChange?.('maintenance'); }} />
         </div>
-        <div style={{ display: 'flex', flexDirection: 'column' }}>
-          <ActivityBtn icon={<Settings size={20} />}  label="Settings" onClick={onSettingsOpen} />
+        {/* Bottom: settings + user avatar */}
+        <div style={{ display: 'flex', flexDirection: 'column', paddingBottom: 6 }}>
+          <ActivityBtn icon={<Settings size={20} />} label="Settings" onClick={onSettingsOpen} />
+          <ActivityBtn
+            icon={<User size={14} />}
+            label="Rourkela · India · Online"
+            isAvatar
+          />
         </div>
       </div>
 
-      {/* ── Explorer Panel - only show for explorer activity ──────────────────── */}
+      {/* ── Explorer Panel ──────────────────────────────────────────── */}
       {activeActivity === 'explorer' && (
       <div style={{
         width,
         display: 'flex',
         flexDirection: 'column',
         overflow: 'hidden',
-        background: C.bg,
+        background: 'var(--v-panel-bg)',
+        borderRight: '1px solid var(--v-panel-border)',
         transition: isDragging ? 'none' : undefined,
       }}>
-        {/* Panel header - only show for explorer */}
-        <div style={{
-          display: 'flex',
-          alignItems: 'center',
-          justifyContent: 'space-between',
-          padding: '0 12px',
-          height: 36,
-          flexShrink: 0,
-          borderBottom: `1px solid ${C.border}`,
-          background: 'rgba(255,255,255,0.01)',
-        }}>
-          <span style={{
-            fontSize: '0.60rem',
-            color: C.textMut,
-            fontWeight: 600,
-            letterSpacing: '0.10em',
-            textTransform: 'uppercase',
-            fontFamily: "'IBM Plex Sans', system-ui, sans-serif",
-          }}>
-            {isCollapsed ? '≡' : 'EXPLORER'}
+
+        {/* ── Header ───────────────────── */}
+        <div className="exp-header vigia-panel-header">
+          <span className="exp-header__title">
+            {isCollapsed ? '≡' : 'Explorer'}
           </span>
           {!isCollapsed && (
-            <div style={{ display: 'flex', gap: 6, alignItems: 'center' }}>
-              <button 
+            <div style={{ display: 'flex', gap: 2, alignItems: 'center' }}>
+              <button
+                className="exp-header-btn"
                 onClick={() => onNewSessionClick?.()}
                 disabled={!vfsManager}
-                style={{ 
-                  background: 'none', 
-                  border: 'none', 
-                  color: vfsManager ? C.textMut : C.textMut + '50', 
-                  cursor: vfsManager ? 'pointer' : 'not-allowed', 
-                  display: 'flex',
-                  alignItems: 'center',
-                  justifyContent: 'center',
-                  padding: 0,
-                  width: 16,
-                  height: 16,
-                }}
-                onMouseEnter={(e) => vfsManager && ((e.currentTarget as HTMLElement).style.color = C.textSec)}
-                onMouseLeave={(e) => vfsManager && ((e.currentTarget as HTMLElement).style.color = C.textMut)}
                 title="New Session"
               >
-                <svg width="12" height="12" viewBox="0 0 12 12" fill="none" stroke="currentColor" strokeWidth="1.5">
+                <svg width="13" height="13" viewBox="0 0 12 12" fill="none" stroke="currentColor" strokeWidth="1.6">
                   <line x1="6" y1="1" x2="6" y2="11" />
                   <line x1="1" y1="6" x2="11" y2="6" />
                 </svg>
               </button>
-              <button style={{ 
-                background: 'none', 
-                border: 'none', 
-                color: C.textMut, 
-                cursor: 'pointer', 
-                display: 'flex',
-                alignItems: 'center',
-                justifyContent: 'center',
-                padding: 0,
-                width: 16,
-                height: 16,
-              }}
-                onMouseEnter={(e) => (e.currentTarget as HTMLElement).style.color = C.textSec}
-                onMouseLeave={(e) => (e.currentTarget as HTMLElement).style.color = C.textMut}
-              >
-                <Search size={12} />
+              <button className="exp-header-btn" title="Search sessions">
+                <Search size={13} />
               </button>
             </div>
           )}
         </div>
 
-        {/* Search filter */}
+        {/* ── Filter input ─────────────── */}
         {!isCollapsed && (
-          <div style={{ padding: '6px 8px', borderBottom: `1px solid rgba(255,255,255,0.05)`, flexShrink: 0 }}>
-            <div style={{
-              display: 'flex', alignItems: 'center', gap: 6,
-              height: 24, padding: '0 8px', borderRadius: 3,
-              background: 'rgba(255,255,255,0.04)',
-              border: '1px solid rgba(255,255,255,0.07)',
-            }}>
-              <Search size={10} style={{ color: C.textMut, flexShrink: 0 }} />
-              <input
-                value={filterText}
-                onChange={(e) => setFilterText(e.target.value)}
-                placeholder="Filter..."
-                style={{
-                  background: 'transparent', border: 'none', outline: 'none',
-                  fontSize: '0.7rem', color: C.textSec,
-                  fontFamily: "'IBM Plex Sans', sans-serif", flex: 1, width: 0,
-                }}
-              />
-            </div>
+          <div className="exp-filter">
+            <Search size={11} style={{ color: 'var(--v-text-muted)', flexShrink: 0 }} />
+            <input
+              value={filterText}
+              onChange={(e) => setFilterText(e.target.value)}
+              placeholder="Filter sessions…"
+            />
           </div>
         )}
 
-        {/* ── Stats strip ───────────────────── */}
+        {/* ── Stats cards ──────────────── */}
         {!isCollapsed && (
-          <div
-            className="vigia-stats-strip"
-            style={{
-            display: 'flex',
-            borderBottom: 'none',
-            flexShrink: 0,
-          }}>
-            <StatChip label="Hazards" value="7"  color={C.red}    />
-            <div style={{ width: 1, background: C.border, margin: '6px 0' }} />
-            <StatChip label="Verified" value="6" color={C.accent} />
-            <div style={{ width: 1, background: C.border, margin: '6px 0' }} />
-            <StatChip label="Nodes"  value="48"  color={C.green}  />
+          <div className="vigia-stats-strip">
+            <StatCard label="Hazards"  value="7"  color={C.yellow} />
+            <StatCard label="Verified" value="6"  color={C.green}  />
+            <StatCard label="Nodes"    value="48" color={C.blue}   />
           </div>
         )}
 
-        {/* Tree */}
-        <div style={{ flex: 1, overflowY: 'auto', paddingTop: 4, paddingBottom: 4 }}>
+        {/* ── Tree ─────────────────────── */}
+        <div style={{ flex: 1, overflowY: 'auto', paddingTop: 2, paddingBottom: 4 }}>
           <style>{`@keyframes sb-shimmer{from{background-position:200% 0}to{background-position:-200% 0}}`}</style>
           <TreeNode label="Sessions" icon="folder">
               {sessionsLoading ? (
@@ -899,18 +815,18 @@ export function Sidebar({ onSentinelEyeClick, isSentinelEyeActive, onSettingsOpe
                   {[72, 88, 58, 80, 64].map((w, i) => (
                     <div key={i} style={{
                       display: 'flex', alignItems: 'center', gap: 6,
-                      height: 30, paddingLeft: 24,
+                      height: 32, paddingLeft: 24,
                       opacity: 1 - i * 0.14,
                     }}>
                       <div style={{
                         width: 13, height: 13, borderRadius: 2, flexShrink: 0,
-                        background: 'linear-gradient(90deg,rgba(255,255,255,0.04) 25%,rgba(255,255,255,0.09) 50%,rgba(255,255,255,0.04) 75%)',
+                        background: 'linear-gradient(90deg,var(--v-hover) 25%,var(--v-hover-md) 50%,var(--v-hover) 75%)',
                         backgroundSize: '200% 100%',
                         animation: `sb-shimmer 1.6s ease-in-out ${i * 0.1}s infinite`,
                       }} />
                       <div style={{
                         height: 9, borderRadius: 3, width: `${w}%`, maxWidth: 130,
-                        background: 'linear-gradient(90deg,rgba(255,255,255,0.04) 25%,rgba(255,255,255,0.09) 50%,rgba(255,255,255,0.04) 75%)',
+                        background: 'linear-gradient(90deg,var(--v-hover) 25%,var(--v-hover-md) 50%,var(--v-hover) 75%)',
                         backgroundSize: '200% 100%',
                         animation: `sb-shimmer 1.6s ease-in-out ${i * 0.1}s infinite`,
                       }} />
@@ -921,8 +837,8 @@ export function Sidebar({ onSentinelEyeClick, isSentinelEyeActive, onSettingsOpe
                 <div style={{
                   padding: '10px 16px',
                   color: C.textMut,
-                  fontSize: '0.71rem',
-                  fontFamily: "'IBM Plex Sans', sans-serif",
+                  fontSize: 13,
+                  fontFamily: 'Inter, system-ui, sans-serif',
                   fontStyle: 'italic',
                 }}>
                   No sessions yet
@@ -1015,55 +931,29 @@ export function Sidebar({ onSentinelEyeClick, isSentinelEyeActive, onSettingsOpe
                                       setDropTarget(null);
                                       
                                       if (draggedSession && draggedSession.sessionId !== session.sessionId) {
-                                        // Create diff between two sessions
                                         try {
-                                          // Load full sessions from stores
                                           const { useMapFileStore } = await import('@/stores/mapFileStore');
                                           await useMapFileStore.getState().loadFiles();
                                           
                                           let sessionA = useMapFileStore.getState().files.get(draggedSession.sessionId);
                                           let sessionB = useMapFileStore.getState().files.get(session.sessionId);
                                           
-                                          // If not in temp storage, reconstruct from VFS data
                                           if (!sessionA) {
-                                            sessionA = {
-                                              ...draggedSession,
-                                              coverage: draggedSession.metadata?.coverage,
-                                              temporal: draggedSession.metadata?.temporal,
-                                              displayName: draggedSession.metadata?.displayName || draggedSession.displayName,
-                                            } as any;
+                                            sessionA = { ...draggedSession, coverage: draggedSession.metadata?.coverage, temporal: draggedSession.metadata?.temporal, displayName: draggedSession.metadata?.displayName || draggedSession.displayName } as any;
                                           }
-                                          
                                           if (!sessionB) {
-                                            sessionB = {
-                                              ...session,
-                                              coverage: session.metadata?.coverage,
-                                              temporal: session.metadata?.temporal,
-                                              displayName: session.metadata?.displayName || session.displayName,
-                                            } as any;
+                                            sessionB = { ...session, coverage: session.metadata?.coverage, temporal: session.metadata?.temporal, displayName: session.metadata?.displayName || session.displayName } as any;
                                           }
                                           
-                                          // Compute diff
                                           const { computeMapDiff } = await import('../../lib/diffCompute');
                                           const diffMap = computeMapDiff(sessionA as any, sessionB as any);
                                           
-                                          // Dispatch event to open diff view
-                                          window.dispatchEvent(new CustomEvent('vigia-diff-created', {
-                                            detail: { diffMap }
-                                          }));
-                                          
-                                          // Emit trace event
-                                          window.dispatchEvent(new CustomEvent('vigia-trace', {
-                                            detail: { 
-                                              type: 'diff', 
-                                              message: `Diff created: ${diffMap.displayName}` 
-                                            }
-                                          }));
+                                          window.dispatchEvent(new CustomEvent('vigia-diff-created', { detail: { diffMap } }));
+                                          window.dispatchEvent(new CustomEvent('vigia-trace', { detail: { type: 'diff', message: `Diff created: ${diffMap.displayName}` } }));
                                         } catch (err) {
                                           console.error('Failed to create diff:', err);
                                           alert('Failed to create diff');
                                         }
-                                        
                                         setDraggedSession(null);
                                       }
                                     }}
@@ -1080,39 +970,25 @@ export function Sidebar({ onSentinelEyeClick, isSentinelEyeActive, onSettingsOpe
             ))}
           </TreeNode>
 
-          {/* Divider */}
+          {/* ── Pinned section ───────────── */}
           {!isCollapsed && (
             <>
-              <div style={{ height: 1, background: 'rgba(255,255,255,0.05)', margin: '6px 8px' }} />
-              <div style={{ padding: '2px 10px 4px', fontSize: '0.6rem', color: C.textMut, letterSpacing: '0.1em', textTransform: 'uppercase', fontFamily: "'IBM Plex Sans', sans-serif", fontWeight: 600 }}>
-                Pinned
-              </div>
+              <div style={{ height: 1, background: 'var(--v-panel-border)', margin: '8px 10px 4px' }} />
+              <div className="exp-section-lbl">Pinned</div>
 
               {[
-                { icon: <Navigation size={10} />, label: 'Route Library',  badge: undefined },
-                { icon: <AlertTriangle size={10} style={{ color: C.red }} />, label: 'Active Hazards', badge: '7' },
-                { icon: <Activity size={10} />,   label: 'Swarm Monitor',  badge: '48' },
-                { icon: <MapPin size={10} />,      label: 'Rourkela Zone',  badge: undefined },
-              ].map(({ icon, label, badge }) => (
-                <button
-                  key={label}
-                  style={{
-                    width: '100%', display: 'flex', alignItems: 'center', gap: 6,
-                    padding: '5px 10px 5px 20px', border: 'none',
-                    background: 'transparent', cursor: 'pointer', transition: 'background 0.1s',
-                  }}
-                  onMouseEnter={(e) => (e.currentTarget as HTMLElement).style.background = C.hover}
-                  onMouseLeave={(e) => (e.currentTarget as HTMLElement).style.background = 'transparent'}
-                >
-                  <span style={{ color: C.textMut, flexShrink: 0 }}>{icon}</span>
-                  <span style={{ fontSize: '0.72rem', color: C.textMut, flex: 1, textAlign: 'left', fontFamily: "'IBM Plex Sans', system-ui, sans-serif", overflow: 'hidden', textOverflow: 'ellipsis', whiteSpace: 'nowrap', letterSpacing: '-0.005em' }}>
-                    {label}
-                  </span>
+                { icon: <Navigation size={13} />,                                         label: 'Route Library',  badge: undefined,  badgeBg: undefined,             badgeColor: undefined },
+                { icon: <AlertTriangle size={13} style={{ color: C.red }} />,              label: 'Active Hazards', badge: '7',         badgeBg: 'rgba(248,113,113,0.14)', badgeColor: C.red   },
+                { icon: <Activity size={13} style={{ color: C.blue }} />,                  label: 'Swarm Monitor',  badge: '48',        badgeBg: 'rgba(96,165,250,0.13)', badgeColor: C.blue  },
+                { icon: <MapPin size={13} style={{ color: C.textMut }} />,                 label: 'Rourkela Zone',  badge: undefined,  badgeBg: undefined,             badgeColor: undefined },
+              ].map(({ icon, label, badge, badgeBg, badgeColor }) => (
+                <button key={label} className="exp-pinned-btn">
+                  <span style={{ color: C.textMut, flexShrink: 0, display: 'flex' }}>{icon}</span>
+                  <span className="exp-pinned-btn__label">{label}</span>
                   {badge && (
-                    <span style={{
-                      fontSize: '0.58rem', padding: '1px 5px', borderRadius: 3,
-                      background: 'rgba(255,255,255,0.06)', color: C.textMut,
-                      fontFamily: "'IBM Plex Mono', monospace",
+                    <span className="exp-badge" style={{
+                      background: badgeBg ?? 'var(--v-hover)',
+                      color: badgeColor ?? C.textMut,
                     }}>
                       {badge}
                     </span>
@@ -1123,20 +999,20 @@ export function Sidebar({ onSentinelEyeClick, isSentinelEyeActive, onSettingsOpe
           )}
         </div>
 
-        {/* Footer */}
+        {/* ── Footer ───────────────────── */}
         {!isCollapsed && (
           <div
             className="vigia-sidebar-footer"
             style={{
-            padding: '7px 10px',
-            borderTop: 'none',
-            display: 'flex',
-            alignItems: 'center',
-            gap: 6,
-            flexShrink: 0,
-          }}>
+              padding: '6px 12px',
+              borderTop: '1px solid var(--v-panel-border)',
+              display: 'flex',
+              alignItems: 'center',
+              gap: 6,
+              flexShrink: 0,
+            }}>
             <span style={{ width: 6, height: 6, borderRadius: '50%', background: C.green, flexShrink: 0 }} className="pulse" />
-            <span style={{ fontSize: '0.64rem', color: C.textMut, fontFamily: "'IBM Plex Sans', sans-serif", overflow: 'hidden', textOverflow: 'ellipsis', whiteSpace: 'nowrap' }}>
+            <span style={{ fontSize: 12, color: C.textMut, fontFamily: 'Inter, system-ui, sans-serif', overflow: 'hidden', textOverflow: 'ellipsis', whiteSpace: 'nowrap' }}>
               Rourkela · India · Online
             </span>
           </div>
@@ -1175,7 +1051,7 @@ export function Sidebar({ onSentinelEyeClick, isSentinelEyeActive, onSettingsOpe
             top: '50%',
             transform: 'translateY(-50%)',
             background: 'var(--c-elevated)',
-            border: `1px solid ${C.border}`,
+            border: `1px solid var(--v-border-default)`,
             borderRadius: '0 4px 4px 0',
             cursor: 'pointer',
             display: 'flex',
@@ -1207,7 +1083,7 @@ export function Sidebar({ onSentinelEyeClick, isSentinelEyeActive, onSettingsOpe
         }} onClick={() => setShowLocationModal(false)}>
           <div style={{
             background: C.bg,
-            border: `1px solid ${C.border}`,
+            border: `1px solid var(--v-rose-border)`,
             borderRadius: 4,
             width: showMap ? 700 : 500,
             maxHeight: '80vh',
@@ -1223,7 +1099,7 @@ export function Sidebar({ onSentinelEyeClick, isSentinelEyeActive, onSettingsOpe
               alignItems: 'center',
               justifyContent: 'space-between',
             }}>
-              <span style={{ fontSize: '0.85rem', fontWeight: 600, color: C.text, fontFamily: "'IBM Plex Sans', sans-serif" }}>
+              <span style={{ fontSize: '0.85rem', fontWeight: 600, color: C.text, fontFamily: "var(--v-font-ui)" }}>
                 Select Location
               </span>
               <div style={{ display: 'flex', gap: 8, alignItems: 'center' }}>
@@ -1237,7 +1113,7 @@ export function Sidebar({ onSentinelEyeClick, isSentinelEyeActive, onSettingsOpe
                     fontSize: '0.7rem',
                     padding: '4px 8px',
                     cursor: 'pointer',
-                    fontFamily: "'IBM Plex Sans', sans-serif",
+                    fontFamily: "var(--v-font-ui)",
                   }}
                 >
                   {showMap ? 'List' : 'Map'}
@@ -1276,7 +1152,7 @@ export function Sidebar({ onSentinelEyeClick, isSentinelEyeActive, onSettingsOpe
                   borderRadius: 3,
                   color: C.text,
                   fontSize: '0.8rem',
-                  fontFamily: "'IBM Plex Sans', sans-serif",
+                  fontFamily: "var(--v-font-ui)",
                   outline: 'none',
                 }}
               />
@@ -1313,7 +1189,7 @@ export function Sidebar({ onSentinelEyeClick, isSentinelEyeActive, onSettingsOpe
                         borderRadius: 3,
                         color: C.text,
                         fontSize: '0.8rem',
-                        fontFamily: "'IBM Plex Sans', sans-serif",
+                        fontFamily: "var(--v-font-ui)",
                         textAlign: 'left',
                         cursor: 'pointer',
                         marginBottom: 8,
@@ -1358,7 +1234,7 @@ export function Sidebar({ onSentinelEyeClick, isSentinelEyeActive, onSettingsOpe
               justifyContent: 'space-between',
               alignItems: 'center',
             }}>
-              <div style={{ fontSize: '0.7rem', color: C.textMut, fontFamily: "'IBM Plex Mono', monospace" }}>
+              <div style={{ fontSize: '0.7rem', color: C.textMut, fontFamily: "var(--v-font-mono)" }}>
                 {selectedLocation && `${selectedLocation.lat.toFixed(4)}, ${selectedLocation.lon.toFixed(4)}`}
               </div>
               <div style={{ display: 'flex', gap: 8 }}>
@@ -1377,7 +1253,7 @@ export function Sidebar({ onSentinelEyeClick, isSentinelEyeActive, onSettingsOpe
                     borderRadius: 3,
                     color: C.text,
                     fontSize: '0.75rem',
-                    fontFamily: "'IBM Plex Sans', sans-serif",
+                    fontFamily: "var(--v-font-ui)",
                     cursor: 'pointer',
                   }}
                 >
@@ -1391,9 +1267,9 @@ export function Sidebar({ onSentinelEyeClick, isSentinelEyeActive, onSettingsOpe
                     background: selectedLocation ? C.accent : C.textMut,
                     border: 'none',
                     borderRadius: 3,
-                    color: '#fff',
+                    color: 'var(--v-text-primary)',
                     fontSize: '0.75rem',
-                    fontFamily: "'IBM Plex Sans', sans-serif",
+                    fontFamily: "var(--v-font-ui)",
                     cursor: selectedLocation ? 'pointer' : 'not-allowed',
                     opacity: selectedLocation ? 1 : 0.5,
                   }}
@@ -1416,7 +1292,7 @@ export function Sidebar({ onSentinelEyeClick, isSentinelEyeActive, onSettingsOpe
             background: 'var(--c-elevated)',
             border: '1px solid var(--c-border-md)',
             borderRadius: 6,
-            boxShadow: '0 12px 32px rgba(0,0,0,0.55), 0 0 0 1px rgba(255,255,255,0.03)',
+            boxShadow: '0 12px 32px rgba(0,0,0,0.55), 0 0 0 1px var(--v-hover)',
             zIndex: 10000,
             minWidth: 190,
             padding: '4px 0',
@@ -1438,7 +1314,7 @@ export function Sidebar({ onSentinelEyeClick, isSentinelEyeActive, onSettingsOpe
                   border: 'none',
                   color: C.text,
                   fontSize: '0.75rem',
-                  fontFamily: "'IBM Plex Sans', sans-serif",
+                  fontFamily: "var(--v-font-ui)",
                   textAlign: 'left',
                   cursor: 'pointer',
                   display: 'flex',
@@ -1459,7 +1335,7 @@ export function Sidebar({ onSentinelEyeClick, isSentinelEyeActive, onSettingsOpe
                   border: 'none',
                   color: C.text,
                   fontSize: '0.75rem',
-                  fontFamily: "'IBM Plex Sans', sans-serif",
+                  fontFamily: "var(--v-font-ui)",
                   textAlign: 'left',
                   cursor: 'pointer',
                   display: 'flex',
@@ -1483,7 +1359,7 @@ export function Sidebar({ onSentinelEyeClick, isSentinelEyeActive, onSettingsOpe
               border: 'none',
               color: C.red,
               fontSize: '0.75rem',
-              fontFamily: "'IBM Plex Sans', sans-serif",
+              fontFamily: "var(--v-font-ui)",
               textAlign: 'left',
               cursor: 'pointer',
               display: 'flex',

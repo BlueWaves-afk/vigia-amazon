@@ -10,8 +10,8 @@ interface SessionTreeProps {
   onFileOpen?: (sessionId: string) => void;
 }
 
-const FONT_UI   = "'IBM Plex Sans', system-ui, sans-serif";
-const FONT_MONO = "'IBM Plex Mono', monospace";
+const FONT_UI = 'var(--v-font-ui)';
+const FONT_MONO = 'var(--v-font-mono)';
 
 export function SessionTree({ vfsManager, onFileOpen }: SessionTreeProps) {
   const [tree,        setTree]        = useState<TreeNode[]>([]);
@@ -139,23 +139,23 @@ export function SessionTree({ vfsManager, onFileOpen }: SessionTreeProps) {
       {/* ── Search bar ──────────────────────── */}
       <div style={{
         padding: '6px 8px',
-        borderBottom: '1px solid var(--c-border)',
+        borderBottom: '1px solid var(--v-border-default)',
         flexShrink: 0,
       }}>
         <div style={{
           display: 'flex', alignItems: 'center', gap: 6,
           background: 'var(--c-input)',
-          border: '1px solid var(--c-border)',
+          border: '1px solid var(--v-border-default)',
           borderRadius: 5,
           padding: '0 8px',
           transition: 'border-color 0.15s, box-shadow 0.15s',
         }}
         onFocusCapture={(e) => {
-          (e.currentTarget as HTMLElement).style.borderColor = 'var(--c-border-hi)';
+          (e.currentTarget as HTMLElement).style.borderColor = 'color-mix(in srgb, var(--v-accent) 50%, transparent)';
           (e.currentTarget as HTMLElement).style.boxShadow = '0 0 0 2px var(--c-accent-glow)';
         }}
         onBlurCapture={(e) => {
-          (e.currentTarget as HTMLElement).style.borderColor = 'var(--c-border)';
+          (e.currentTarget as HTMLElement).style.borderColor = 'var(--v-border-default)';
           (e.currentTarget as HTMLElement).style.boxShadow = 'none';
         }}
         >
@@ -184,7 +184,7 @@ export function SessionTree({ vfsManager, onFileOpen }: SessionTreeProps) {
               style={{
                 display: 'flex', alignItems: 'center', justifyContent: 'center',
                 width: 14, height: 14, borderRadius: '50%', border: 'none',
-                background: 'rgba(255,255,255,0.08)', color: 'var(--c-text-3)',
+                background: 'var(--v-hover-md)', color: 'var(--c-text-3)',
                 cursor: 'pointer', fontSize: '0.6rem', flexShrink: 0,
               }}
             >✕</button>
@@ -225,9 +225,9 @@ export function SessionTree({ vfsManager, onFileOpen }: SessionTreeProps) {
       </div>
 
       {/* ── Refresh button ──────────────────── */}
-      <div style={{
+      <div className="vigia-sidebar-footer" style={{
         padding: '6px 8px',
-        borderTop: '1px solid var(--c-border)',
+        borderTop: 'none',
         flexShrink: 0,
       }}>
         <button
@@ -236,7 +236,7 @@ export function SessionTree({ vfsManager, onFileOpen }: SessionTreeProps) {
           style={{
             width: '100%', display: 'flex', alignItems: 'center', justifyContent: 'center',
             gap: 6, padding: '5px 0', borderRadius: 4,
-            border: '1px solid var(--c-border)',
+            border: '1px solid var(--v-border-default)',
             background: 'var(--c-panel)',
             color: refreshing ? 'var(--c-text-3)' : 'var(--c-text-2)',
             fontSize: '0.72rem', cursor: refreshing ? 'default' : 'pointer',
@@ -244,14 +244,14 @@ export function SessionTree({ vfsManager, onFileOpen }: SessionTreeProps) {
           }}
           onMouseEnter={(e) => {
             if (!refreshing) {
-              (e.currentTarget as HTMLElement).style.background = 'rgba(255,255,255,0.05)';
-              (e.currentTarget as HTMLElement).style.borderColor = 'var(--c-border-md)';
+              (e.currentTarget as HTMLElement).style.background = 'var(--v-hover)';
+              (e.currentTarget as HTMLElement).style.borderColor = 'rgba(154,106,170,0.4)';
               (e.currentTarget as HTMLElement).style.color = 'var(--c-text)';
             }
           }}
           onMouseLeave={(e) => {
             (e.currentTarget as HTMLElement).style.background = 'var(--c-panel)';
-            (e.currentTarget as HTMLElement).style.borderColor = 'var(--c-border)';
+            (e.currentTarget as HTMLElement).style.borderColor = 'var(--v-border-default)';
             (e.currentTarget as HTMLElement).style.color = 'var(--c-text-2)';
           }}
         >

@@ -56,8 +56,8 @@ function getMapStyle(style: MapStyle): string | maplibregl.StyleSpecification {
   return OSM_STYLE as any;
 }
 
-const MONO = "'IBM Plex Mono', monospace";
-const SANS = "'IBM Plex Sans', sans-serif";
+const MONO = 'var(--v-font-mono)';
+const SANS = 'var(--v-font-ui)';
 
 const C = {
   bg:      'var(--c-bg)',
@@ -380,10 +380,10 @@ export function DiffView({ diffMap }: DiffViewProps) {
       <style>{`@keyframes dv-spin{to{transform:rotate(360deg)}}`}</style>
 
       {/* ── Panel header ── */}
-      <div style={{
+      <div className="vigia-panel-header" style={{
         display: 'flex', alignItems: 'center', justifyContent: 'space-between',
         padding: '0 12px', height: 32,
-        borderBottom: `1px solid ${C.border}`,
+        borderBottom: 'none',
         background: C.panel,
         flexShrink: 0,
       }}>
@@ -429,7 +429,7 @@ export function DiffView({ diffMap }: DiffViewProps) {
       {/* ── Stats bar ── */}
       <div style={{
         display: 'flex', alignItems: 'center', gap: 0,
-        borderBottom: `1px solid ${C.border}`,
+        borderBottom: `1px solid var(--v-border-default)`,
         background: C.elevated,
         flexShrink: 0,
       }}>
@@ -442,7 +442,7 @@ export function DiffView({ diffMap }: DiffViewProps) {
           <div key={label} style={{
             display: 'flex', alignItems: 'center', gap: 6,
             padding: '5px 12px',
-            borderRight: `1px solid ${C.border}`,
+            borderRight: `1px solid var(--v-border-subtle)`,
             fontFamily: MONO,
           }}>
             <span style={{ width: 6, height: 6, borderRadius: '50%', background: color, flexShrink: 0 }} />
@@ -471,14 +471,14 @@ export function DiffView({ diffMap }: DiffViewProps) {
         <div style={{ display: 'flex', flex: 1, overflow: 'hidden' }}>
 
           {/* Map A */}
-          <div style={{ flex: 1, position: 'relative', borderRight: `1px solid ${C.border}` }}>
+          <div style={{ flex: 1, position: 'relative', borderRight: `1px solid var(--v-border-default)` }}>
             <div style={{
               position: 'absolute', top: 8, left: 8, zIndex: 10,
               display: 'flex', alignItems: 'center', gap: 5,
               padding: '3px 8px', borderRadius: 4,
               background: C.overlay,
               backdropFilter: 'blur(8px)',
-              border: `1px solid ${C.border}`,
+              border: `1px solid var(--v-border-default)`,
               fontFamily: MONO, fontSize: '0.62rem', color: C.textSec,
               pointerEvents: 'none',
             }}>
@@ -507,7 +507,7 @@ export function DiffView({ diffMap }: DiffViewProps) {
               padding: '3px 8px', borderRadius: 4,
               background: C.overlay,
               backdropFilter: 'blur(8px)',
-              border: `1px solid ${C.border}`,
+              border: `1px solid var(--v-border-default)`,
               fontFamily: MONO, fontSize: '0.62rem', color: C.textSec,
               pointerEvents: 'none',
             }}>

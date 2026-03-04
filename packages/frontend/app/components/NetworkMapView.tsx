@@ -19,8 +19,8 @@ const C = {
   green:   'var(--c-green)',
 };
 
-const FONT = "'IBM Plex Sans', sans-serif";
-const MONO = "'IBM Plex Mono', monospace";
+const FONT = 'var(--v-font-ui)';
+const MONO = 'var(--v-font-mono)';
 
 // Resolve accent color for MapLibre (which can't use CSS vars)
 const getAccentHex = (theme: string) =>
@@ -372,10 +372,10 @@ export function NetworkMapView() {
     <div style={{ width: '100%', height: '100%', display: 'flex', flexDirection: 'row' }}>
       <div style={{ flex: 1, display: 'flex', flexDirection: 'column', background: C.bg, overflow: 'hidden' }}>
       {/* Header */}
-      <div style={{
+      <div className="vigia-panel-header" style={{
         padding: '0 16px',
         height: 38, flexShrink: 0,
-        borderBottom: `1px solid ${C.border}`,
+        borderBottom: 'none',
         background: C.panel,
         display: 'flex', alignItems: 'center',
       }}>
@@ -411,7 +411,7 @@ export function NetworkMapView() {
                 onClick={zoomOut}
                 style={{
                   background: 'var(--c-accent-glow)',
-                  border: `1px solid ${C.border}`,
+                  border: `1px solid color-mix(in srgb, var(--v-accent) 30%, transparent)`,
                   borderRadius: 3,
                   padding: '4px 10px',
                   color: C.accent,
@@ -444,7 +444,7 @@ export function NetworkMapView() {
           <div style={{
             position: 'absolute', top: 12, right: 44,
             background: 'var(--c-overlay)',
-            border: `1px solid ${C.border}`,
+            border: `1px solid var(--v-rose-border)`,
             borderRadius: 4,
             padding: '10px 12px',
             minWidth: 200,
@@ -468,14 +468,14 @@ export function NetworkMapView() {
             </div>
             <div style={{ color: C.textMut, marginBottom: 3 }}>ID: {selectedNode.id}</div>
             <div style={{ color: C.textMut, marginBottom: 6 }}>{selectedNode.lat.toFixed(4)}, {selectedNode.lon.toFixed(4)}</div>
-            <div style={{ height: 1, background: C.border, marginBottom: 6 }} />
+            <div className="ide-divider" style={{ marginBottom: 6 }} />
             <div style={{ color: C.textSec, marginBottom: 3 }}>
               Sessions: <span style={{ color: C.accent, fontWeight: 600 }}>{selectedNode.sessions}</span>
             </div>
             <div style={{ color: C.textSec, marginBottom: 8 }}>
               Coverage: <span style={{ color: C.accent, fontWeight: 600 }}>{selectedNode.coverage}%</span>
             </div>
-            <div style={{ height: 1, background: C.border, marginBottom: 8 }} />
+            <div className="ide-divider" style={{ marginBottom: 8 }} />
             <div style={{ fontSize: '0.7rem', color: C.textMut, marginBottom: 6, fontWeight: 600, textTransform: 'uppercase', letterSpacing: '0.05em' }}>
               Ask Agent
             </div>
@@ -489,7 +489,7 @@ export function NetworkMapView() {
                 width: '100%',
                 padding: '6px 10px',
                 background: C.accent,
-                border: `1px solid ${C.border}`,
+                border: `1px solid color-mix(in srgb, var(--v-accent) 30%, transparent)`,
                 borderRadius: 3,
                 color: C.text,
                 fontSize: '0.7rem',
@@ -519,7 +519,7 @@ export function NetworkMapView() {
                 width: '100%',
                 padding: '6px 10px',
                 background: 'transparent',
-                border: `1px solid ${C.border}`,
+                border: `1px solid var(--v-border-default)`,
                 borderRadius: 3,
                 color: C.text,
                 fontSize: '0.7rem',
@@ -536,7 +536,7 @@ export function NetworkMapView() {
         <div style={{
           position: 'absolute', bottom: 16, left: 10,
           background: 'var(--c-overlay)',
-          border: `1px solid ${C.border}`,
+          border: `1px solid var(--v-border-default)`,
           borderRadius: 4,
           padding: '8px 12px',
           fontFamily: MONO,

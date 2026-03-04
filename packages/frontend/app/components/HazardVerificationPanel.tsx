@@ -261,16 +261,16 @@ export function HazardVerificationPanel({ onHazardDetected }: HazardVerification
       flexDirection: 'column',
       height: '100%',
       background: C.bg,
-      borderRight: `1px solid ${C.border}`,
+      borderRight: `1px solid var(--v-border-default)`,
     }}>
       {/* Header */}
-      <div style={{
+      <div className="vigia-panel-header" style={{
         display: 'flex',
         alignItems: 'center',
         justifyContent: 'space-between',
         padding: '0 12px',
         height: 32,
-        borderBottom: `1px solid ${C.border}`,
+        borderBottom: 'none',
         background: C.panel,
       }}>
         <span style={{
@@ -279,14 +279,14 @@ export function HazardVerificationPanel({ onHazardDetected }: HazardVerification
           fontWeight: 600,
           letterSpacing: '0.1em',
           textTransform: 'uppercase',
-          fontFamily: "'IBM Plex Sans', sans-serif",
+          fontFamily: "var(--v-font-ui)",
         }}>
           VERIFICATION PIPELINE
         </span>
         <span style={{
           fontSize: '0.6rem',
           color: C.textSec,
-          fontFamily: "'IBM Plex Mono', monospace",
+          fontFamily: "var(--v-font-mono)",
         }}>
           {hazards.length} active
         </span>
@@ -311,14 +311,14 @@ export function HazardVerificationPanel({ onHazardDetected }: HazardVerification
             <AlertTriangle size={32} style={{ opacity: 0.3 }} />
             <div style={{
               fontSize: '0.75rem',
-              fontFamily: "'IBM Plex Sans', sans-serif",
+              fontFamily: "var(--v-font-ui)",
               textAlign: 'center',
             }}>
               No hazards detected yet
             </div>
             <div style={{
               fontSize: '0.65rem',
-              fontFamily: "'IBM Plex Sans', sans-serif",
+              fontFamily: "var(--v-font-ui)",
               textAlign: 'center',
               maxWidth: 200,
             }}>
@@ -381,7 +381,7 @@ export function HazardVerificationPanel({ onHazardDetected }: HazardVerification
                       <div style={{
                         fontSize: '0.72rem',
                         color: C.text,
-                        fontFamily: "'IBM Plex Sans', sans-serif",
+                        fontFamily: "var(--v-font-ui)",
                         fontWeight: 500,
                       }}>
                         {hazard.type}
@@ -389,7 +389,7 @@ export function HazardVerificationPanel({ onHazardDetected }: HazardVerification
                       <div style={{
                         fontSize: '0.62rem',
                         color: C.textMut,
-                        fontFamily: "'IBM Plex Mono', monospace",
+                        fontFamily: "var(--v-font-mono)",
                       }}>
                         {hazard.lat.toFixed(4)}, {hazard.lon.toFixed(4)}
                       </div>
@@ -402,7 +402,7 @@ export function HazardVerificationPanel({ onHazardDetected }: HazardVerification
                       borderRadius: 3,
                       background: `${statusConfig.color}22`,
                       color: statusConfig.color,
-                      fontFamily: "'IBM Plex Mono', monospace",
+                      fontFamily: "var(--v-font-mono)",
                       fontWeight: 600,
                       flexShrink: 0,
                     }}>
@@ -414,7 +414,7 @@ export function HazardVerificationPanel({ onHazardDetected }: HazardVerification
                   {isExpanded && (
                     <div style={{
                       padding: '8px 10px',
-                      borderTop: `1px solid ${C.border}`,
+                      borderTop: `1px solid var(--v-border-subtle)`,
                       background: 'var(--c-elevated)',
                     }}>
                       <div style={{
@@ -422,7 +422,7 @@ export function HazardVerificationPanel({ onHazardDetected }: HazardVerification
                         flexDirection: 'column',
                         gap: 6,
                         fontSize: '0.65rem',
-                        fontFamily: "'IBM Plex Mono', monospace",
+                        fontFamily: "var(--v-font-mono)",
                       }}>
                         <div style={{ display: 'flex', justifyContent: 'space-between' }}>
                           <span style={{ color: C.textMut }}>Confidence:</span>
@@ -451,7 +451,7 @@ export function HazardVerificationPanel({ onHazardDetected }: HazardVerification
                             padding: 8,
                             background: 'var(--c-elevated)',
                             borderRadius: 3,
-                            border: `1px solid ${C.border}`,
+                            border: `1px solid var(--v-border-default)`,
                           }}>
                             <div style={{
                               fontSize: '0.6rem',
@@ -484,9 +484,9 @@ export function HazardVerificationPanel({ onHazardDetected }: HazardVerification
       </div>
 
       {/* Footer Stats */}
-      <div style={{
+      <div className="vigia-sidebar-footer" style={{
         display: 'flex',
-        borderTop: `1px solid ${C.border}`,
+        borderTop: 'none',
         background: C.panel,
       }}>
         <div style={{
@@ -495,13 +495,13 @@ export function HazardVerificationPanel({ onHazardDetected }: HazardVerification
           flexDirection: 'column',
           alignItems: 'center',
           padding: '8px 0',
-          borderRight: `1px solid ${C.border}`,
+          borderRight: `1px solid var(--v-border-subtle)`,
         }}>
           <span style={{
             fontSize: '0.78rem',
             fontWeight: 600,
             color: C.yellow,
-            fontFamily: "'IBM Plex Mono', monospace",
+            fontFamily: "var(--v-font-mono)",
           }}>
             {hazards.filter(h => h.status === 'pending' || h.status === 'unverified').length}
           </span>
@@ -510,7 +510,7 @@ export function HazardVerificationPanel({ onHazardDetected }: HazardVerification
             color: C.textMut,
             textTransform: 'uppercase',
             letterSpacing: '0.06em',
-            fontFamily: "'IBM Plex Sans', sans-serif",
+            fontFamily: "var(--v-font-ui)",
           }}>
             PENDING
           </span>
@@ -521,13 +521,13 @@ export function HazardVerificationPanel({ onHazardDetected }: HazardVerification
           flexDirection: 'column',
           alignItems: 'center',
           padding: '8px 0',
-          borderRight: `1px solid ${C.border}`,
+          borderRight: `1px solid var(--v-border-subtle)`,
         }}>
           <span style={{
             fontSize: '0.78rem',
             fontWeight: 600,
             color: C.accent,
-            fontFamily: "'IBM Plex Mono', monospace",
+            fontFamily: "var(--v-font-mono)",
           }}>
             {hazards.filter(h => h.status === 'verifying').length}
           </span>
@@ -536,7 +536,7 @@ export function HazardVerificationPanel({ onHazardDetected }: HazardVerification
             color: C.textMut,
             textTransform: 'uppercase',
             letterSpacing: '0.06em',
-            fontFamily: "'IBM Plex Sans', sans-serif",
+            fontFamily: "var(--v-font-ui)",
           }}>
             VERIFYING
           </span>
@@ -552,7 +552,7 @@ export function HazardVerificationPanel({ onHazardDetected }: HazardVerification
             fontSize: '0.78rem',
             fontWeight: 600,
             color: C.green,
-            fontFamily: "'IBM Plex Mono', monospace",
+            fontFamily: "var(--v-font-mono)",
           }}>
             {hazards.filter(h => h.status === 'verified').length}
           </span>
@@ -561,7 +561,7 @@ export function HazardVerificationPanel({ onHazardDetected }: HazardVerification
             color: C.textMut,
             textTransform: 'uppercase',
             letterSpacing: '0.06em',
-            fontFamily: "'IBM Plex Sans', sans-serif",
+            fontFamily: "var(--v-font-ui)",
           }}>
             VERIFIED
           </span>
@@ -576,9 +576,9 @@ export function HazardVerificationPanel({ onHazardDetected }: HazardVerification
             left: contextMenu.x,
             top: contextMenu.y,
             background: 'var(--c-elevated)',
-            border: '1px solid var(--c-border-md)',
+            border: '1px solid var(--v-rose-border)',
             borderRadius: 5,
-            boxShadow: '0 2px 8px rgba(0,0,0,0.18), 0 0 0 1px var(--c-border)',
+            boxShadow: '0 2px 8px rgba(0,0,0,0.18), 0 0 0 1px rgba(154,106,170,0.12)',
             zIndex: 1000,
             minWidth: 172,
             padding: '3px 0',
@@ -591,10 +591,10 @@ export function HazardVerificationPanel({ onHazardDetected }: HazardVerification
             padding: '4px 10px 5px',
             fontSize: '0.58rem',
             color: 'var(--c-text-3)',
-            fontFamily: "'IBM Plex Mono', monospace",
+            fontFamily: "var(--v-font-mono)",
             letterSpacing: '0.07em',
             textTransform: 'uppercase',
-            borderBottom: '1px solid var(--c-border)',
+            borderBottom: '1px solid var(--v-border-subtle)',
             marginBottom: 3,
           }}>
             Hazard Actions
@@ -617,7 +617,7 @@ export function HazardVerificationPanel({ onHazardDetected }: HazardVerification
               cursor: 'pointer',
               fontSize: '0.7rem',
               color: 'var(--c-text)',
-              fontFamily: "'IBM Plex Sans', sans-serif",
+              fontFamily: "var(--v-font-ui)",
               transition: 'background 0.1s',
               borderLeft: '2px solid transparent',
             }}

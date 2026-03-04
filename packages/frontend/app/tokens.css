@@ -1,0 +1,328 @@
+/* ═══════════════════════════════════════════════════════════════
+   VIGIA — Design Token System v1
+   Single source of truth for all color, spacing, type, motion.
+
+   Token namespace: --v-*
+   The --c-* legacy tokens in globals.css are ALIASED to these
+   so that all existing components pick them up automatically.
+   ═══════════════════════════════════════════════════════════════ */
+
+/* ─────────────────────────────────────────────────────────────
+   Dark mode (default / prefers-color-scheme: dark)
+   ───────────────────────────────────────────────────────────── */
+:root,
+.theme-dark {
+  /* Surfaces */
+  --v-bg-base:     #09090f;
+  --v-bg-surface:  #0f0f16;
+  --v-bg-elevated: #161622;
+  --v-bg-overlay:  #1e1e2c;
+  --v-bg-deep:     #060609;
+
+  /* Borders */
+  --v-border-subtle:  #1c1c28;
+  --v-border-default: #2a2a3a;
+
+  /* Text */
+  --v-text-primary:   #f0f0f8;
+  --v-text-secondary: #9ca3af;
+  --v-text-muted:     #6b7280;
+  --v-text-disabled:  #4b5563;
+
+  /* Accent — indigo/violet */
+  --v-accent:        #6366f1;
+  --v-accent-hover:  #818cf8;
+  --v-accent-bright: #a5b4fc;
+  --v-accent-muted:  rgba(99,102,241,0.15);
+  --v-accent-glow:   rgba(99,102,241,0.22);
+  --v-accent-ring:   rgba(99,102,241,0.30);
+
+  /* Semantic */
+  --v-success:     #4ade80;
+  --v-success-dim: rgba(74,222,128,0.13);
+  --v-warning:     #fbbf24;
+  --v-warning-dim: rgba(251,191,36,0.13);
+  --v-danger:      #f87171;
+  --v-danger-dim:  rgba(248,113,113,0.13);
+
+  /* Rose/mauve decorative (keep existing identity) */
+  --v-rose:        #a78bfa;
+  --v-rose-dim:    rgba(167,139,250,0.13);
+  --v-rose-border: rgba(167,139,250,0.25);
+
+  /* Interaction states */
+  --v-hover:    rgba(255,255,255,0.055);
+  --v-hover-md: rgba(255,255,255,0.085);
+  --v-active:   rgba(99,102,241,0.14);
+
+  /* TopBar chrome */
+  --v-topbar-bg:            #09090f;
+  --v-topbar-border:        #1c1c28;
+  --v-topbar-menu:          rgba(220,220,240,0.55);
+  --v-topbar-menu-hover:    rgba(99,102,241,0.14);
+  --v-topbar-menu-active:   #c7d2fe;
+  --v-topbar-search-bg:     rgba(255,255,255,0.045);
+  --v-topbar-search-border: rgba(99,102,241,0.22);
+  --v-topbar-search-text:   rgba(200,200,220,0.42);
+
+  /* StatusBar chrome */
+  --v-sb-bg:          #0d0d12;
+  --v-sb-accent-bg:   #6366f1;
+  --v-sb-accent-text: #ffffff;
+  --v-sb-text:        #9ca3af;
+  --v-sb-sep:         #2a2a35;
+  --v-sb-hover:       #1a1a24;
+
+  /* Explorer panel */
+  --v-panel-bg:         #0f0f14;
+  --v-panel-border:     #1c1c26;
+  --v-panel-header-txt: #6b7280;
+  --v-panel-hover:      #1e1e2e;
+  --v-panel-active:     #252535;
+  --v-stat-bg:          #161620;
+  --v-stat-border:      #2a2a35;
+
+  /* Activity rail */
+  --v-rail-bg:          #0c0c0f;
+  --v-rail-border:      #1a1a22;
+  --v-rail-icon:        #6b7280;
+  --v-rail-icon-hover:  #9ca3af;
+  --v-rail-icon-active: #6366f1;
+  --v-rail-active-bg:   rgba(99,102,241,0.10);
+  --v-rail-indicator:   #6366f1;
+  --v-rail-tooltip-bg:  #1e1e2c;
+  --v-rail-tooltip-text:#e5e7eb;
+
+  /* Radius scale */
+  --v-radius-sm: 4px;
+  --v-radius-md: 8px;
+  --v-radius-lg: 12px;
+
+  /* Typography */
+  --v-font-ui:   'Inter', 'IBM Plex Sans', system-ui, sans-serif;
+  --v-font-mono: 'JetBrains Mono', 'IBM Plex Mono', 'Fira Code', monospace;
+
+  /* Motion */
+  --v-transition-fast: 120ms ease;
+  --v-transition-base: 200ms ease;
+  --v-transition-slow: 300ms ease;
+
+  /* Shadows */
+  --v-shadow-sm: 0 2px 8px rgba(0,0,0,0.40);
+  --v-shadow-md: 0 8px 24px rgba(0,0,0,0.55);
+  --v-shadow-lg: 0 20px 60px rgba(0,0,0,0.68);
+
+  /* ── Legacy alias map ─────────────────────────────────────
+     Mapping --c-* → --v-* so all existing components that
+     already use var(--c-*) automatically receive the new tokens.
+     ──────────────────────────────────────────────────────── */
+  --c-bg:        var(--v-bg-base);
+  --c-sidebar:   var(--v-bg-surface);
+  --c-panel:     var(--v-bg-elevated);
+  --c-elevated:  var(--v-bg-overlay);
+  --c-deep:      color-mix(in srgb, var(--v-bg-base) 80%, #000 20%);
+  --c-input:     var(--v-bg-surface);
+
+  --c-border:    var(--v-border-subtle);
+  --c-border-md: var(--v-border-default);
+  --c-border-hi: rgba(255,255,255,0.22);
+
+  --c-text:   var(--v-text-primary);
+  --c-text-2: var(--v-text-secondary);
+  --c-text-3: var(--v-text-muted);
+
+  --c-accent:               var(--v-accent);
+  --c-accent-2:             var(--v-accent-hover);
+  --c-accent-glow:          var(--v-accent-glow);
+  --c-accent-glow-strong:   var(--v-accent-ring);
+
+  --c-rose:        var(--v-rose);
+  --c-rose-2:      var(--v-accent-hover);
+  --c-rose-dim:    var(--v-rose-dim);
+  --c-rose-border: var(--v-rose-border);
+  --c-rose-glow:   var(--v-accent-glow);
+
+  --c-green:      var(--v-success);
+  --c-green-dim:  var(--v-success-dim);
+  --c-red:        var(--v-danger);
+  --c-red-dim:    var(--v-danger-dim);
+  --c-yellow:     var(--v-warning);
+  --c-yellow-dim: var(--v-warning-dim);
+
+  --c-hover:    var(--v-hover);
+  --c-hover-md: var(--v-hover-md);
+
+  --c-topbar-bg:            var(--v-topbar-bg);
+  --c-topbar-border:        var(--v-topbar-border);
+  --c-topbar-menu:          var(--v-topbar-menu);
+  --c-topbar-menu-hover:    var(--v-topbar-menu-hover);
+  --c-topbar-menu-active:   var(--v-topbar-menu-active);
+  --c-topbar-search-bg:     var(--v-topbar-search-bg);
+  --c-topbar-search-border: var(--v-topbar-search-border);
+  --c-topbar-search-text:   var(--v-topbar-search-text);
+
+  /* Motion alias */
+  --dur-fast: 120ms;
+  --dur-base: 200ms;
+  --dur-slow: 300ms;
+}
+
+/* ─────────────────────────────────────────────────────────────
+   Light mode
+   Activated by: prefers-color-scheme media OR .theme-light class
+   OR data-theme="light" attribute (existing VIGIA mechanism)
+   ───────────────────────────────────────────────────────────── */
+@media (prefers-color-scheme: light) {
+  :root:not([data-theme="dark"]):not([data-theme="darker"]):not([data-theme="high-contrast"]):not(.theme-dark) {
+    --v-bg-base:     #f8f8fc;
+    --v-bg-surface:  #f0f0f8;
+    --v-bg-elevated: #e8e8f5;
+    --v-bg-overlay:  #dde0f0;
+    --v-bg-deep:     #f0f0f8;
+
+    --v-border-subtle:  #e0e0ea;
+    --v-border-default: #c8c8da;
+
+    --v-text-primary:   #0f0f1a;
+    --v-text-secondary: #374151;
+    --v-text-muted:     #6b7280;
+    --v-text-disabled:  #9ca3af;
+
+    --v-accent:        #4f46e5;
+    --v-accent-hover:  #6366f1;
+    --v-accent-bright: #6366f1;
+    --v-accent-muted:  rgba(79,70,229,0.12);
+    --v-accent-glow:   rgba(79,70,229,0.15);
+    --v-accent-ring:   rgba(79,70,229,0.25);
+
+    --v-success:     #16a34a;
+    --v-success-dim: rgba(22,163,74,0.12);
+    --v-warning:     #d97706;
+    --v-warning-dim: rgba(217,119,6,0.12);
+    --v-danger:      #dc2626;
+    --v-danger-dim:  rgba(220,38,38,0.10);
+
+    --v-rose:        #7c3aed;
+    --v-rose-dim:    rgba(124,58,237,0.10);
+    --v-rose-border: rgba(124,58,237,0.22);
+
+    --v-hover:    rgba(0,0,0,0.045);
+    --v-hover-md: rgba(0,0,0,0.08);
+    --v-active:   rgba(79,70,229,0.10);
+
+    --v-topbar-bg:            #f8f8fc;
+    --v-topbar-border:        #e0e0ea;
+    --v-topbar-menu:          rgba(20,20,50,0.52);
+    --v-topbar-menu-hover:    rgba(79,70,229,0.09);
+    --v-topbar-menu-active:   #4338ca;
+    --v-topbar-search-bg:     rgba(0,0,0,0.035);
+    --v-topbar-search-border: rgba(79,70,229,0.22);
+    --v-topbar-search-text:   rgba(20,20,50,0.42);
+
+    --v-sb-bg:          #e8e8f0;
+    --v-sb-accent-bg:   #6366f1;
+    --v-sb-accent-text: #ffffff;
+    --v-sb-text:        #374151;
+    --v-sb-sep:         #d0d0dc;
+    --v-sb-hover:       #d8d8e8;
+
+    --v-rail-bg:          #f0f0f5;
+    --v-rail-border:      #dddde8;
+    --v-rail-icon:        #6b7280;
+    --v-rail-icon-hover:  #374151;
+    --v-rail-icon-active: #4f46e5;
+    --v-rail-active-bg:   rgba(79,70,229,0.09);
+    --v-rail-indicator:   #4f46e5;
+    --v-rail-tooltip-bg:  #1e1e2c;
+    --v-rail-tooltip-text:#e5e7eb;
+
+    --v-panel-bg:         #fafafa;
+    --v-panel-border:     #e5e5ea;
+    --v-panel-header-txt: #6b7280;
+    --v-panel-hover:      #f0f0f5;
+    --v-panel-active:     #e8e8f2;
+    --v-stat-bg:          #f4f4f8;
+    --v-stat-border:      #e5e5ea;
+
+    --v-shadow-sm: 0 2px 8px rgba(0,0,0,0.10);
+    --v-shadow-md: 0 8px 24px rgba(0,0,0,0.14);
+    --v-shadow-lg: 0 20px 60px rgba(0,0,0,0.18);
+  }
+}
+
+.theme-light,
+[data-theme="light"] {
+  --v-bg-base:     #f8f8fc;
+  --v-bg-surface:  #f0f0f8;
+  --v-bg-elevated: #e8e8f5;
+  --v-bg-overlay:  #dde0f0;
+  --v-bg-deep:     #f0f0f8;
+
+  --v-border-subtle:  #e0e0ea;
+  --v-border-default: #c8c8da;
+
+  --v-text-primary:   #0f0f1a;
+  --v-text-secondary: #374151;
+  --v-text-muted:     #6b7280;
+  --v-text-disabled:  #9ca3af;
+
+  --v-accent:        #4f46e5;
+  --v-accent-hover:  #6366f1;
+  --v-accent-bright: #6366f1;
+  --v-accent-muted:  rgba(79,70,229,0.12);
+  --v-accent-glow:   rgba(79,70,229,0.15);
+  --v-accent-ring:   rgba(79,70,229,0.25);
+
+  --v-success:     #16a34a;
+  --v-success-dim: rgba(22,163,74,0.12);
+  --v-warning:     #d97706;
+  --v-warning-dim: rgba(217,119,6,0.12);
+  --v-danger:      #dc2626;
+  --v-danger-dim:  rgba(220,38,38,0.10);
+
+  --v-rose:        #7c3aed;
+  --v-rose-dim:    rgba(124,58,237,0.10);
+  --v-rose-border: rgba(124,58,237,0.22);
+
+  --v-hover:    rgba(0,0,0,0.045);
+  --v-hover-md: rgba(0,0,0,0.08);
+  --v-active:   rgba(79,70,229,0.10);
+
+  --v-topbar-bg:            #f8f8fc;
+  --v-topbar-border:        #e0e0ea;
+  --v-topbar-menu:          rgba(20,20,50,0.52);
+  --v-topbar-menu-hover:    rgba(79,70,229,0.09);
+  --v-topbar-menu-active:   #4338ca;
+  --v-topbar-search-bg:     rgba(0,0,0,0.035);
+  --v-topbar-search-border: rgba(79,70,229,0.22);
+  --v-topbar-search-text:   rgba(20,20,50,0.42);
+
+  --v-sb-bg:          #e8e8f0;
+  --v-sb-accent-bg:   #6366f1;
+  --v-sb-accent-text: #ffffff;
+  --v-sb-text:        #374151;
+  --v-sb-sep:         #d0d0dc;
+  --v-sb-hover:       #d8d8e8;
+
+  --v-rail-bg:          #f0f0f5;
+  --v-rail-border:      #dddde8;
+  --v-rail-icon:        #6b7280;
+  --v-rail-icon-hover:  #374151;
+  --v-rail-icon-active: #4f46e5;
+  --v-rail-active-bg:   rgba(79,70,229,0.09);
+  --v-rail-indicator:   #4f46e5;
+  --v-rail-tooltip-bg:  #1e1e2c;
+  --v-rail-tooltip-text:#e5e7eb;
+
+  --v-panel-bg:         #fafafa;
+  --v-panel-border:     #e5e5ea;
+  --v-panel-header-txt: #6b7280;
+  --v-panel-hover:      #f0f0f5;
+  --v-panel-active:     #e8e8f2;
+  --v-stat-bg:          #f4f4f8;
+  --v-stat-border:      #e5e5ea;
+
+  --v-shadow-sm: 0 2px 8px rgba(0,0,0,0.10);
+  --v-shadow-md: 0 8px 24px rgba(0,0,0,0.14);
+  --v-shadow-lg: 0 20px 60px rgba(0,0,0,0.18);
+}

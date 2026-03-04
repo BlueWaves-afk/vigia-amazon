@@ -325,22 +325,30 @@ export default function Dashboard() {
     { id: 'console' as ConsoleTab, label: 'Console',      icon: <TerminalIcon  size={11} /> },
   ];
 
-  // ── Tab button style ──────────────────────
+  // ── Main tab button style ─────────────────
   const tabBtn = (active: boolean): React.CSSProperties => ({
     position: 'relative', display: 'flex', alignItems: 'center', gap: 6,
-    height: '100%', padding: '0 13px', minWidth: 100, flexShrink: 0,
-    cursor: 'pointer', border: 'none',
-    borderRight: 'none', // handled by .tab-sep CSS pseudo-element
-    background: active ? 'var(--c-panel)' : 'transparent',
-    color: active ? 'var(--c-text-2)' : 'var(--c-text-3)',
+    height: '100%', padding: '0 14px', minWidth: 100, flexShrink: 0,
+    cursor: 'pointer', border: 'none', outline: 'none',
+    background: active ? 'var(--v-panel-bg)' : 'transparent',
+    color: active ? '#fff' : 'var(--v-text-muted)',
     fontSize: '0.72rem', fontWeight: active ? 500 : 400,
-    fontFamily: "'IBM Plex Sans', system-ui, sans-serif",
+    fontFamily: 'Inter, system-ui, sans-serif',
     letterSpacing: '-0.01em',
-    transition: 'background var(--dur-fast), color var(--dur-fast)',
-    // active tab: rose top-inset glow + bottom flush with panel
-    boxShadow: active
-      ? 'inset 0 2px 0 var(--c-rose-2), inset 0 -1px 0 var(--c-panel), 0 0 18px rgba(154,106,170,0.10)'
-      : 'none',
+    transition: 'background 120ms ease, color 120ms ease',
+  });
+
+  // ── Console tab button style ──────────────
+  const consoleTabBtn = (active: boolean): React.CSSProperties => ({
+    position: 'relative', display: 'flex', alignItems: 'center', gap: 5,
+    height: '100%', padding: '0 12px', flexShrink: 0,
+    cursor: 'pointer', border: 'none', outline: 'none',
+    background: 'transparent',
+    color: active ? '#fff' : 'var(--v-text-muted)',
+    fontSize: '0.60rem', fontWeight: active ? 600 : 500,
+    fontFamily: 'Inter, system-ui, sans-serif',
+    letterSpacing: '0.07em', textTransform: 'uppercase',
+    transition: 'color 120ms ease',
   });
 
   return (
@@ -419,22 +427,22 @@ export default function Dashboard() {
                   onClick={() => { switchMainTab(tab.id); if (tab.session) setSelectedSession(tab.session); else setSelectedSession(null); }}
                   className="tab-sep"
                   style={tabBtn(active)}
-                  onMouseEnter={(e) => { if (!active) (e.currentTarget as HTMLElement).style.background = 'rgba(255,255,255,0.04)'; (e.currentTarget as HTMLElement).style.color = 'var(--c-text-2)'; }}
-                  onMouseLeave={(e) => { if (!active) { (e.currentTarget as HTMLElement).style.background = 'transparent'; (e.currentTarget as HTMLElement).style.color = 'var(--c-text-3)'; } }}
+                  onMouseEnter={(e) => { if (!active) { (e.currentTarget as HTMLElement).style.background = 'var(--v-hover)'; (e.currentTarget as HTMLElement).style.color = '#fff'; }}}
+                  onMouseLeave={(e) => { if (!active) { (e.currentTarget as HTMLElement).style.background = 'transparent'; (e.currentTarget as HTMLElement).style.color = 'var(--v-text-muted)'; }}}
                 >
-                  {tab.id === 'map'      && <span style={{ color: active ? 'var(--c-rose-2)' : 'var(--c-text-3)', display: 'flex' }}><MapPin size={11} /></span>}
-                  {tab.id === 'sentinel' && <span style={{ color: active ? 'var(--c-rose-2)' : 'var(--c-text-3)', display: 'flex' }}><Video  size={11} /></span>}
-                  {tab.isDirty && <span style={{ width: 5, height: 5, borderRadius: '50%', background: 'var(--c-yellow)', flexShrink: 0, marginLeft: -2 }} />}
+                  {tab.id === 'map'      && <span style={{ color: active ? 'var(--v-accent)' : 'var(--v-text-muted)', display: 'flex' }}><MapPin size={11} /></span>}
+                  {tab.id === 'sentinel' && <span style={{ color: active ? 'var(--v-accent)' : 'var(--v-text-muted)', display: 'flex' }}><Video  size={11} /></span>}
+                  {tab.isDirty && <span style={{ width: 5, height: 5, borderRadius: '50%', background: 'var(--v-warning)', flexShrink: 0, marginLeft: -2 }} />}
                   <span style={{ overflow: 'hidden', textOverflow: 'ellipsis', whiteSpace: 'nowrap', maxWidth: 120 }}>{tab.label}</span>
                   {closeable && (
                     <span onClick={(e) => closeTab(tab.id, e)} style={{
                       display: 'flex', alignItems: 'center', justifyContent: 'center',
-                      width: 15, height: 15, marginLeft: 1, color: 'var(--c-text-3)',
+                      width: 15, height: 15, marginLeft: 1, color: 'var(--v-text-muted)',
                       cursor: 'pointer', borderRadius: 3, flexShrink: 0,
-                      transition: 'background var(--dur-fast), color var(--dur-fast)',
+                      transition: 'background 120ms ease, color 120ms ease',
                     }}
-                    onMouseEnter={(e) => { (e.currentTarget as HTMLElement).style.background = 'var(--c-hover-md)'; (e.currentTarget as HTMLElement).style.color = 'var(--c-text)'; }}
-                    onMouseLeave={(e) => { (e.currentTarget as HTMLElement).style.background = 'transparent'; (e.currentTarget as HTMLElement).style.color = 'var(--c-text-3)'; }}
+                    onMouseEnter={(e) => { (e.currentTarget as HTMLElement).style.background = 'var(--v-hover)'; (e.currentTarget as HTMLElement).style.color = '#fff'; }}
+                    onMouseLeave={(e) => { (e.currentTarget as HTMLElement).style.background = 'transparent'; (e.currentTarget as HTMLElement).style.color = 'var(--v-text-muted)'; }}
                     >
                       <X size={9} />
                     </span>
@@ -472,9 +480,9 @@ export default function Dashboard() {
                 <div style={{
                   width: 48, height: 48, borderRadius: 12,
                   background: 'var(--c-sidebar)',
-                  border: '1px solid var(--c-border-md)',
+                  border: '1px solid rgba(154,106,170,0.25)',
                   display: 'flex', alignItems: 'center', justifyContent: 'center',
-                  boxShadow: '0 4px 16px rgba(0,0,0,0.3), inset 0 1px 0 rgba(255,255,255,0.04)',
+                  boxShadow: '0 4px 16px rgba(0,0,0,0.3), inset 0 1px 0 rgba(255,255,255,0.04), 0 0 0 1px rgba(92,143,248,0.08)',
                 }}>
                   <MapPin size={20} style={{ color: 'var(--c-text-3)' }} />
                 </div>
@@ -500,7 +508,7 @@ export default function Dashboard() {
                 <div style={{
                   display: 'flex', alignItems: 'center', gap: 6, marginTop: 4,
                   padding: '5px 10px', borderRadius: 4,
-                  background: 'var(--c-sidebar)', border: '1px solid var(--c-border)',
+                  background: 'var(--c-sidebar)', border: '1px solid rgba(154,106,170,0.2)',
                 }}>
                   <span style={{ fontSize: '0.65rem', color: 'var(--c-text-3)', fontFamily: "'IBM Plex Sans', sans-serif" }}>
                     Press
@@ -508,7 +516,7 @@ export default function Dashboard() {
                   <kbd style={{
                     fontSize: '0.60rem', fontFamily: "'IBM Plex Mono', monospace",
                     color: 'var(--c-text-2)', background: 'var(--c-elevated)',
-                    border: '1px solid var(--c-border-md)', borderRadius: 3,
+                    border: '1px solid rgba(92,143,248,0.2)', borderRadius: 3,
                     padding: '1px 6px',
                   }}>⌘K</kbd>
                   <span style={{ fontSize: '0.65rem', color: 'var(--c-text-3)', fontFamily: "'IBM Plex Sans', sans-serif" }}>
@@ -590,48 +598,26 @@ export default function Dashboard() {
           {sidebarActivity !== 'network' && sidebarActivity !== 'maintenance' && (
           <div style={{ display: 'flex', flexDirection: 'column', flexShrink: 0, height: consoleHeight, position: 'relative' }}>
 
-            {/* Gradient top border + resize handle in one strip */}
+            {/* Resize handle — 4px strip, hover → indigo */}
             <div
-              className="drag-handle-y"
+              className="console-resize-handle"
               onMouseDown={onResizeDown}
-              style={{
-                height: 6, flexShrink: 0,
-                background: 'var(--c-sidebar)',
-                cursor: 'ns-resize',
-                position: 'relative',
-                display: 'flex', alignItems: 'center', justifyContent: 'center',
-              }}
-            >
-              <div className="drag-pip" style={{
-                width: 28, height: 2, borderRadius: 2,
-                background: 'var(--c-border-md)',
-                transition: 'background var(--dur-fast), width var(--dur-fast)',
-              }} />
-            </div>
+            />
 
             {/* Console Tab Bar */}
-            <div className="tab-bar" style={{
-              display: 'flex', alignItems: 'stretch', height: 32, flexShrink: 0,
+            <div className="console-tab-bar" style={{
+              display: 'flex', alignItems: 'stretch', height: 36,
             }}>
               {consoleTabs.map((tab) => {
                 const active = activeConsoleTab === tab.id;
                 return (
                   <button key={tab.id} onClick={() => switchConsoleTab(tab.id)}
                     className="tab-sep"
-                    style={{
-                      ...tabBtn(active),
-                      fontSize: '0.60rem',
-                      letterSpacing: '0.07em',
-                      textTransform: 'uppercase',
-                      fontWeight: active ? 600 : 500,
-                      gap: 5,
-                      minWidth: 'auto',
-                      padding: '0 12px',
-                    }}
-                    onMouseEnter={(e) => { if (!active) { (e.currentTarget as HTMLElement).style.background = 'var(--c-hover)'; (e.currentTarget as HTMLElement).style.color = 'var(--c-text-2)'; }}}
-                    onMouseLeave={(e) => { if (!active) { (e.currentTarget as HTMLElement).style.background = 'transparent'; (e.currentTarget as HTMLElement).style.color = 'var(--c-text-3)'; }}}
+                    style={consoleTabBtn(active)}
+                    onMouseEnter={(e) => { if (!active) (e.currentTarget as HTMLElement).style.color = 'var(--v-text-secondary)'; }}
+                    onMouseLeave={(e) => { if (!active) (e.currentTarget as HTMLElement).style.color = 'var(--v-text-muted)'; }}
                   >
-                    <span style={{ color: active ? 'var(--c-rose)' : 'var(--c-text-3)', display: 'flex' }}>{tab.icon}</span>
+                    <span style={{ color: active ? 'var(--v-accent)' : 'var(--v-text-muted)', display: 'flex' }}>{tab.icon}</span>
                     {tab.label}
                     {active && <span className="tab-line" />}
                   </button>
@@ -640,8 +626,8 @@ export default function Dashboard() {
               <div style={{ flex: 1 }} />
             </div>
 
-            {/* Console content — crossfade */}
-            <div key={consoleTabKey} className="panel-fade" style={{ flex: 1, overflowY: 'auto', padding: '10px 14px', background: 'var(--c-deep)' }}>
+            {/* Console content — crossfade + scanline texture */}
+            <div key={consoleTabKey} className="panel-fade console-content" style={{ flex: 1, padding: '10px 14px' }}>
               {activeConsoleTab === 'traces'  && <ReasoningTraceViewer />}
               {activeConsoleTab === 'ledger'  && <LedgerTicker />}
               {activeConsoleTab === 'console' && <ConsoleViewer />}

@@ -38,7 +38,7 @@ const C = {
   yellow:   'var(--c-yellow)',
 };
 
-const FONT = "'IBM Plex Mono', monospace";
+const FONT = 'var(--v-font-mono)';
 
 // ─────────────────────────────────────────────
 // Simple Geohash Encoder (7 chars precision)
@@ -544,15 +544,14 @@ export function VideoUploader() {
       </div>
 
       {/* ── Upload section ────────────────── */}
-      <div style={{
+      <div className="gb-card" style={{
         background: C.panel,
-        border: `1px solid ${C.border}`,
         borderRadius: 3,
         overflow: 'hidden',
       }}>
-        <div style={{
+        <div className="vigia-panel-header" style={{
           padding: '6px 12px',
-          borderBottom: `1px solid ${C.border}`,
+          borderBottom: 'none',
           background: C.elevated,
           display: 'flex', alignItems: 'center', gap: 6,
         }}>
@@ -599,17 +598,16 @@ export function VideoUploader() {
       {/* ── Video + detection ─────────────── */}
       {videoFile && (
         <>
-          <div style={{
+          <div className="gb-card" style={{
             background: C.panel,
-            border: `1px solid ${C.border}`,
             borderRadius: 3,
             overflow: 'hidden',
           }}>
             {/* Video toolbar */}
-            <div style={{
+            <div className="vigia-panel-header" style={{
               display: 'flex', alignItems: 'center', gap: 8,
               padding: '6px 12px',
-              borderBottom: `1px solid ${C.border}`,
+              borderBottom: 'none',
               background: C.elevated,
             }}>
               <Film size={10} style={{ color: C.textMut }} />

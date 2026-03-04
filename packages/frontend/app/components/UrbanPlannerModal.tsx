@@ -14,7 +14,7 @@ const C = {
   overlay: 'rgba(0, 0, 0, 0.7)',
 };
 
-const MONO = "'IBM Plex Mono', monospace";
+const MONO = 'var(--v-font-mono)';
 
 interface UrbanPlannerModalProps {
   onClose: () => void;
@@ -80,7 +80,7 @@ export function UrbanPlannerModal({ onClose }: UrbanPlannerModalProps) {
     }}>
       <div style={{
         background: C.bg,
-        border: `1px solid ${C.border}`,
+        border: `1px solid var(--v-rose-border)`,
         borderRadius: 8,
         width: '90%',
         maxWidth: 700,
@@ -90,9 +90,9 @@ export function UrbanPlannerModal({ onClose }: UrbanPlannerModalProps) {
         overflow: 'hidden',
       }}>
         {/* Header */}
-        <div style={{
+        <div className="vigia-panel-header" style={{
           padding: '16px 20px',
-          borderBottom: `1px solid ${C.border}`,
+          borderBottom: 'none',
           display: 'flex',
           alignItems: 'center',
           justifyContent: 'space-between',
@@ -143,7 +143,7 @@ export function UrbanPlannerModal({ onClose }: UrbanPlannerModalProps) {
                     flex: 1,
                     padding: '10px 12px',
                     background: C.panel,
-                    border: `1px solid ${C.border}`,
+                    border: `1px solid var(--v-border-default)`,
                     borderRadius: 4,
                     color: C.text,
                     fontSize: '0.85rem',
@@ -160,7 +160,7 @@ export function UrbanPlannerModal({ onClose }: UrbanPlannerModalProps) {
                     flex: 1,
                     padding: '10px 12px',
                     background: C.panel,
-                    border: `1px solid ${C.border}`,
+                    border: `1px solid var(--v-border-default)`,
                     borderRadius: 4,
                     color: C.text,
                     fontSize: '0.85rem',
@@ -192,7 +192,7 @@ export function UrbanPlannerModal({ onClose }: UrbanPlannerModalProps) {
                     flex: 1,
                     padding: '10px 12px',
                     background: C.panel,
-                    border: `1px solid ${C.border}`,
+                    border: `1px solid var(--v-border-default)`,
                     borderRadius: 4,
                     color: C.text,
                     fontSize: '0.85rem',
@@ -209,7 +209,7 @@ export function UrbanPlannerModal({ onClose }: UrbanPlannerModalProps) {
                     flex: 1,
                     padding: '10px 12px',
                     background: C.panel,
-                    border: `1px solid ${C.border}`,
+                    border: `1px solid var(--v-border-default)`,
                     borderRadius: 4,
                     color: C.text,
                     fontSize: '0.85rem',
@@ -257,7 +257,7 @@ export function UrbanPlannerModal({ onClose }: UrbanPlannerModalProps) {
               style={{
                 padding: '12px 24px',
                 background: isAnalyzing ? C.panel : C.accent,
-                border: `1px solid ${C.border}`,
+                border: `1px solid color-mix(in srgb, var(--v-accent) 30%, transparent)`,
                 borderRadius: 4,
                 color: C.text,
                 fontSize: '0.9rem',
@@ -291,7 +291,7 @@ export function UrbanPlannerModal({ onClose }: UrbanPlannerModalProps) {
                 borderRadius: 4,
                 fontSize: '0.76rem',
                 color: 'var(--c-red)',
-                fontFamily: "'IBM Plex Sans', sans-serif",
+                fontFamily: "var(--v-font-ui)",
               }}>
                 {error}
               </div>
@@ -301,7 +301,7 @@ export function UrbanPlannerModal({ onClose }: UrbanPlannerModalProps) {
             {analysis && (
               <div style={{
                 background: C.panel,
-                border: `1px solid ${C.border}`,
+                border: `1px solid var(--v-border-default)`,
                 borderRadius: 4,
                 padding: 16,
                 maxHeight: 300,

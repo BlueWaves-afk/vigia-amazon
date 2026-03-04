@@ -381,7 +381,7 @@ export function NewSessionView({ onSessionCreated, onRefreshSessions }: NewSessi
   return (
     <div style={{ display: 'flex', flexDirection: 'column', height: '100%', background: C.bg, padding: 24, gap: 16, overflowY: 'auto' }}>
       <div style={{ display: 'flex', alignItems: 'center', justifyContent: 'space-between' }}>
-        <h2 style={{ fontSize: '1.2rem', fontWeight: 600, color: C.text, fontFamily: "'IBM Plex Sans', sans-serif", margin: 0 }}>
+        <h2 style={{ fontSize: '1.2rem', fontWeight: 600, color: C.text, fontFamily: "var(--v-font-ui)", margin: 0 }}>
           Create New Session
         </h2>
       </div>
@@ -393,7 +393,7 @@ export function NewSessionView({ onSessionCreated, onRefreshSessions }: NewSessi
           value={locationSearch}
           onChange={(e) => setLocationSearch(e.target.value)}
           placeholder="Search for a location..."
-          style={{ flex: 1, border: 'none', background: 'transparent', outline: 'none', fontSize: '0.9rem', fontFamily: "'IBM Plex Sans', sans-serif", color: C.text }}
+          style={{ flex: 1, border: 'none', background: 'transparent', outline: 'none', fontSize: '0.9rem', fontFamily: "var(--v-font-ui)", color: C.text }}
         />
       </div>
 
@@ -418,13 +418,13 @@ export function NewSessionView({ onSessionCreated, onRefreshSessions }: NewSessi
             <button
               onClick={startDrawing}
               disabled={drawMode}
-              style={{ padding: '8px 16px', background: drawMode ? C.panel : C.accent, color: drawMode ? C.textMut : '#FFF', border: `1px solid ${C.border}`, borderRadius: 4, cursor: drawMode ? 'not-allowed' : 'pointer', fontSize: '0.85rem', fontFamily: "'IBM Plex Sans', sans-serif", display: 'flex', alignItems: 'center', gap: 6 }}
+              style={{ padding: '8px 16px', background: drawMode ? C.panel : C.accent, color: drawMode ? C.textMut : '#FFF', border: `1px solid ${C.border}`, borderRadius: 4, cursor: drawMode ? 'not-allowed' : 'pointer', fontSize: '0.85rem', fontFamily: "var(--v-font-ui)", display: 'flex', alignItems: 'center', gap: 6 }}
             >
               <Square size={14} />
               {drawMode ? 'Drawing... (drag on map)' : 'Draw Coverage Area'}
             </button>
             {boundingBox && (
-              <button onClick={clearBoundingBox} style={{ padding: '8px 16px', background: C.panel, color: C.text, border: `1px solid ${C.border}`, borderRadius: 4, cursor: 'pointer', fontSize: '0.85rem', fontFamily: "'IBM Plex Sans', sans-serif", display: 'flex', alignItems: 'center', gap: 6 }}>
+              <button onClick={clearBoundingBox} style={{ padding: '8px 16px', background: C.panel, color: C.text, border: `1px solid ${C.border}`, borderRadius: 4, cursor: 'pointer', fontSize: '0.85rem', fontFamily: "var(--v-font-ui)", display: 'flex', alignItems: 'center', gap: 6 }}>
                 <X size={14} />
                 Clear
               </button>
@@ -441,7 +441,7 @@ export function NewSessionView({ onSessionCreated, onRefreshSessions }: NewSessi
               </div>
               <div style={{ marginTop: 12 }}>
                 <label style={{ fontSize: '0.75rem', color: C.textSec, display: 'block', marginBottom: 4 }}>Coverage Type</label>
-                <select value={coverageType} onChange={(e) => setCoverageType(e.target.value as any)} style={{ width: '100%', padding: '6px 10px', border: `1px solid ${C.border}`, borderRadius: 4, fontSize: '0.85rem', fontFamily: "'IBM Plex Sans', sans-serif" }}>
+                <select value={coverageType} onChange={(e) => setCoverageType(e.target.value as any)} style={{ width: '100%', padding: '6px 10px', border: `1px solid ${C.border}`, borderRadius: 4, fontSize: '0.85rem', fontFamily: "var(--v-font-ui)" }}>
                   <option value="city">City</option>
                   <option value="region">Region</option>
                   <option value="neighborhood">Neighborhood</option>
@@ -456,7 +456,7 @@ export function NewSessionView({ onSessionCreated, onRefreshSessions }: NewSessi
           <button
             onClick={createSession}
             disabled={!boundingBox || isCreating}
-            style={{ padding: '12px 24px', background: (!boundingBox || isCreating) ? C.panel : C.accent, color: (!boundingBox || isCreating) ? C.textMut : '#FFF', border: `1px solid ${C.border}`, borderRadius: 4, cursor: (!boundingBox || isCreating) ? 'not-allowed' : 'pointer', fontSize: '0.9rem', fontWeight: 600, fontFamily: "'IBM Plex Sans', sans-serif" }}
+            style={{ padding: '12px 24px', background: (!boundingBox || isCreating) ? C.panel : C.accent, color: (!boundingBox || isCreating) ? C.textMut : '#FFF', border: `1px solid ${C.border}`, borderRadius: 4, cursor: (!boundingBox || isCreating) ? 'not-allowed' : 'pointer', fontSize: '0.9rem', fontWeight: 600, fontFamily: "var(--v-font-ui)" }}
           >
             {isCreating ? 'Creating...' : 'Create Session'}
           </button>

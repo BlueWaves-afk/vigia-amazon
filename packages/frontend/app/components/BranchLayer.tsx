@@ -109,11 +109,11 @@ export function BranchLayer({ map }: { map: maplibregl.Map | null }) {
         border: '1px solid var(--c-border-md)',
         borderRadius: 6, padding: 12,
         boxShadow: 'var(--shadow-md)',
-        fontFamily: "'IBM Plex Sans', sans-serif",
+        fontFamily: "var(--v-font-ui)",
         minWidth: 180,
       }}>
         <div style={{ fontSize: '0.72rem', fontWeight: 600, marginBottom: 8, display: 'flex', alignItems: 'center', gap: 6, color: 'var(--c-text)' }}>
-          <span style={{ fontSize: '0.65rem', color: 'var(--c-green)', fontFamily: "'IBM Plex Mono', monospace" }}>⎇</span>
+          <span style={{ fontSize: '0.65rem', color: 'var(--c-green)', fontFamily: "var(--v-font-mono)" }}>⎇</span>
           <span>Branch: {activeBranch.branchName}</span>
         </div>
         <div style={{ fontSize: '0.70rem', color: 'var(--c-text-2)', display: 'flex', flexDirection: 'column', gap: 3, marginBottom: 8 }}>
@@ -130,7 +130,7 @@ export function BranchLayer({ map }: { map: maplibregl.Map | null }) {
             borderRadius: 4, cursor: isComputing ? 'not-allowed' : 'pointer',
             color: isComputing ? 'var(--c-text-3)' : 'var(--c-accent-2)',
             opacity: isComputing ? 0.6 : 1,
-            fontFamily: "'IBM Plex Sans', sans-serif",
+            fontFamily: "var(--v-font-ui)",
             transition: 'background var(--dur-fast)',
           }}
         >
@@ -145,17 +145,17 @@ export function BranchLayer({ map }: { map: maplibregl.Map | null }) {
           border: '1px solid var(--c-border-md)',
           borderRadius: 6, padding: 12,
           boxShadow: 'var(--shadow-md)',
-          fontFamily: "'IBM Plex Sans', sans-serif",
+          fontFamily: "var(--v-font-ui)",
           minWidth: 180,
         }}>
           <div style={{ fontSize: '0.60rem', fontWeight: 600, letterSpacing: '0.1em', textTransform: 'uppercase', color: 'var(--c-text-3)', marginBottom: 8 }}>Latency Comparison</div>
           <div style={{ fontSize: '0.72rem', color: 'var(--c-text-2)', display: 'flex', flexDirection: 'column', gap: 4 }}>
-            <div>Baseline: <span style={{ color: 'var(--c-text)', fontFamily: "'IBM Plex Mono', monospace" }}>{routingResults.baselineAvgLatency.toFixed(1)}s</span></div>
-            <div>Branch: <span style={{ color: 'var(--c-text)', fontFamily: "'IBM Plex Mono', monospace" }}>{routingResults.branchAvgLatency.toFixed(1)}s</span></div>
+            <div>Baseline: <span style={{ color: 'var(--c-text)', fontFamily: "var(--v-font-mono)" }}>{routingResults.baselineAvgLatency.toFixed(1)}s</span></div>
+            <div>Branch: <span style={{ color: 'var(--c-text)', fontFamily: "var(--v-font-mono)" }}>{routingResults.branchAvgLatency.toFixed(1)}s</span></div>
             <div style={{ marginTop: 2 }}>
               Delta:{' '}
               <span style={{
-                fontFamily: "'IBM Plex Mono', monospace", fontWeight: 600,
+                fontFamily: "var(--v-font-mono)", fontWeight: 600,
                 color: routingResults.branchAvgLatency > routingResults.baselineAvgLatency ? 'var(--c-red)' : 'var(--c-green)',
               }}>
                 {routingResults.branchAvgLatency > routingResults.baselineAvgLatency ? '+' : ''}

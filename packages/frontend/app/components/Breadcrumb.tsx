@@ -4,11 +4,11 @@ import { ChevronRight, Globe } from 'lucide-react';
 
 export function Breadcrumb({ path }: { path: string[] }) {
   return (
-    <div style={{
+    <div className="vigia-panel-header" style={{
       display: 'flex', alignItems: 'center', height: 25,
       padding: '0 12px', flexShrink: 0, userSelect: 'none',
       background: 'var(--c-sidebar)',
-      borderBottom: '1px solid var(--c-border)',
+      borderBottom: 'none',
       gap: 2,
     }}>
       <Globe size={9} style={{ color: 'var(--c-text-3)', marginRight: 5, flexShrink: 0 }} />
@@ -16,7 +16,7 @@ export function Breadcrumb({ path }: { path: string[] }) {
         <span key={`${seg}-${i}`} style={{ display: 'flex', alignItems: 'center', gap: 2 }}>
           <span style={{
             fontSize: '0.65rem',
-            fontFamily: "'IBM Plex Sans', system-ui, sans-serif",
+            fontFamily: "var(--v-font-ui)",
             color: i === arr.length - 1 ? 'var(--c-text-2)' : 'var(--c-text-3)',
             fontWeight: i === arr.length - 1 ? 500 : 400,
             cursor: i < arr.length - 1 ? 'pointer' : 'default',

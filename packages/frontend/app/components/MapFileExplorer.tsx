@@ -4,8 +4,8 @@ import { useEffect, useState } from 'react';
 import { useMapFileStore } from '@/stores/mapFileStore';
 import type { MapFile, ScenarioBranch } from '@/types/shared';
 
-const FONT_UI   = "'IBM Plex Sans', system-ui, sans-serif";
-const FONT_MONO = "'IBM Plex Mono', monospace";
+const FONT_UI = 'var(--v-font-ui)';
+const FONT_MONO = 'var(--v-font-mono)';
 
 export function MapFileExplorer() {
   const { files, activeFileId, setActiveFile, loadFiles, loadFile, createBranch, computeDiff } = useMapFileStore();

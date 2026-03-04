@@ -7,18 +7,14 @@ interface TopBarProps {
   onCommandOpen?:  () => void;
 }
 
-const FONT_UI   = "'IBM Plex Sans', system-ui, sans-serif";
-const FONT_MONO = "'IBM Plex Mono', monospace";
-
 export function TopBar({ onSettingsOpen, onCommandOpen }: TopBarProps) {
   return (
     <header
       className="vigia-topbar"
       style={{
         display: 'flex', alignItems: 'center',
-        height: 36, flexShrink: 0, position: 'relative',
-        background: 'var(--c-deep)',
-        boxShadow: '0 1px 0 rgba(255,255,255,0.02)',
+        height: 40, flexShrink: 0, position: 'relative',
+        background: 'var(--v-topbar-bg)',
         userSelect: 'none',
       }}
     >
@@ -27,122 +23,150 @@ export function TopBar({ onSettingsOpen, onCommandOpen }: TopBarProps) {
       <div style={{ display: 'flex', alignItems: 'center', height: '100%' }}>
 
         {/* Logo lockup */}
-        <div style={{
-          display: 'flex', alignItems: 'center', gap: 9,
-          padding: '0 18px', height: '100%',
-          borderRight: '1px solid var(--c-border)',
-          position: 'relative',
-        }}>
-          {/* Rose accent line */}
+        <div
+          className="vigia-topbar-divider"
+          style={{ display: 'flex', alignItems: 'center', gap: 9, padding: '0 18px', height: '100%', position: 'relative' }}
+        >
+          {/* Indigo/violet left accent bar */}
           <div style={{
             position: 'absolute', left: 0, top: '18%', bottom: '18%', width: 2,
-            background: 'linear-gradient(180deg, transparent, var(--c-rose) 50%, transparent)',
-            borderRadius: 1, opacity: 0.65,
+            background: 'linear-gradient(180deg, transparent, var(--v-accent) 50%, transparent)',
+            borderRadius: 1, opacity: 0.8,
           }} />
 
           {/* eslint-disable-next-line @next/next/no-img-element */}
           <img src="/logo.svg" alt="VIGIA" width={18} height={18} style={{ display: 'block', flexShrink: 0 }} />
 
+          {/* VIGIA wordmark — indigo→violet gradient */}
           <span style={{
-            fontSize: '0.80rem', fontWeight: 700,
-            color: 'var(--c-text)', letterSpacing: '-0.03em',
-            fontFamily: FONT_UI,
+            fontSize: '0.82rem', fontWeight: 700,
+            letterSpacing: '-0.03em',
+            fontFamily: 'var(--v-font-ui)',
+            background: 'linear-gradient(90deg, var(--v-accent) 0%, var(--v-accent-hover) 55%, var(--v-rose) 100%)',
+            WebkitBackgroundClip: 'text',
+            WebkitTextFillColor: 'transparent',
+            backgroundClip: 'text',
           }}>
             VIGIA
           </span>
+
+          {/* Version badge */}
           <span style={{
-            fontSize: '0.58rem', color: 'var(--c-text-3)',
-            fontFamily: FONT_MONO, letterSpacing: '0.04em',
+            fontSize: '0.56rem', fontFamily: 'var(--v-font-mono)',
+            letterSpacing: '0.06em', fontWeight: 500,
+            padding: '1px 6px', borderRadius: 99,
+            background: 'var(--v-accent-muted)',
+            border: '1px solid var(--v-rose-border)',
+            color: 'var(--v-rose)',
           }}>
             v1.0
           </span>
         </div>
 
-        {/* Menu items */}
+        {/* Menu items — pill hover */}
         {['File', 'View', 'Analysis', 'Swarm', 'Ledger', 'Help'].map((item) => (
-          <button key={item} style={{
-            padding: '0 10px', height: '100%', border: 'none',
-            background: 'transparent', color: 'var(--c-text-3)',
-            fontSize: '0.73rem', cursor: 'pointer',
-            fontFamily: FONT_UI,
-            transition: 'background var(--dur-fast), color var(--dur-fast)',
-          }}
-          onMouseEnter={(e) => {
-            (e.currentTarget as HTMLElement).style.background = 'var(--c-hover)';
-            (e.currentTarget as HTMLElement).style.color = 'var(--c-text-2)';
-          }}
-          onMouseLeave={(e) => {
-            (e.currentTarget as HTMLElement).style.background = 'transparent';
-            (e.currentTarget as HTMLElement).style.color = 'var(--c-text-3)';
-          }}>
+          <button
+            key={item}
+            className="vigia-menu-item"
+            style={{
+              padding: '0 11px', height: 28, border: 'none',
+              background: 'transparent',
+              color: 'var(--v-topbar-menu)',
+              fontSize: '0.72rem', cursor: 'pointer',
+              fontFamily: 'var(--v-font-ui)',
+              borderRadius: 'var(--v-radius-sm)',
+              margin: '0 1px',
+              transition: 'background var(--v-transition-fast), color var(--v-transition-fast)',
+            }}
+            onMouseEnter={(e) => {
+              const el = e.currentTarget as HTMLElement;
+              el.style.background = 'var(--v-topbar-menu-hover)';
+              el.style.color = 'var(--v-topbar-menu-active)';
+            }}
+            onMouseLeave={(e) => {
+              const el = e.currentTarget as HTMLElement;
+              el.style.background = 'transparent';
+              el.style.color = 'var(--v-topbar-menu)';
+            }}
+          >
             {item}
           </button>
         ))}
       </div>
 
-      {/* ── Center: ⌘K search pill ─────────── */}
+      {/* ── Center: ⌘K search bar ─────────── */}
       <div style={{ position: 'absolute', left: '50%', transform: 'translateX(-50%)' }}>
         <button
           onClick={onCommandOpen}
-          className="btn-lift"
           style={{
             display: 'flex', alignItems: 'center', gap: 8,
-            padding: '4px 12px', borderRadius: 6,
-            background: 'var(--c-input)',
-            border: '1px solid var(--c-border)',
-            color: 'var(--c-text-3)',
+            padding: '5px 14px', borderRadius: 'var(--v-radius-md)',
+            background: 'var(--v-topbar-search-bg)',
+            border: '1px solid var(--v-topbar-search-border)',
+            color: 'var(--v-topbar-search-text)',
             cursor: 'pointer',
-            minWidth: 210,
-            boxShadow: 'inset 0 1px 0 rgba(255,255,255,0.02)',
+            minWidth: 260,
+            transition: 'border-color var(--v-transition-fast), box-shadow var(--v-transition-fast)',
           }}
           onMouseEnter={(e) => {
-            (e.currentTarget as HTMLElement).style.borderColor = 'var(--c-rose-border)';
-            (e.currentTarget as HTMLElement).style.boxShadow = '0 0 0 2px var(--c-rose-dim), inset 0 1px 0 rgba(255,255,255,0.02)';
+            const el = e.currentTarget as HTMLElement;
+            el.style.borderColor = 'var(--v-accent-hover)';
+            el.style.boxShadow = '0 0 0 3px var(--v-accent-muted)';
           }}
           onMouseLeave={(e) => {
-            (e.currentTarget as HTMLElement).style.borderColor = 'var(--c-border)';
-            (e.currentTarget as HTMLElement).style.boxShadow = 'inset 0 1px 0 rgba(255,255,255,0.02)';
+            const el = e.currentTarget as HTMLElement;
+            el.style.borderColor = 'var(--v-topbar-search-border)';
+            el.style.boxShadow = 'none';
           }}
         >
-          <Search size={11} style={{ color: 'var(--c-text-3)', flexShrink: 0 }} />
-          <span style={{ fontSize: '0.71rem', flex: 1, textAlign: 'left', fontFamily: FONT_UI }}>
+          <Search size={11} style={{ flexShrink: 0, opacity: 0.55 }} />
+          <span style={{ fontSize: '0.70rem', flex: 1, textAlign: 'left', fontFamily: 'var(--v-font-ui)', opacity: 0.65 }}>
             Search commands…
           </span>
+          {/* ⌘K badge */}
           <div style={{
             display: 'flex', alignItems: 'center', gap: 2,
-            background: 'var(--c-panel)', border: '1px solid var(--c-border)',
-            borderRadius: 3, padding: '1px 5px', flexShrink: 0,
+            background: 'var(--v-accent-muted)',
+            border: '1px solid var(--v-rose-border)',
+            borderRadius: 'var(--v-radius-sm)', padding: '1px 5px', flexShrink: 0,
           }}>
-            <Command size={9} style={{ color: 'var(--c-rose)' }} />
-            <span style={{ fontSize: '0.58rem', color: 'var(--c-text-3)', fontFamily: FONT_MONO }}>K</span>
+            <Command size={9} style={{ color: 'var(--v-rose)', opacity: 0.8 }} />
+            <span style={{ fontSize: '0.57rem', fontFamily: 'var(--v-font-mono)', color: 'var(--v-rose)', opacity: 0.8 }}>K</span>
           </div>
         </button>
       </div>
 
       {/* ── Right ─────────────────────────── */}
-      <div style={{ display: 'flex', alignItems: 'center', height: '100%', marginLeft: 'auto' }}>
+      <div style={{ display: 'flex', alignItems: 'center', gap: 6, height: '100%', marginLeft: 'auto', paddingRight: 8 }}>
 
-        {/* Hazards pill */}
+        {/* Hazards chip — warning/amber */}
         <div style={{
           display: 'flex', alignItems: 'center', gap: 5,
-          padding: '0 12px', height: '100%',
-          borderLeft: '1px solid var(--c-border)',
-          borderRight: '1px solid var(--c-border)',
+          padding: '3px 10px', borderRadius: 'var(--v-radius-md)',
+          background: 'var(--v-warning-dim)',
+          border: '1px solid color-mix(in srgb, var(--v-warning) 35%, transparent)',
         }}>
-          <AlertTriangle size={11} style={{ color: 'var(--c-yellow)' }} />
-          <span style={{ fontSize: '0.63rem', color: 'var(--c-text-3)', fontFamily: FONT_UI }}>
+          <AlertTriangle size={10} style={{ color: 'var(--v-warning)', flexShrink: 0 }} />
+          <span style={{
+            fontSize: '0.63rem', fontWeight: 600, letterSpacing: '0.01em',
+            fontFamily: 'var(--v-font-mono)', color: 'var(--v-warning)',
+          }}>
             7 hazards
           </span>
         </div>
 
-        {/* Nodes pill */}
+        {/* Nodes chip — accent/blue */}
         <div style={{
           display: 'flex', alignItems: 'center', gap: 5,
-          padding: '0 12px', height: '100%',
-          borderRight: '1px solid var(--c-border)',
+          padding: '3px 10px', borderRadius: 'var(--v-radius-md)',
+          background: 'var(--v-accent-muted)',
+          border: '1px solid color-mix(in srgb, var(--v-accent) 35%, transparent)',
         }}>
-          <Activity size={11} style={{ color: 'var(--c-text-3)' }} />
-          <span style={{ fontSize: '0.63rem', color: 'var(--c-text-3)', fontFamily: FONT_MONO }}>
+          <Activity size={10} style={{ color: 'var(--v-accent-hover)', flexShrink: 0 }} />
+          <span style={{
+            fontSize: '0.63rem', fontWeight: 600, letterSpacing: '0.01em',
+            fontFamily: 'var(--v-font-mono)', color: 'var(--v-accent-hover)',
+          }}>
             48 nodes
           </span>
         </div>
@@ -151,21 +175,24 @@ export function TopBar({ onSettingsOpen, onCommandOpen }: TopBarProps) {
         <button
           onClick={onSettingsOpen}
           title="Settings (⌘,)"
-          className="icon-hover"
           style={{
             display: 'flex', alignItems: 'center', justifyContent: 'center',
-            width: 40, height: '100%', border: 'none',
-            background: 'transparent', color: 'var(--c-text-3)',
+            width: 30, height: 30, border: 'none', borderRadius: 'var(--v-radius-sm)',
+            background: 'transparent',
+            color: 'var(--v-topbar-menu)',
             cursor: 'pointer',
-            transition: 'background var(--dur-fast), color var(--dur-fast)',
+            transition: 'background var(--v-transition-fast), color var(--v-transition-fast)',
+            flexShrink: 0,
           }}
           onMouseEnter={(e) => {
-            (e.currentTarget as HTMLElement).style.background = 'var(--c-hover)';
-            (e.currentTarget as HTMLElement).style.color = 'var(--c-rose-2)';
+            const el = e.currentTarget as HTMLElement;
+            el.style.background = 'var(--v-topbar-menu-hover)';
+            el.style.color = 'var(--v-topbar-menu-active)';
           }}
           onMouseLeave={(e) => {
-            (e.currentTarget as HTMLElement).style.background = 'transparent';
-            (e.currentTarget as HTMLElement).style.color = 'var(--c-text-3)';
+            const el = e.currentTarget as HTMLElement;
+            el.style.background = 'transparent';
+            el.style.color = 'var(--v-topbar-menu)';
           }}
         >
           <Settings size={14} />

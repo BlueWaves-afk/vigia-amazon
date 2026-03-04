@@ -109,7 +109,7 @@ export function DetectionModeView() {
           width: 2, 
           height: 32, 
           borderRadius: 1, 
-          background: C.border,
+          background: 'rgba(154,106,170,0.3)',
         }} />
       </div>
 
@@ -119,7 +119,7 @@ export function DetectionModeView() {
         height: '100%', 
         display: 'flex',
         flexDirection: 'column',
-        borderRight: `1px solid ${C.border}`,
+        borderRight: `1px solid rgba(154,106,170,0.2)`,
         overflow: 'hidden',
       }}>
         {/* Panel Header */}
@@ -129,14 +129,14 @@ export function DetectionModeView() {
           height: 28,
           padding: '0 12px',
           background: C.panel,
-          borderBottom: `1px solid ${C.border}`,
+          borderBottom: `1px solid rgba(154,106,170,0.18)`,
           flexShrink: 0,
         }}>
           <span style={{ 
             fontSize: '0.7rem', 
             fontWeight: 600, 
             color: C.text,
-            fontFamily: "'IBM Plex Mono', monospace",
+            fontFamily: "var(--v-font-mono)",
             textTransform: 'uppercase',
             letterSpacing: '0.05em',
           }}>
@@ -146,7 +146,7 @@ export function DetectionModeView() {
             marginLeft: 8,
             fontSize: '0.6rem',
             color: C.textMut,
-            fontFamily: "'IBM Plex Mono', monospace",
+            fontFamily: "var(--v-font-mono)",
           }}>
             ONNX v26 · 5 FPS
           </span>
@@ -182,7 +182,7 @@ export function DetectionModeView() {
           width: 2, 
           height: 32, 
           borderRadius: 1, 
-          background: C.border,
+          background: 'rgba(154,106,170,0.3)',
         }} />
       </div>
 
@@ -201,14 +201,14 @@ export function DetectionModeView() {
           height: 28,
           padding: '0 12px',
           background: C.panel,
-          borderBottom: `1px solid ${C.border}`,
+          borderBottom: `1px solid rgba(154,106,170,0.18)`,
           flexShrink: 0,
         }}>
           <span style={{ 
             fontSize: '0.7rem', 
             fontWeight: 600, 
             color: C.text,
-            fontFamily: "'IBM Plex Mono', monospace",
+            fontFamily: "var(--v-font-mono)",
             textTransform: 'uppercase',
             letterSpacing: '0.05em',
           }}>
@@ -218,7 +218,7 @@ export function DetectionModeView() {
             marginLeft: 8,
             fontSize: '0.6rem',
             color: C.textMut,
-            fontFamily: "'IBM Plex Mono', monospace",
+            fontFamily: "var(--v-font-mono)",
           }}>
             Unverified Hazards
           </span>
@@ -229,7 +229,7 @@ export function DetectionModeView() {
             gap: 6,
           }}>
             <span style={{ width: 6, height: 6, borderRadius: '50%', background: 'var(--c-green)', animation: 'pulse 2s infinite' }} />
-            <span style={{ fontSize: '0.6rem', color: 'var(--c-green)', fontFamily: "'IBM Plex Mono', monospace" }}>
+            <span style={{ fontSize: '0.6rem', color: 'var(--c-green)', fontFamily: "var(--v-font-mono)" }}>
               LIVE
             </span>
           </div>
