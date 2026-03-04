@@ -4,39 +4,44 @@ import { useState } from 'react';
 import { AgentTracesTab } from './AgentTracesTab';
 import { DePINLedgerTab } from './DePINLedgerTab';
 
-interface InnovationConsolePanelProps {
-  sessionId: string;
-}
+const FONT_UI = "'IBM Plex Sans', system-ui, sans-serif";
+
+interface InnovationConsolePanelProps { sessionId: string; }
 
 export function InnovationConsolePanel({ sessionId }: InnovationConsolePanelProps) {
   const [activeTab, setActiveTab] = useState<'traces' | 'ledger'>('traces');
 
   return (
-    <div className="h-full flex flex-col bg-[#1E1E1E]">
-      <div className="flex border-b border-[#CBD5E1] bg-[#252526]">
-        <button
-          onClick={() => setActiveTab('traces')}
-          className={`px-4 py-2 text-xs font-medium ${
-            activeTab === 'traces'
-              ? 'text-white border-b-2 border-blue-500'
-              : 'text-gray-400 hover:text-gray-300'
-          }`}
-        >
-          Agent Traces
-        </button>
-        <button
-          onClick={() => setActiveTab('ledger')}
-          className={`px-4 py-2 text-xs font-medium ${
-            activeTab === 'ledger'
-              ? 'text-white border-b-2 border-blue-500'
-              : 'text-gray-400 hover:text-gray-300'
-          }`}
-        >
-          DePIN Ledger
-        </button>
+    <div style={{ height: '100%', display: 'flex', flexDirection: 'column', background: 'var(--c-panel)' }}>
+      {/* Tab bar */}
+      <div style={{
+        display: 'flex', borderBottom: '1px solid var(--c-border)',
+        background: 'var(--c-sidebar)', flexShrink: 0,
+      }}>
+        {(['traces', 'ledger'] as const).map((tab) => {
+          const active = activeTab === tab;
+          return (
+            <button
+              key={tab}
+              onClick={() => setActiveTab(tab)}
+              style={{
+                padding: '0 14px', height: 34, fontSize: '0.72rem', fontWeight: active ? 600 : 400,
+                color: active ? 'var(--c-text)' : 'var(--c-text-2)',
+                background: 'transparent', border: 'none', cursor: 'pointer',
+                borderBottom: active ? '2px solid var(--c-accent-2)' : '2px solid transparent',
+                fontFamily: FONT_UI, transition: 'color var(--dur-fast), border-color var(--dur-fast)',
+                position: 'relative', top: 1,
+              }}
+              onMouseEnter={(e) => { if (!active) (e.currentTarget as HTMLElement).style.color = 'var(--c-text)'; }}
+              onMouseLeave={(e) => { if (!active) (e.currentTarget as HTMLElement).style.color = 'var(--c-text-2)'; }}
+            >
+              {tab === 'traces' ? 'Agent Traces' : 'DePIN Ledger'}
+            </button>
+          );
+        })}
       </div>
 
-      <div className="flex-1 overflow-hidden">
+      <div style={{ flex: 1, overflow: 'hidden' }}>
         {activeTab === 'traces' && <AgentTracesTab />}
         {activeTab === 'ledger' && <DePINLedgerTab sessionId={sessionId} />}
       </div>

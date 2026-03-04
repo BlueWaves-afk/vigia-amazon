@@ -22,9 +22,9 @@ type ReasoningTrace = {
 const TYPE_CONFIG = {
   thought:     { icon: <Brain size={11} />,       color: 'var(--c-rose-2)', bg: 'var(--c-rose-dim)',   border: 'var(--c-rose-border)',  label: 'THOUGHT'  },
   action:      { icon: <Zap size={11} />,          color: 'var(--c-rose-2)', bg: 'var(--c-rose-dim)',   border: 'var(--c-rose-border)',  label: 'ACTION'   },
-  observation: { icon: <Eye size={11} />,           color: '#8B9AB1', bg: 'rgba(139,154,177,0.06)', border: 'rgba(139,154,177,0.22)', label: 'OBS'      },
+  observation: { icon: <Eye size={11} />,           color: 'var(--c-text-2)', bg: 'var(--c-hover)',    border: 'var(--c-border-md)',     label: 'OBS'      },
   decision:    { icon: <CheckCircle size={11} />,   color: 'var(--c-rose-2)', bg: 'var(--c-rose-dim)',   border: 'var(--c-rose-border)',  label: 'DECISION' },
-  normal:      { icon: null,                        color: '#6B7280', bg: 'transparent',             border: 'transparent',           label: ''         },
+  normal:      { icon: null,                        color: 'var(--c-text-2)', bg: 'transparent',         border: 'transparent',           label: ''         },
 } as const;
 
 // ── CSS animations ────────────────────────────

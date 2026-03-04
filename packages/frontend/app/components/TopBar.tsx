@@ -12,14 +12,16 @@ const FONT_MONO = "'IBM Plex Mono', monospace";
 
 export function TopBar({ onSettingsOpen, onCommandOpen }: TopBarProps) {
   return (
-    <header style={{
-      display: 'flex', alignItems: 'center',
-      height: 36, flexShrink: 0, position: 'relative',
-      background: 'var(--c-deep)',
-      borderBottom: '1px solid var(--c-border)',
-      boxShadow: '0 1px 0 rgba(255,255,255,0.02)',
-      userSelect: 'none',
-    }}>
+    <header
+      className="vigia-topbar"
+      style={{
+        display: 'flex', alignItems: 'center',
+        height: 36, flexShrink: 0, position: 'relative',
+        background: 'var(--c-deep)',
+        boxShadow: '0 1px 0 rgba(255,255,255,0.02)',
+        userSelect: 'none',
+      }}
+    >
 
       {/* ── Left ──────────────────────────── */}
       <div style={{ display: 'flex', alignItems: 'center', height: '100%' }}>

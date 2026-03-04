@@ -75,7 +75,7 @@ export function LedgerTicker() {
                   className="py-2 px-3 text-left font-medium uppercase tracking-widest"
                   style={{
                     fontSize: '0.7rem',
-                    color: '#6B7280',
+                    color: 'var(--c-text-3)',
                     letterSpacing: '0.08em',
                     textAlign: i === 4 ? 'right' : 'left',
                   }}
@@ -94,34 +94,35 @@ export function LedgerTicker() {
               onMouseEnter={(e) => (e.currentTarget as HTMLElement).style.background = 'rgba(255,255,255,0.03)'}
               onMouseLeave={(e) => (e.currentTarget as HTMLElement).style.background = ''}
             >
-              <td className="py-2 px-3" style={{ color: '#6B7280' }}>
+              <td className="py-2 px-3" style={{ color: 'var(--c-text-2)' }}>
                 {new Date(entry.timestamp).toLocaleTimeString()}
               </td>
-              <td className="py-2 px-3" style={{ color: '#8B95A1' }}>
+              <td className="py-2 px-3" style={{ color: 'var(--c-text-2)', fontFamily: "'IBM Plex Mono', monospace" }}>
                 {entry.contributorId.substring(0, 8)}
-                <span style={{ color: '#4B5563' }}>…</span>
+                <span style={{ color: 'var(--c-text-3)' }}>…</span>
               </td>
               <td className="py-2 px-3">
                 <span
                   className="px-2 py-1 rounded"
                   style={{
-                    background: 'rgba(239,68,68,0.12)',
-                    color: '#EF4444',
-                    fontSize: '0.72rem',
-                    fontWeight: 500,
+                    background: 'var(--c-red-dim)',
+                    color: 'var(--c-red)',
+                    fontSize: '0.70rem',
+                    fontWeight: 600,
+                    fontFamily: "'IBM Plex Mono', monospace",
                   }}
                 >
                   POTHOLE
                 </span>
               </td>
-              <td className="py-2 px-3" style={{ color: '#6B7280' }}>
+              <td className="py-2 px-3" style={{ color: 'var(--c-text-2)', fontFamily: "'IBM Plex Mono', monospace" }}>
                 {entry.hazardId.substring(0, 7)}
               </td>
               <td className="py-2 px-3 text-right">
-                <span style={{ color: '#10B981', fontWeight: 600 }}>
+                <span style={{ color: 'var(--c-green)', fontWeight: 600, fontFamily: "'IBM Plex Mono', monospace" }}>
                   {entry.credits}
                 </span>
-                <span style={{ color: '#4B5563' }}> $VIGIA</span>
+                <span style={{ color: 'var(--c-text-3)', fontFamily: "'IBM Plex Mono', monospace" }}> $VIGIA</span>
               </td>
             </tr>
           ))}

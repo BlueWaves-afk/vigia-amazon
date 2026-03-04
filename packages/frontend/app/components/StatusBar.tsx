@@ -26,13 +26,15 @@ const M = { fontSize: '0.62rem', fontFamily: FONT_MONO, color: 'var(--c-text-2)'
 
 export function StatusBar() {
   return (
-    <div style={{
-      display: 'flex', alignItems: 'center', justifyContent: 'space-between',
-      height: 24, flexShrink: 0, userSelect: 'none',
-      background: 'var(--c-deep)',
-      borderTop: '1px solid var(--c-border)',
-      boxShadow: 'inset 0 1px 0 rgba(255,255,255,0.02)',
-    }}>
+    <footer
+      className="vigia-statusbar"
+      style={{
+        display: 'flex', alignItems: 'center', justifyContent: 'space-between',
+        height: 24, flexShrink: 0, userSelect: 'none',
+        background: 'var(--c-deep)',
+        boxShadow: 'inset 0 1px 0 rgba(255,255,255,0.02)',
+      }}
+    >
       <div style={{ display: 'flex', alignItems: 'center', height: '100%' }}>
         <StatusItem borderLeft={false} accentBg>
           <User size={10} style={{ color: '#fff' }} />
@@ -65,6 +67,6 @@ export function StatusBar() {
           <span style={{ ...S, color: 'var(--c-text-3)' }}>UTF-8 · GeoJSON</span>
         </StatusItem>
       </div>
-    </div>
+    </footer>
   );
 }

@@ -27,7 +27,7 @@ export function BranchLayer({ map }: { map: maplibregl.Map | null }) {
       if (removedIds.has(hazard.id)) {
         // Render removed hazards with strikethrough style
         const el = document.createElement('div');
-        el.className = 'w-3 h-3 rounded-full bg-gray-400 border-2 border-dashed border-white opacity-50';
+        el.style.cssText = 'width:12px;height:12px;border-radius:50%;background:#7A90AA;border:2px dashed rgba(255,255,255,0.3);opacity:0.5;';
         el.title = `Removed: ${hazard.type}`;
 
         const marker = new maplibregl.Marker({ element: el })
@@ -41,7 +41,7 @@ export function BranchLayer({ map }: { map: maplibregl.Map | null }) {
     // Render added hazards with dashed border
     activeBranch.simulatedChanges.addedHazards.forEach(hazard => {
       const el = document.createElement('div');
-      el.className = 'w-3 h-3 rounded-full bg-blue-500 border-2 border-dashed border-white';
+      el.style.cssText = 'width:12px;height:12px;border-radius:50%;background:#5C8FF8;border:2px dashed rgba(255,255,255,0.4);box-shadow:0 0 6px #5C8FF880;';
       el.title = `Simulated: ${hazard.type} (Severity ${hazard.severity})`;
 
       const marker = new maplibregl.Marker({ element: el })

@@ -192,28 +192,30 @@ function TreeNode({
 
         <span style={{
           flex: 1,
-          fontSize: '0.85rem',
-          color: isActive ? C.text : icon === 'video' ? C.textSec : '#8B9AAE',
+          fontSize: '0.73rem',
+          color: isActive ? C.text : icon === 'folder' ? C.textSec : C.textMut,
           fontWeight: isActive ? 500 : 400,
           overflow: 'hidden',
           textOverflow: 'ellipsis',
           whiteSpace: 'nowrap',
           textAlign: 'left',
-          fontFamily: "'IBM Plex Sans', sans-serif",
+          fontFamily: "'IBM Plex Sans', system-ui, sans-serif",
+          letterSpacing: '-0.005em',
         }}>
           {label}
         </span>
 
         {badge && (
           <span style={{
-            fontSize: '0.7rem',
-            padding: '2px 7px',
-            borderRadius: 4,
-            background: badgeColor ? `${badgeColor}22` : 'rgba(255,255,255,0.06)',
+            fontSize: '0.58rem',
+            padding: '1px 5px',
+            borderRadius: 3,
+            background: badgeColor ? `${badgeColor}1A` : 'rgba(255,255,255,0.06)',
             color: badgeColor ?? C.textMut,
             fontFamily: "'IBM Plex Mono', monospace",
             fontWeight: 600,
             flexShrink: 0,
+            letterSpacing: '0.02em',
           }}>
             {badge}
           </span>
@@ -249,10 +251,10 @@ function StatChip({ label, value, color }: { label: string; value: string; color
       padding: '8px 0',
       flex: 1,
     }}>
-      <span style={{ fontSize: '0.95rem', fontWeight: 600, color, fontFamily: "'IBM Plex Mono', monospace" }}>
+      <span style={{ fontSize: '0.78rem', fontWeight: 600, color, fontFamily: "'IBM Plex Mono', monospace", letterSpacing: '-0.02em' }}>
         {value}
       </span>
-      <span style={{ fontSize: '0.7rem', color: C.textMut, textTransform: 'uppercase', letterSpacing: '0.06em', fontFamily: "'IBM Plex Sans', sans-serif" }}>
+      <span style={{ fontSize: '0.58rem', color: C.textMut, textTransform: 'uppercase', letterSpacing: '0.07em', fontFamily: "'IBM Plex Sans', system-ui, sans-serif" }}>
         {label}
       </span>
     </div>
@@ -747,14 +749,16 @@ export function Sidebar({ onSentinelEyeClick, isSentinelEyeActive, onSettingsOpe
     <div style={{ display: 'flex', flexShrink: 0, height: '100%', position: 'relative' }}>
 
       {/* ── Activity Bar ────────────────────── */}
-      <div style={{
+      <div
+        className="vigia-activity-bar"
+        style={{
         width: 44,
         display: 'flex',
         flexDirection: 'column',
         flexShrink: 0,
         background: C.actBar,
-        borderRight: `1px solid ${C.border}`,
-        boxShadow: '1px 0 0 rgba(255,255,255,0.02)',
+        borderRight: 'none',
+        boxShadow: 'none',
       }}>
         <div style={{ flex: 1, display: 'flex', flexDirection: 'column' }}>
           <ActivityBtn icon={<Globe size={20} />}    active={activeActivity === 'explorer'} label="Geo Explorer" onClick={() => { setActiveActivity('explorer'); onActivityChange?.('explorer'); }} />
@@ -871,9 +875,11 @@ export function Sidebar({ onSentinelEyeClick, isSentinelEyeActive, onSettingsOpe
 
         {/* ── Stats strip ───────────────────── */}
         {!isCollapsed && (
-          <div style={{
+          <div
+            className="vigia-stats-strip"
+            style={{
             display: 'flex',
-            borderBottom: `1px solid ${C.border}`,
+            borderBottom: 'none',
             flexShrink: 0,
           }}>
             <StatChip label="Hazards" value="7"  color={C.red}    />
@@ -1099,7 +1105,7 @@ export function Sidebar({ onSentinelEyeClick, isSentinelEyeActive, onSettingsOpe
                   onMouseLeave={(e) => (e.currentTarget as HTMLElement).style.background = 'transparent'}
                 >
                   <span style={{ color: C.textMut, flexShrink: 0 }}>{icon}</span>
-                  <span style={{ fontSize: '0.73rem', color: C.textSec, flex: 1, textAlign: 'left', fontFamily: "'IBM Plex Sans', sans-serif", overflow: 'hidden', textOverflow: 'ellipsis', whiteSpace: 'nowrap' }}>
+                  <span style={{ fontSize: '0.72rem', color: C.textMut, flex: 1, textAlign: 'left', fontFamily: "'IBM Plex Sans', system-ui, sans-serif", overflow: 'hidden', textOverflow: 'ellipsis', whiteSpace: 'nowrap', letterSpacing: '-0.005em' }}>
                     {label}
                   </span>
                   {badge && (
@@ -1119,9 +1125,11 @@ export function Sidebar({ onSentinelEyeClick, isSentinelEyeActive, onSettingsOpe
 
         {/* Footer */}
         {!isCollapsed && (
-          <div style={{
+          <div
+            className="vigia-sidebar-footer"
+            style={{
             padding: '7px 10px',
-            borderTop: `1px solid ${C.border}`,
+            borderTop: 'none',
             display: 'flex',
             alignItems: 'center',
             gap: 6,
@@ -1147,31 +1155,13 @@ export function Sidebar({ onSentinelEyeClick, isSentinelEyeActive, onSettingsOpe
         }}
         style={{
           width: 5,
-          background: isDragging ? 'var(--c-rose-border)' : 'transparent',
+          background: 'transparent',
           cursor: 'col-resize',
           flexShrink: 0,
-          transition: isDragging ? 'none' : 'background var(--dur-fast)',
           position: 'relative',
           display: width === 0 ? 'none' : 'block',
         }}
-        onMouseEnter={(e) => (e.currentTarget as HTMLElement).style.background = 'var(--c-border-md)'}
-        onMouseLeave={(e) => { if (!isDragging) (e.currentTarget as HTMLElement).style.background = 'transparent'; }}
-      >
-        {/* Visual indicator */}
-        <div style={{
-          position: 'absolute',
-          top: '50%',
-          left: '50%',
-          transform: 'translate(-50%, -50%)',
-          width: 2,
-          height: 32,
-          background: isDragging ? 'var(--c-rose-border)' : 'var(--c-border-md)',
-          borderRadius: 2,
-          pointerEvents: 'none',
-          opacity: isDragging ? 1 : 0.6,
-          transition: 'opacity var(--dur-fast), background var(--dur-fast)',
-        }} />
-      </div>
+      />
 
       {/* Show expand button when collapsed */}
       {width === 0 && (

@@ -9,36 +9,44 @@ export function InnovationSidebar() {
   const [activeGroup, setActiveGroup] = useState<'files' | 'maintenance'>('files');
 
   return (
-    <div className="h-full flex">
-      {/* Activity Bar */}
-      <div className="w-12 bg-[#0C1016] border-r border-[#CBD5E1] flex flex-col">
-        <button
-          onClick={() => setActiveGroup('files')}
-          className={`w-full h-12 flex items-center justify-center ${
-            activeGroup === 'files'
-              ? 'text-white border-l-2 border-blue-500'
-              : 'text-gray-500 hover:text-gray-300'
-          }`}
-          title="Map File System"
-        >
-          <Folder size={20} />
-        </button>
-        <button
-          onClick={() => setActiveGroup('maintenance')}
-          className={`w-full h-12 flex items-center justify-center ${
-            activeGroup === 'maintenance'
-              ? 'text-white border-l-2 border-blue-500'
-              : 'text-gray-500 hover:text-gray-300'
-          }`}
-          title="Maintenance"
-        >
-          <Wrench size={20} />
-        </button>
+    <div style={{ height: '100%', display: 'flex' }}>
+      {/* Activity bar */}
+      <div style={{
+        width: 44, background: 'var(--c-bg)',
+        borderRight: '1px solid var(--c-border)',
+        display: 'flex', flexDirection: 'column', flexShrink: 0,
+      }}>
+        {([
+          { id: 'files',       icon: <Folder size={18} />,  title: 'Map File System' },
+          { id: 'maintenance', icon: <Wrench size={18} />,  title: 'Maintenance'     },
+        ] as const).map(({ id, icon, title }) => {
+          const active = activeGroup === id;
+          return (
+            <button
+              key={id}
+              title={title}
+              onClick={() => setActiveGroup(id)}
+              style={{
+                width: '100%', height: 44,
+                display: 'flex', alignItems: 'center', justifyContent: 'center',
+                border: 'none', background: active ? 'var(--c-accent-glow)' : 'transparent',
+                color: active ? 'var(--c-accent-2)' : 'var(--c-text-3)',
+                borderLeft: active ? '2px solid var(--c-accent-2)' : '2px solid transparent',
+                cursor: 'pointer',
+                transition: 'color var(--dur-fast), background var(--dur-fast), border-color var(--dur-fast)',
+              }}
+              onMouseEnter={(e) => { if (!active) { (e.currentTarget as HTMLElement).style.color = 'var(--c-text-2)'; (e.currentTarget as HTMLElement).style.background = 'var(--c-hover)'; } }}
+              onMouseLeave={(e) => { if (!active) { (e.currentTarget as HTMLElement).style.color = 'var(--c-text-3)'; (e.currentTarget as HTMLElement).style.background = 'transparent'; } }}
+            >
+              {icon}
+            </button>
+          );
+        })}
       </div>
 
-      {/* Content Panel */}
-      <div className="flex-1 w-64">
-        {activeGroup === 'files' && <MapFileExplorer />}
+      {/* Content */}
+      <div style={{ flex: 1, minWidth: 0 }}>
+        {activeGroup === 'files'       && <MapFileExplorer />}
         {activeGroup === 'maintenance' && <MaintenancePanel />}
       </div>
     </div>

@@ -76,7 +76,6 @@ function ToastItem({ data, onRemove }: { data: ToastData; onRemove: (id: string)
     <div
       className={`toast toast-${data.kind} ${exiting ? 'toast-exit' : ''}`}
       onClick={dismiss}
-      style={{ borderLeftColor: color }}
     >
       {/* Icon */}
       <span style={{ color, flexShrink: 0, marginTop: 1 }}>{icon}</span>

@@ -3,92 +3,95 @@
 import { useEconomicStore } from '@/stores/economicStore';
 import { useEffect } from 'react';
 
-interface ROIWidgetProps {
-  sessionId: string;
-}
+const FONT_UI   = "'IBM Plex Sans', system-ui, sans-serif";
+const FONT_MONO = "'IBM Plex Mono', monospace";
+
+interface ROIWidgetProps { sessionId: string; }
 
 export function ROIWidget({ sessionId }: ROIWidgetProps) {
   const { metrics, isLoading, fetchMetrics } = useEconomicStore();
 
   useEffect(() => {
-    // Only fetch if innovation endpoint is configured
-    if (!process.env.NEXT_PUBLIC_INNOVATION_API_ENDPOINT) {
-      return;
-    }
-
+    if (!process.env.NEXT_PUBLIC_INNOVATION_API_ENDPOINT) return;
     fetchMetrics(sessionId);
-
-    // Poll every 30 seconds
-    const interval = setInterval(() => {
-      fetchMetrics(sessionId);
-    }, 30000);
-
+    const interval = setInterval(() => fetchMetrics(sessionId), 30000);
     return () => clearInterval(interval);
   }, [sessionId, fetchMetrics]);
 
+  const cardStyle: React.CSSProperties = {
+    background: 'var(--c-panel)', border: '1px solid var(--c-border)',
+    borderRadius: 6, padding: 12, fontFamily: FONT_UI,
+  };
+
   if (isLoading && !metrics) {
     return (
-      <div className="bg-white border border-[#CBD5E1] rounded p-4">
-        <div className="text-xs text-gray-500">Loading metrics...</div>
+      <div style={cardStyle}>
+        <div style={{ fontSize: '0.72rem', color: 'var(--c-text-3)' }}>Loading metrics…</div>
       </div>
     );
   }
 
   if (!metrics) {
     return (
-      <div className="bg-white border border-[#CBD5E1] rounded p-4">
-        <div className="text-xs text-gray-500">No metrics available</div>
+      <div style={cardStyle}>
+        <div style={{ fontSize: '0.72rem', color: 'var(--c-text-3)' }}>No metrics available</div>
       </div>
     );
   }
 
   return (
-    <div className="bg-white border border-[#CBD5E1] rounded p-4">
-      <div className="text-sm font-medium mb-3">CITY HEALTH ROI - Last 7 Days</div>
-      
-      <div className="grid grid-cols-2 gap-4 mb-4">
+    <div style={cardStyle}>
+      <div style={{ fontSize: '0.60rem', fontWeight: 600, letterSpacing: '0.10em', textTransform: 'uppercase', color: 'var(--c-text-3)', marginBottom: 10 }}>
+        City Health ROI — Last 7 Days
+      </div>
+
+      <div style={{ display: 'grid', gridTemplateColumns: '1fr 1fr', gap: 12, marginBottom: 12 }}>
         <div>
-          <div className="text-xs text-gray-600 mb-1">Total Hazards Detected</div>
-          <div className="text-2xl font-bold font-mono">{metrics.totalHazardsDetected}</div>
+          <div style={{ fontSize: '0.66rem', color: 'var(--c-text-2)', marginBottom: 3 }}>Hazards Detected</div>
+          <div style={{ fontSize: '1.4rem', fontWeight: 700, fontFamily: FONT_MONO, color: 'var(--c-text)', lineHeight: 1.1 }}>
+            {metrics.totalHazardsDetected}
+          </div>
         </div>
         <div>
-          <div className="text-xs text-gray-600 mb-1">ROI Multiplier</div>
-          <div className="text-2xl font-bold font-mono text-[#10B981]">{metrics.roiMultiplier.toFixed(2)}x</div>
+          <div style={{ fontSize: '0.66rem', color: 'var(--c-text-2)', marginBottom: 3 }}>ROI Multiplier</div>
+          <div style={{ fontSize: '1.4rem', fontWeight: 700, fontFamily: FONT_MONO, color: 'var(--c-green)', lineHeight: 1.1 }}>
+            {metrics.roiMultiplier.toFixed(2)}×
+          </div>
         </div>
       </div>
 
-      <div className="grid grid-cols-2 gap-4 mb-4">
+      <div style={{ display: 'grid', gridTemplateColumns: '1fr 1fr', gap: 12, marginBottom: 12 }}>
         <div>
-          <div className="text-xs text-gray-600 mb-1">Estimated Repair Cost</div>
-          <div className="text-lg font-mono">${metrics.totalEstimatedRepairCost.toLocaleString()}</div>
+          <div style={{ fontSize: '0.66rem', color: 'var(--c-text-2)', marginBottom: 3 }}>Est. Repair Cost</div>
+          <div style={{ fontSize: '0.90rem', fontFamily: FONT_MONO, color: 'var(--c-text)' }}>
+            ${metrics.totalEstimatedRepairCost.toLocaleString()}
+          </div>
         </div>
         <div>
-          <div className="text-xs text-gray-600 mb-1">Prevented Damage Cost</div>
-          <div className="text-lg font-mono text-[#10B981]">${metrics.totalPreventedDamageCost.toLocaleString()}</div>
+          <div style={{ fontSize: '0.66rem', color: 'var(--c-text-2)', marginBottom: 3 }}>Prevented Cost</div>
+          <div style={{ fontSize: '0.90rem', fontFamily: FONT_MONO, color: 'var(--c-green)' }}>
+            ${metrics.totalPreventedDamageCost.toLocaleString()}
+          </div>
         </div>
       </div>
 
-      <div className="border-t border-[#CBD5E1] pt-3">
-        <div className="text-xs font-medium mb-2">Breakdown by Type</div>
-        <div className="space-y-2 text-xs font-mono">
-          <div className="flex justify-between">
-            <span className="text-gray-600">Potholes:</span>
-            <span>
-              {metrics.hazardBreakdown.POTHOLE.count} × ${metrics.hazardBreakdown.POTHOLE.avgCost.toFixed(0)} avg
-            </span>
-          </div>
-          <div className="flex justify-between">
-            <span className="text-gray-600">Debris:</span>
-            <span>
-              {metrics.hazardBreakdown.DEBRIS.count} × ${metrics.hazardBreakdown.DEBRIS.avgCost.toFixed(0)} avg
-            </span>
-          </div>
-          <div className="flex justify-between">
-            <span className="text-gray-600">Flooding:</span>
-            <span>
-              {metrics.hazardBreakdown.FLOODING.count} × ${metrics.hazardBreakdown.FLOODING.avgCost.toFixed(0)} avg
-            </span>
-          </div>
+      <div style={{ borderTop: '1px solid var(--c-border)', paddingTop: 10 }}>
+        <div style={{ fontSize: '0.60rem', fontWeight: 600, letterSpacing: '0.08em', textTransform: 'uppercase', color: 'var(--c-text-3)', marginBottom: 6 }}>
+          Breakdown
+        </div>
+        <div style={{ display: 'flex', flexDirection: 'column', gap: 4 }}>
+          {[
+            { label: 'Potholes',  data: metrics.hazardBreakdown.POTHOLE  },
+            { label: 'Debris',    data: metrics.hazardBreakdown.DEBRIS   },
+            { label: 'Flooding',  data: metrics.hazardBreakdown.FLOODING },
+          ].map(({ label, data }) => (
+            <div key={label} style={{ display: 'flex', justifyContent: 'space-between', fontSize: '0.70rem' }}>
+              <span style={{ color: 'var(--c-text-2)' }}>{label}</span>
+              <span style={{ fontFamily: FONT_MONO, color: 'var(--c-text)' }}>
+                {data.count} × ${data.avgCost.toFixed(0)} avg
+              </span>
+            </div>
+          ))}
         </div>
       </div>
     </div>

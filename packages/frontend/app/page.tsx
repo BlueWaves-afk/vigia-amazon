@@ -327,17 +327,20 @@ export default function Dashboard() {
 
   // ── Tab button style ──────────────────────
   const tabBtn = (active: boolean): React.CSSProperties => ({
-    position: 'relative', display: 'flex', alignItems: 'center', gap: 7,
-    height: '100%', padding: '0 14px', minWidth: 110, flexShrink: 0,
+    position: 'relative', display: 'flex', alignItems: 'center', gap: 6,
+    height: '100%', padding: '0 13px', minWidth: 100, flexShrink: 0,
     cursor: 'pointer', border: 'none',
-    borderRight: '1px solid var(--c-border)',
+    borderRight: 'none', // handled by .tab-sep CSS pseudo-element
     background: active ? 'var(--c-panel)' : 'transparent',
-    color: active ? 'var(--c-text)' : 'var(--c-text-3)',
-    fontSize: '0.75rem', fontWeight: active ? 500 : 400,
+    color: active ? 'var(--c-text-2)' : 'var(--c-text-3)',
+    fontSize: '0.72rem', fontWeight: active ? 500 : 400,
     fontFamily: "'IBM Plex Sans', system-ui, sans-serif",
-    letterSpacing: active ? '-0.01em' : '0',
+    letterSpacing: '-0.01em',
     transition: 'background var(--dur-fast), color var(--dur-fast)',
-    boxShadow: active ? 'inset 0 -1px 0 var(--c-panel)' : 'none',
+    // active tab: rose top-inset glow + bottom flush with panel
+    boxShadow: active
+      ? 'inset 0 2px 0 var(--c-rose-2), inset 0 -1px 0 var(--c-panel), 0 0 18px rgba(154,106,170,0.10)'
+      : 'none',
   });
 
   return (
@@ -404,11 +407,9 @@ export default function Dashboard() {
 
           {/* ── Main Tab Bar ─────────────── */}
           {sidebarActivity !== 'network' && sidebarActivity !== 'maintenance' && (
-          <div style={{
-            display: 'flex', alignItems: 'flex-end', height: 36, flexShrink: 0,
-            background: 'var(--c-sidebar)', borderBottom: '1px solid var(--c-border)',
+          <div className="tab-bar" style={{
+            display: 'flex', alignItems: 'stretch', height: 36, flexShrink: 0,
             overflowX: 'auto', overflowY: 'hidden',
-            boxShadow: '0 1px 0 rgba(0,0,0,0.2)',
           }}>
             {openTabs.map((tab) => {
               const active = activeMainTab === tab.id;
@@ -416,24 +417,26 @@ export default function Dashboard() {
               return (
                 <button key={tab.id}
                   onClick={() => { switchMainTab(tab.id); if (tab.session) setSelectedSession(tab.session); else setSelectedSession(null); }}
+                  className="tab-sep"
                   style={tabBtn(active)}
-                  onMouseEnter={(e) => { if (!active) (e.currentTarget as HTMLElement).style.background = 'rgba(255,255,255,0.03)'; }}
-                  onMouseLeave={(e) => { if (!active) (e.currentTarget as HTMLElement).style.background = 'transparent'; }}
+                  onMouseEnter={(e) => { if (!active) (e.currentTarget as HTMLElement).style.background = 'rgba(255,255,255,0.04)'; (e.currentTarget as HTMLElement).style.color = 'var(--c-text-2)'; }}
+                  onMouseLeave={(e) => { if (!active) { (e.currentTarget as HTMLElement).style.background = 'transparent'; (e.currentTarget as HTMLElement).style.color = 'var(--c-text-3)'; } }}
                 >
-                  {tab.id === 'map'      && <span style={{ color: active ? 'var(--c-accent-2)' : 'var(--c-text-3)' }}><MapPin size={12} /></span>}
-                  {tab.id === 'sentinel' && <span style={{ color: active ? 'var(--c-accent-2)' : 'var(--c-text-3)' }}><Video  size={12} /></span>}
-                  {tab.isDirty && <span style={{ marginRight: 4, color: 'var(--c-text-2)' }}>●</span>}
-                  {tab.label}
+                  {tab.id === 'map'      && <span style={{ color: active ? 'var(--c-rose-2)' : 'var(--c-text-3)', display: 'flex' }}><MapPin size={11} /></span>}
+                  {tab.id === 'sentinel' && <span style={{ color: active ? 'var(--c-rose-2)' : 'var(--c-text-3)', display: 'flex' }}><Video  size={11} /></span>}
+                  {tab.isDirty && <span style={{ width: 5, height: 5, borderRadius: '50%', background: 'var(--c-yellow)', flexShrink: 0, marginLeft: -2 }} />}
+                  <span style={{ overflow: 'hidden', textOverflow: 'ellipsis', whiteSpace: 'nowrap', maxWidth: 120 }}>{tab.label}</span>
                   {closeable && (
                     <span onClick={(e) => closeTab(tab.id, e)} style={{
                       display: 'flex', alignItems: 'center', justifyContent: 'center',
-                      width: 16, height: 16, marginLeft: 2, color: 'var(--c-text-3)',
-                      cursor: 'pointer', borderRadius: 3, transition: 'background 0.1s, color 0.1s',
+                      width: 15, height: 15, marginLeft: 1, color: 'var(--c-text-3)',
+                      cursor: 'pointer', borderRadius: 3, flexShrink: 0,
+                      transition: 'background var(--dur-fast), color var(--dur-fast)',
                     }}
-                    onMouseEnter={(e) => { (e.currentTarget as HTMLElement).style.background = 'var(--c-hover)'; (e.currentTarget as HTMLElement).style.color = 'var(--c-text)'; }}
+                    onMouseEnter={(e) => { (e.currentTarget as HTMLElement).style.background = 'var(--c-hover-md)'; (e.currentTarget as HTMLElement).style.color = 'var(--c-text)'; }}
                     onMouseLeave={(e) => { (e.currentTarget as HTMLElement).style.background = 'transparent'; (e.currentTarget as HTMLElement).style.color = 'var(--c-text-3)'; }}
                     >
-                      <X size={10} />
+                      <X size={9} />
                     </span>
                   )}
                   {active && <span className="tab-line" />}
@@ -461,33 +464,56 @@ export default function Dashboard() {
             ) : !activeMainTab ? (
               <div style={{
                 display: 'flex', alignItems: 'center', justifyContent: 'center',
-                height: '100%', flexDirection: 'column', gap: 16,
+                height: '100%', flexDirection: 'column', gap: 12,
                 background: 'var(--c-bg)',
+                userSelect: 'none',
               }}>
+                {/* Geometric icon mark — Kiro-style minimal */}
                 <div style={{
-                  width: 56, height: 56, borderRadius: 16,
-                  background: 'var(--c-accent-glow)',
-                  border: '1px solid var(--c-border)',
+                  width: 48, height: 48, borderRadius: 12,
+                  background: 'var(--c-sidebar)',
+                  border: '1px solid var(--c-border-md)',
                   display: 'flex', alignItems: 'center', justifyContent: 'center',
-                  boxShadow: '0 0 32px var(--c-accent-glow)',
+                  boxShadow: '0 4px 16px rgba(0,0,0,0.3), inset 0 1px 0 rgba(255,255,255,0.04)',
                 }}>
-                  <MapPin size={24} style={{ color: 'var(--c-text-3)', opacity: 0.5 }} />
+                  <MapPin size={20} style={{ color: 'var(--c-text-3)' }} />
                 </div>
-                <div style={{
-                  fontSize: '0.88rem', color: 'var(--c-text-2)',
-                  fontFamily: "'IBM Plex Sans', sans-serif",
-                  fontWeight: 500, letterSpacing: '-0.02em',
-                }}>
-                  {sidebarActivity === 'explorer' ? 'Explore Road Infrastructure' : 'Real-Time Hazard Detection'}
+                <div style={{ textAlign: 'center' }}>
+                  <div style={{
+                    fontSize: '0.82rem', color: 'var(--c-text-2)',
+                    fontFamily: "'IBM Plex Sans', system-ui, sans-serif",
+                    fontWeight: 500, letterSpacing: '-0.02em', marginBottom: 5,
+                  }}>
+                    {sidebarActivity === 'explorer' ? 'No session open' : 'Detection Node'}
+                  </div>
+                  <div style={{
+                    fontSize: '0.70rem', color: 'var(--c-text-3)',
+                    fontFamily: "'IBM Plex Sans', system-ui, sans-serif",
+                    lineHeight: 1.6,
+                  }}>
+                    {sidebarActivity === 'explorer'
+                      ? 'Open a session from the file explorer'
+                      : 'Select Detection from the activity bar'}
+                  </div>
                 </div>
+                {/* Keyboard hint */}
                 <div style={{
-                  fontSize: '0.73rem', color: 'var(--c-text-3)',
-                  fontFamily: "'IBM Plex Sans', sans-serif",
-                  textAlign: 'center', maxWidth: 320, lineHeight: 1.7,
+                  display: 'flex', alignItems: 'center', gap: 6, marginTop: 4,
+                  padding: '5px 10px', borderRadius: 4,
+                  background: 'var(--c-sidebar)', border: '1px solid var(--c-border)',
                 }}>
-                  {sidebarActivity === 'explorer'
-                    ? 'Select a session from the explorer or create a new one'
-                    : 'Click Detection Node to upload dashcam footage'}
+                  <span style={{ fontSize: '0.65rem', color: 'var(--c-text-3)', fontFamily: "'IBM Plex Sans', sans-serif" }}>
+                    Press
+                  </span>
+                  <kbd style={{
+                    fontSize: '0.60rem', fontFamily: "'IBM Plex Mono', monospace",
+                    color: 'var(--c-text-2)', background: 'var(--c-elevated)',
+                    border: '1px solid var(--c-border-md)', borderRadius: 3,
+                    padding: '1px 6px',
+                  }}>⌘K</kbd>
+                  <span style={{ fontSize: '0.65rem', color: 'var(--c-text-3)', fontFamily: "'IBM Plex Sans', sans-serif" }}>
+                    to open command palette
+                  </span>
                 </div>
               </div>
             ) : openTabs.find(t => t.id === activeMainTab)?.diffMap ? (
@@ -561,37 +587,51 @@ export default function Dashboard() {
           </div>
 
           {/* ── Console ──────────────────── */}
-          {sidebarActivity !== 'network' && sidebarActivity !== 'maintenance' && <div style={{ display: 'flex', flexDirection: 'column', flexShrink: 0, height: consoleHeight, borderTop: '1px solid var(--c-border)' }}>
+          {sidebarActivity !== 'network' && sidebarActivity !== 'maintenance' && (
+          <div style={{ display: 'flex', flexDirection: 'column', flexShrink: 0, height: consoleHeight, position: 'relative' }}>
 
-            {/* Resize handle */}
-            <div className="drag-handle-y" onMouseDown={onResizeDown} style={{
-              height: 8, flexShrink: 0, display: 'flex', alignItems: 'center', justifyContent: 'center',
-              background: 'var(--c-sidebar)', cursor: 'ns-resize',
-            }}>
-              <div className="drag-pip" style={{ width: 24, height: 2, borderRadius: 2, background: 'var(--c-border)', transition: 'background 0.15s' }} />
+            {/* Gradient top border + resize handle in one strip */}
+            <div
+              className="drag-handle-y"
+              onMouseDown={onResizeDown}
+              style={{
+                height: 6, flexShrink: 0,
+                background: 'var(--c-sidebar)',
+                cursor: 'ns-resize',
+                position: 'relative',
+                display: 'flex', alignItems: 'center', justifyContent: 'center',
+              }}
+            >
+              <div className="drag-pip" style={{
+                width: 28, height: 2, borderRadius: 2,
+                background: 'var(--c-border-md)',
+                transition: 'background var(--dur-fast), width var(--dur-fast)',
+              }} />
             </div>
 
             {/* Console Tab Bar */}
-            <div style={{
-              display: 'flex', alignItems: 'center', height: 34, flexShrink: 0,
-              background: 'var(--c-sidebar)', borderBottom: '1px solid var(--c-border)',
+            <div className="tab-bar" style={{
+              display: 'flex', alignItems: 'stretch', height: 32, flexShrink: 0,
             }}>
               {consoleTabs.map((tab) => {
                 const active = activeConsoleTab === tab.id;
                 return (
                   <button key={tab.id} onClick={() => switchConsoleTab(tab.id)}
+                    className="tab-sep"
                     style={{
                       ...tabBtn(active),
                       fontSize: '0.60rem',
-                      letterSpacing: '0.08em',
+                      letterSpacing: '0.07em',
                       textTransform: 'uppercase',
                       fontWeight: active ? 600 : 500,
-                      gap: 6,
+                      gap: 5,
+                      minWidth: 'auto',
+                      padding: '0 12px',
                     }}
-                    onMouseEnter={(e) => { if (!active) (e.currentTarget as HTMLElement).style.background = 'var(--c-hover)'; }}
-                    onMouseLeave={(e) => { if (!active) (e.currentTarget as HTMLElement).style.background = 'transparent'; }}
+                    onMouseEnter={(e) => { if (!active) { (e.currentTarget as HTMLElement).style.background = 'var(--c-hover)'; (e.currentTarget as HTMLElement).style.color = 'var(--c-text-2)'; }}}
+                    onMouseLeave={(e) => { if (!active) { (e.currentTarget as HTMLElement).style.background = 'transparent'; (e.currentTarget as HTMLElement).style.color = 'var(--c-text-3)'; }}}
                   >
-                    <span style={{ color: active ? 'var(--c-rose)' : 'var(--c-text-3)' }}>{tab.icon}</span>
+                    <span style={{ color: active ? 'var(--c-rose)' : 'var(--c-text-3)', display: 'flex' }}>{tab.icon}</span>
                     {tab.label}
                     {active && <span className="tab-line" />}
                   </button>
@@ -606,7 +646,8 @@ export default function Dashboard() {
               {activeConsoleTab === 'ledger'  && <LedgerTicker />}
               {activeConsoleTab === 'console' && <ConsoleViewer />}
             </div>
-          </div>}
+          </div>
+          )}
         </div>
 
         {sidebarActivity === 'explorer' && (
