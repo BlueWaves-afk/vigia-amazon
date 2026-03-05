@@ -103,10 +103,10 @@ export function FolderItem({
             style={{
               fontSize: '0.55rem',
               background: 'var(--c-red)',
-              color: '#fff',
+              color: 'var(--v-text-primary)',
               fontWeight: 600,
               letterSpacing: '0.04em',
-              fontFamily: "'IBM Plex Mono', monospace",
+              fontFamily: "var(--v-font-mono)",
             }}
           >
             LIVE

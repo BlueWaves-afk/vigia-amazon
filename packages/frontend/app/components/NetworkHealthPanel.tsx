@@ -13,7 +13,7 @@ const C = {
   accent: 'var(--c-accent-2)',
 };
 
-const MONO = "'IBM Plex Mono', monospace";
+const MONO = 'var(--v-font-mono)';
 
 export function NetworkHealthPanel() {
   const [geohash, setGeohash] = useState('drt2yzr');
@@ -63,12 +63,12 @@ export function NetworkHealthPanel() {
       gap: 16,
     }}>
       {/* Header */}
-      <div style={{
+      <div className="vigia-panel-header" style={{
         display: 'flex',
         alignItems: 'center',
         gap: 8,
         paddingBottom: 12,
-        borderBottom: `1px solid ${C.border}`,
+        borderBottom: 'none',
       }}>
         <Activity size={16} style={{ color: C.accent }} />
         <h3 style={{
@@ -98,6 +98,7 @@ export function NetworkHealthPanel() {
             Geohash (7 chars)
           </label>
           <input
+            className="vigia-input"
             type="text"
             value={geohash}
             onChange={(e) => setGeohash(e.target.value)}
@@ -107,7 +108,7 @@ export function NetworkHealthPanel() {
               width: '100%',
               padding: '8px 12px',
               background: C.panel,
-              border: `1px solid ${C.border}`,
+              border: `1px solid var(--v-border-default)`,
               borderRadius: 4,
               color: C.text,
               fontSize: '0.85rem',
@@ -127,6 +128,7 @@ export function NetworkHealthPanel() {
             Radius (km)
           </label>
           <input
+            className="vigia-input"
             type="number"
             value={radiusKm}
             onChange={(e) => setRadiusKm(Number(e.target.value))}
@@ -136,7 +138,7 @@ export function NetworkHealthPanel() {
               width: '100%',
               padding: '8px 12px',
               background: C.panel,
-              border: `1px solid ${C.border}`,
+              border: `1px solid var(--v-border-default)`,
               borderRadius: 4,
               color: C.text,
               fontSize: '0.85rem',
@@ -151,7 +153,7 @@ export function NetworkHealthPanel() {
           style={{
             padding: '8px 20px',
             background: isAnalyzing ? C.panel : C.accent,
-            border: `1px solid ${C.border}`,
+            border: `1px solid color-mix(in srgb, var(--v-accent) 30%, transparent)`,
             borderRadius: 4,
             color: C.text,
             fontSize: '0.85rem',
@@ -188,7 +190,7 @@ export function NetworkHealthPanel() {
         <div style={{
           flex: 1,
           background: C.panel,
-          border: `1px solid ${C.border}`,
+          border: `1px solid var(--v-border-default)`,
           borderRadius: 4,
           padding: 16,
           overflow: 'auto',

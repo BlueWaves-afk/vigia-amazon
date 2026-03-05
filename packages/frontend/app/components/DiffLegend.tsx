@@ -18,7 +18,7 @@ export function DiffLegend() {
       padding: 12,
       minWidth: 200,
       zIndex: 10,
-      fontFamily: "'IBM Plex Sans', sans-serif",
+      fontFamily: "var(--v-font-ui)",
       pointerEvents: 'auto',
       boxShadow: 'var(--shadow-md)',
     }}>
@@ -54,7 +54,7 @@ export function DiffLegend() {
             borderRadius: 4,
             cursor: 'pointer',
             color: 'var(--c-text-2)',
-            fontFamily: "'IBM Plex Sans', sans-serif",
+            fontFamily: "var(--v-font-ui)",
             transition: 'background var(--dur-fast), color var(--dur-fast)',
           }}
           onMouseEnter={(e) => { (e.currentTarget as HTMLElement).style.background = 'var(--c-hover-md)'; (e.currentTarget as HTMLElement).style.color = 'var(--c-text)'; }}
@@ -82,10 +82,10 @@ export function DiffLegend() {
             border: '1px solid var(--c-accent-glow-strong)',
             borderRadius: 4,
             cursor: 'pointer',
-            fontFamily: "'IBM Plex Sans', sans-serif",
+            fontFamily: "var(--v-font-ui)",
             transition: 'background var(--dur-fast)',
           }}
-          onMouseEnter={(e) => (e.currentTarget as HTMLElement).style.background = 'rgba(92,143,248,0.28)'}
+          onMouseEnter={(e) => (e.currentTarget as HTMLElement).style.background = 'color-mix(in srgb, var(--v-accent) 28%, transparent)'}
           onMouseLeave={(e) => (e.currentTarget as HTMLElement).style.background = 'var(--c-accent-glow)'}
         >
           Export

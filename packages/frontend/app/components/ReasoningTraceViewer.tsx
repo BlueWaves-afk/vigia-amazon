@@ -9,7 +9,7 @@ import { useAgentTraceStore } from '../../stores/agentTraceStore';
 // Visual layer: Copilot agent-thinking style
 // ─────────────────────────────────────────────
 
-const MONO = "'IBM Plex Mono', monospace";
+const MONO = 'var(--v-font-mono)';
 
 type ReasoningTrace = {
   traceId: string;
@@ -88,13 +88,21 @@ function StepRow({ step, index }: { step: any; index: number }) {
     <div style={{
       display: 'flex', flexDirection: 'column', gap: 3,
       paddingLeft: 10,
-      borderLeft: '2px solid var(--c-rose-border)',
+      borderLeft: 'none',
+      borderImage: 'none',
+      position: 'relative',
       marginBottom: 6,
       animation: 'rtv-slide 0.28s ease both',
       animationDelay: `${index * 0.06}s`,
       fontFamily: MONO,
       fontSize: '0.7rem',
     }}>
+      {/* gradient left accent */}
+      <div style={{
+        position: 'absolute', left: 0, top: 0, bottom: 0, width: 2,
+        background: 'linear-gradient(180deg, var(--c-rose-2) 0%, rgba(92,143,248,0.6) 60%, transparent 100%)',
+        borderRadius: 1,
+      }} />
       {step.thought && (
         <div style={{ color: 'var(--c-fg-3, #9CA3AF)', fontStyle: 'italic', display: 'flex', gap: 5, alignItems: 'flex-start' }}>
           <Brain size={11} style={{ color: 'var(--c-rose-2)', flexShrink: 0, marginTop: 1 }} />
@@ -311,8 +319,14 @@ export function ReasoningTraceViewer() {
       <div style={{
         display: 'flex', alignItems: 'center', justifyContent: 'space-between',
         paddingBottom: 6, marginBottom: 6,
-        borderBottom: '1px solid var(--c-border, rgba(255,255,255,0.06))',
+        borderBottom: 'none',
+        position: 'relative',
       }}>
+        <div style={{
+          position: 'absolute', bottom: 0, left: 0, right: 0, height: 1,
+          background: 'linear-gradient(90deg, rgba(180,136,192,0.35) 0%, rgba(92,143,248,0.25) 50%, rgba(154,106,170,0.10) 100%)',
+          pointerEvents: 'none',
+        }} />
         <div style={{ display: 'flex', alignItems: 'center', gap: 6 }}>
           <span style={{
             padding: '1px 6px', borderRadius: 4,
@@ -365,12 +379,20 @@ export function ReasoningTraceViewer() {
           return (
             <div key={line.key} style={{
               display: 'flex', alignItems: 'flex-start', gap: 6,
-              padding: '3px 7px 3px 6px',
-              borderLeft: `2px solid ${cfg.border}`,
+              padding: '3px 7px 3px 8px',
+              borderLeft: 'none',
               background: cfg.bg,
               borderRadius: '0 4px 4px 0',
               marginBottom: 1,
+              position: 'relative',
             }}>
+              {/* gradient left accent */}
+              <div style={{
+                position: 'absolute', left: 0, top: 0, bottom: 0, width: 2,
+                background: `linear-gradient(180deg, ${cfg.color} 0%, rgba(92,143,248,0.5) 100%)`,
+                borderRadius: '2px 0 0 2px',
+                opacity: 0.8,
+              }} />
               <span style={{
                 color: cfg.color, flexShrink: 0,
                 display: 'flex', alignItems: 'center', gap: 4,
@@ -393,9 +415,15 @@ export function ReasoningTraceViewer() {
       <div style={{
         display: 'flex', alignItems: 'center', justifyContent: 'space-between',
         paddingTop: 6, marginTop: 6,
-        borderTop: '1px solid var(--c-border, rgba(255,255,255,0.05))',
+        borderTop: 'none',
+        position: 'relative',
         color: 'var(--c-fg-3, #9CA3AF)', fontSize: '0.61rem',
       }}>
+        <div style={{
+          position: 'absolute', top: 0, left: 0, right: 0, height: 1,
+          background: 'linear-gradient(90deg, rgba(180,136,192,0.35) 0%, rgba(92,143,248,0.25) 50%, rgba(154,106,170,0.10) 100%)',
+          pointerEvents: 'none',
+        }} />
         <span>{new Date(trace.createdAt).toLocaleTimeString()}</span>
         <div style={{ display: 'flex', alignItems: 'center', gap: 4 }}>
           <span style={{

@@ -14,10 +14,10 @@ import { useSettings, Theme, MapStyle, Density } from './SettingsContext';
 function SectionLabel({ label }: { label: string }) {
   return (
     <div style={{
-      fontSize: '0.6rem', color: 'var(--c-text-3)',
+      fontSize: '0.6rem', color: 'var(--v-text-muted)',
       letterSpacing: '0.1em', textTransform: 'uppercase',
       fontWeight: 600, padding: '16px 16px 6px',
-      fontFamily: "'IBM Plex Sans', sans-serif",
+      fontFamily: 'var(--v-font-ui)',
     }}>
       {label}
     </div>
@@ -32,15 +32,15 @@ function OptionPill({ label, active, onClick, icon }: {
     <button onClick={onClick} style={{
       display: 'flex', alignItems: 'center', justifyContent: 'center',
       gap: 5, padding: '5px 8px', borderRadius: 4, flex: 1,
-      border: `1px solid ${active ? 'var(--c-accent-2)' : 'var(--c-border)'}`,
-      background: active ? 'var(--c-accent-glow)' : 'rgba(255,255,255,0.02)',
-      color: active ? 'var(--c-accent-2)' : 'var(--c-text-2)',
+      border: `1px solid ${active ? 'var(--v-accent-hover)' : 'var(--v-border-subtle)'}`,
+      background: active ? 'var(--v-accent-glow)' : 'var(--v-hover)',
+      color: active ? 'var(--v-accent-hover)' : 'var(--v-text-secondary)',
       fontSize: '0.7rem', cursor: 'pointer',
-      fontFamily: "'IBM Plex Sans', sans-serif",
+      fontFamily: 'var(--v-font-ui)',
       transition: 'all 0.12s',
     }}
-    onMouseEnter={(e) => { if (!active) (e.currentTarget as HTMLElement).style.background = 'rgba(255,255,255,0.05)'; }}
-    onMouseLeave={(e) => { if (!active) (e.currentTarget as HTMLElement).style.background = 'rgba(255,255,255,0.02)'; }}
+    onMouseEnter={(e) => { if (!active) (e.currentTarget as HTMLElement).style.background = 'var(--v-hover-md)'; }}
+    onMouseLeave={(e) => { if (!active) (e.currentTarget as HTMLElement).style.background = 'var(--v-hover)'; }}
     >
       {icon}{label}
       {active && <Check size={9} style={{ marginLeft: 2 }} />}
@@ -58,17 +58,17 @@ function ToggleRow({ label, sublabel, value, onChange, icon }: {
       display: 'flex', alignItems: 'center', justifyContent: 'space-between',
       padding: '8px 16px', cursor: 'pointer',
     }}
-    onMouseEnter={(e) => (e.currentTarget as HTMLElement).style.background = 'rgba(255,255,255,0.03)'}
+    onMouseEnter={(e) => (e.currentTarget as HTMLElement).style.background = 'var(--v-hover)'}
     onMouseLeave={(e) => (e.currentTarget as HTMLElement).style.background = ''}
     >
       <div style={{ display: 'flex', alignItems: 'center', gap: 8 }}>
-        {icon && <span style={{ color: 'var(--c-text-3)' }}>{icon}</span>}
+        {icon && <span style={{ color: 'var(--v-text-muted)' }}>{icon}</span>}
         <div>
-          <div style={{ fontSize: '0.76rem', color: 'var(--c-text)', fontFamily: "'IBM Plex Sans', sans-serif" }}>{label}</div>
-          {sublabel && <div style={{ fontSize: '0.64rem', color: 'var(--c-text-3)', fontFamily: "'IBM Plex Sans', sans-serif", marginTop: 1 }}>{sublabel}</div>}
+          <div style={{ fontSize: '0.76rem', color: 'var(--v-text-primary)', fontFamily: 'var(--v-font-ui)' }}>{label}</div>
+          {sublabel && <div style={{ fontSize: '0.64rem', color: 'var(--v-text-muted)', fontFamily: 'var(--v-font-ui)', marginTop: 1 }}>{sublabel}</div>}
         </div>
       </div>
-      <div className="vigia-toggle" style={{ background: value ? 'var(--c-accent)' : 'rgba(255,255,255,0.1)' }}>
+      <div className="vigia-toggle" style={{ background: value ? 'var(--v-accent)' : 'var(--v-hover-md)' }}>
         <div className="vigia-toggle-thumb" style={{ transform: value ? 'translateX(14px)' : 'translateX(2px)' }} />
       </div>
     </div>
@@ -83,13 +83,13 @@ function SliderRow({ label, value, min, max, step, unit = '', onChange }: {
   return (
     <div style={{ padding: '8px 16px' }}>
       <div style={{ display: 'flex', justifyContent: 'space-between', marginBottom: 8 }}>
-        <span style={{ fontSize: '0.76rem', color: 'var(--c-text)', fontFamily: "'IBM Plex Sans', sans-serif" }}>{label}</span>
-        <span style={{ fontSize: '0.7rem', color: 'var(--c-accent-2)', fontFamily: "'IBM Plex Mono', monospace" }}>
+        <span style={{ fontSize: '0.76rem', color: 'var(--v-text-primary)', fontFamily: 'var(--v-font-ui)' }}>{label}</span>
+        <span style={{ fontSize: '0.7rem', color: 'var(--v-accent-hover)', fontFamily: 'var(--v-font-mono)' }}>
           {value}{unit}
         </span>
       </div>
       <div style={{ position: 'relative', height: 4 }}>
-        <div style={{ position: 'absolute', inset: 0, background: 'rgba(255,255,255,0.08)', borderRadius: 2 }} />
+        <div style={{ position: 'absolute', inset: 0, background: 'var(--v-hover-md)', borderRadius: 2 }} />
         <div style={{ position: 'absolute', left: 0, top: 0, bottom: 0, width: `${pct}%`, background: 'var(--c-accent)', borderRadius: 2, transition: 'width 0.1s' }} />
         <input type="range" min={min} max={max} step={step} value={value}
           onChange={(e) => onChange(Number(e.target.value))}
@@ -132,24 +132,24 @@ export function SettingsPanel({ onClose }: SettingsPanelProps) {
       <div className="settings-panel slide-in-right">
 
         {/* Header */}
-        <div style={{
+        <div className="vigia-panel-header" style={{
           display: 'flex', alignItems: 'center', justifyContent: 'space-between',
           padding: '0 16px', height: 40, flexShrink: 0,
-          borderBottom: '1px solid var(--c-border)',
+          borderBottom: 'none',
         }}>
           <div style={{ display: 'flex', alignItems: 'center', gap: 8 }}>
-            <Sliders size={13} style={{ color: 'var(--c-accent-2)' }} />
-            <span style={{ fontSize: '0.78rem', fontWeight: 600, color: 'var(--c-text)', fontFamily: "'IBM Plex Sans', sans-serif" }}>
+            <Sliders size={13} style={{ color: 'var(--v-accent-hover)' }} />
+            <span style={{ fontSize: '0.78rem', fontWeight: 600, color: 'var(--v-text-primary)', fontFamily: 'var(--v-font-ui)' }}>
               Settings
             </span>
           </div>
           <button onClick={onClose} style={{
             display: 'flex', alignItems: 'center', justifyContent: 'center',
             width: 24, height: 24, borderRadius: 3, border: 'none',
-            background: 'transparent', color: 'var(--c-text-3)', cursor: 'pointer', transition: 'all 0.12s',
+            background: 'transparent', color: 'var(--v-text-muted)', cursor: 'pointer', transition: 'all 0.12s',
           }}
-          onMouseEnter={(e) => { (e.currentTarget as HTMLElement).style.background = 'rgba(255,255,255,0.07)'; (e.currentTarget as HTMLElement).style.color = 'var(--c-text)'; }}
-          onMouseLeave={(e) => { (e.currentTarget as HTMLElement).style.background = 'transparent'; (e.currentTarget as HTMLElement).style.color = 'var(--c-text-3)'; }}
+          onMouseEnter={(e) => { (e.currentTarget as HTMLElement).style.background = 'var(--v-hover)'; (e.currentTarget as HTMLElement).style.color = 'var(--v-text-primary)'; }}
+          onMouseLeave={(e) => { (e.currentTarget as HTMLElement).style.background = 'transparent'; (e.currentTarget as HTMLElement).style.color = 'var(--v-text-muted)'; }}
           >
             <X size={13} />
           </button>
@@ -162,7 +162,7 @@ export function SettingsPanel({ onClose }: SettingsPanelProps) {
           <SectionLabel label="Appearance" />
 
           <div style={{ padding: '0 16px 10px' }}>
-            <div style={{ fontSize: '0.7rem', color: 'var(--c-text-2)', marginBottom: 8, fontFamily: "'IBM Plex Sans', sans-serif" }}>Color Theme</div>
+            <div style={{ fontSize: '0.7rem', color: 'var(--v-text-secondary)', marginBottom: 8, fontFamily: 'var(--v-font-ui)' }}>Color Theme</div>
             <div style={{ display: 'flex', gap: 6 }}>
               <OptionPill label="Dark"    active={settings.theme === 'dark'}           onClick={() => update({ theme: 'dark' })}           icon={<Moon   size={10} />} />
               <OptionPill label="Darker"  active={settings.theme === 'darker'}         onClick={() => update({ theme: 'darker' })}         icon={<Monitor size={10} />} />
@@ -172,7 +172,7 @@ export function SettingsPanel({ onClose }: SettingsPanelProps) {
           </div>
 
           <div style={{ padding: '0 16px 10px' }}>
-            <div style={{ fontSize: '0.7rem', color: 'var(--c-text-2)', marginBottom: 8, fontFamily: "'IBM Plex Sans', sans-serif" }}>UI Density</div>
+            <div style={{ fontSize: '0.7rem', color: 'var(--v-text-secondary)', marginBottom: 8, fontFamily: 'var(--v-font-ui)' }}>UI Density</div>
             <div style={{ display: 'flex', gap: 6 }}>
               <OptionPill label="Compact"  active={settings.density === 'compact'}  onClick={() => update({ density: 'compact' })}  />
               <OptionPill label="Default"  active={settings.density === 'default'}  onClick={() => update({ density: 'default' })}  />
@@ -187,7 +187,7 @@ export function SettingsPanel({ onClose }: SettingsPanelProps) {
           />
 
           {/* ── Map ─────────────────────── */}
-          <div style={{ height: 1, background: 'var(--c-border)', margin: '8px 0' }} />
+          <div className="ide-divider" style={{ margin: '8px 0' }} />
           <SectionLabel label="Map" />
 
           <div style={{ padding: '0 16px 12px', display: 'grid', gridTemplateColumns: '1fr 1fr', gap: 8 }}>
@@ -197,25 +197,25 @@ export function SettingsPanel({ onClose }: SettingsPanelProps) {
                 <button key={s.id} onClick={() => update({ mapStyle: s.id })} style={{
                   display: 'flex', flexDirection: 'column', gap: 6, padding: 8,
                   borderRadius: 4, cursor: 'pointer', position: 'relative', flex: 1,
-                  border: `1px solid ${active ? 'var(--c-accent-2)' : 'var(--c-border)'}`,
-                  background: active ? 'var(--c-accent-glow)' : 'rgba(255,255,255,0.02)',
+                  border: `1px solid ${active ? 'var(--v-accent-hover)' : 'var(--v-border-subtle)'}`,
+                  background: active ? 'var(--v-accent-glow)' : 'var(--v-hover)',
                   transition: 'all 0.12s',
                 }}
-                onMouseEnter={(e) => { if (!active) (e.currentTarget as HTMLElement).style.background = 'rgba(255,255,255,0.04)'; }}
-                onMouseLeave={(e) => { if (!active) (e.currentTarget as HTMLElement).style.background = 'rgba(255,255,255,0.02)'; }}
+                onMouseEnter={(e) => { if (!active) (e.currentTarget as HTMLElement).style.background = 'var(--v-hover-md)'; }}
+                onMouseLeave={(e) => { if (!active) (e.currentTarget as HTMLElement).style.background = 'var(--v-hover)'; }}
                 >
-                  <div style={{ height: 32, borderRadius: 3, background: s.preview, border: '1px solid rgba(255,255,255,0.06)' }} />
-                  <span style={{ fontSize: '0.65rem', color: active ? 'var(--c-accent-2)' : 'var(--c-text-2)', fontFamily: "'IBM Plex Sans', sans-serif", textAlign: 'center' }}>
+                  <div style={{ height: 32, borderRadius: 3, background: s.preview, border: '1px solid var(--v-border-subtle)' }} />
+                  <span style={{ fontSize: '0.65rem', color: active ? 'var(--v-accent-hover)' : 'var(--v-text-secondary)', fontFamily: 'var(--v-font-ui)', textAlign: 'center' }}>
                     {s.label}
                   </span>
                   {active && (
                     <div style={{
                       position: 'absolute', top: 5, right: 5,
                       width: 14, height: 14, borderRadius: '50%',
-                      background: 'var(--c-accent)',
+                      background: 'var(--v-accent)',
                       display: 'flex', alignItems: 'center', justifyContent: 'center',
                     }}>
-                      <Check size={8} style={{ color: '#fff' }} />
+                      <Check size={8} style={{ color: 'var(--v-text-primary)' }} />
                     </div>
                   )}
                 </button>
@@ -235,24 +235,24 @@ export function SettingsPanel({ onClose }: SettingsPanelProps) {
           />
 
           {/* ── Data ────────────────────── */}
-          <div style={{ height: 1, background: 'var(--c-border)', margin: '8px 0' }} />
+          <div className="ide-divider" style={{ margin: '8px 0' }} />
           <SectionLabel label="Data" />
           <ToggleRow label="Auto-fetch Hazards" sublabel="Poll every 30s" value={true} onChange={() => {}} icon={<Eye size={13} />} />
           <ToggleRow label="Show Unverified" sublabel="Red markers on map" value={true} onChange={() => {}} icon={<Layers size={13} />} />
 
           {/* Reset */}
-          <div style={{ height: 1, background: 'var(--c-border)', margin: '8px 0' }} />
+          <div className="ide-divider" style={{ margin: '8px 0' }} />
           <div style={{ padding: '12px 16px 20px' }}>
             <button
               onClick={() => update({ theme: 'light', mapStyle: 'dark-osm', density: 'default', showGrid: false, showLabels: true, fontSize: 16 })}
               style={{
                 width: '100%', padding: '7px 0', borderRadius: 4,
-                border: '1px solid var(--c-border)', background: 'rgba(255,255,255,0.02)',
-                color: 'var(--c-text-2)', fontSize: '0.72rem', cursor: 'pointer',
-                fontFamily: "'IBM Plex Sans', sans-serif", transition: 'all 0.12s',
+                border: '1px solid var(--v-rose-border)', background: 'var(--v-hover)',
+                color: 'var(--v-text-secondary)', fontSize: '0.72rem', cursor: 'pointer',
+                fontFamily: 'var(--v-font-ui)', transition: 'all 0.12s',
               }}
-              onMouseEnter={(e) => { (e.currentTarget as HTMLElement).style.background = 'rgba(255,255,255,0.06)'; (e.currentTarget as HTMLElement).style.color = 'var(--c-text)'; }}
-              onMouseLeave={(e) => { (e.currentTarget as HTMLElement).style.background = 'rgba(255,255,255,0.02)'; (e.currentTarget as HTMLElement).style.color = 'var(--c-text-2)'; }}
+              onMouseEnter={(e) => { (e.currentTarget as HTMLElement).style.background = 'var(--v-hover-md)'; (e.currentTarget as HTMLElement).style.color = 'var(--v-text-primary)'; }}
+              onMouseLeave={(e) => { (e.currentTarget as HTMLElement).style.background = 'var(--v-hover)'; (e.currentTarget as HTMLElement).style.color = 'var(--v-text-secondary)'; }}
             >
               Reset to Defaults
             </button>
@@ -260,21 +260,21 @@ export function SettingsPanel({ onClose }: SettingsPanelProps) {
         </div>
 
         {/* Footer */}
-        <div style={{
-          borderTop: '1px solid var(--c-border)', padding: '10px 16px',
+        <div className="vigia-sidebar-footer" style={{
+          borderTop: 'none', padding: '10px 16px',
           display: 'flex', alignItems: 'center', justifyContent: 'space-between', flexShrink: 0,
         }}>
-          <span style={{ fontSize: '0.6rem', color: 'var(--c-text-3)', fontFamily: "'IBM Plex Mono', monospace" }}>
+          <span style={{ fontSize: '0.6rem', color: 'var(--v-text-muted)', fontFamily: 'var(--v-font-mono)' }}>
             VIGIA v1.0 · settings.json
           </span>
           <button onClick={onClose} style={{
             padding: '4px 12px', borderRadius: 3,
-            border: '1px solid var(--c-accent-glow-strong)', background: 'var(--c-accent-glow)',
-            color: 'var(--c-accent-2)', fontSize: '0.72rem', cursor: 'pointer',
-            fontFamily: "'IBM Plex Sans', sans-serif", transition: 'all 0.12s',
+            border: '1px solid var(--v-accent-ring)', background: 'var(--v-accent-glow)',
+            color: 'var(--v-accent-hover)', fontSize: '0.72rem', cursor: 'pointer',
+            fontFamily: 'var(--v-font-ui)', transition: 'all 0.12s',
           }}
-          onMouseEnter={(e) => (e.currentTarget as HTMLElement).style.background = 'rgba(92,143,248,0.22)'}
-          onMouseLeave={(e) => (e.currentTarget as HTMLElement).style.background = 'var(--c-accent-glow)'}
+          onMouseEnter={(e) => (e.currentTarget as HTMLElement).style.background = 'var(--v-accent-muted)'}
+          onMouseLeave={(e) => (e.currentTarget as HTMLElement).style.background = 'var(--v-accent-glow)'}
           >
             Done
           </button>

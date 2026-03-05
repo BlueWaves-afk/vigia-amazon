@@ -4,8 +4,8 @@ import { useMapFileStore } from '@/stores/mapFileStore';
 import { useEffect, useRef } from 'react';
 import maplibregl from 'maplibre-gl';
 
-const FONT_UI   = "'IBM Plex Sans', system-ui, sans-serif";
-const FONT_MONO = "'IBM Plex Mono', monospace";
+const FONT_UI = 'var(--v-font-ui)';
+const FONT_MONO = 'var(--v-font-mono)';
 
 // Map marker colors — inlined into DOM elements so must stay as raw hex/rgb
 const CLR_NEW      = '#F0606C'; // matches --c-red

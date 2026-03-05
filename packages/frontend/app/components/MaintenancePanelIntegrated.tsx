@@ -45,12 +45,12 @@ export function MaintenancePanel() {
     <div style={{ display: 'flex', flexDirection: 'row', height: '100%' }}>
       <div style={{ display: 'flex', flexDirection: 'column', flex: 1, background: C.bg, overflow: 'hidden' }}>
       {/* Header */}
-      <div style={{
+      <div className="vigia-panel-header" style={{
         padding: '0 12px',
         height: 38,
         display: 'flex',
         alignItems: 'center',
-        borderBottom: `1px solid ${C.border}`,
+        borderBottom: 'none',
       }}>
         <span style={{
           fontSize: '0.75rem',
@@ -71,7 +71,7 @@ export function MaintenancePanel() {
               Report Hazard for Maintenance
             </div>
             
-            <div style={{ fontSize: '0.65rem', color: C.textMut, fontFamily: "'IBM Plex Mono', monospace" }}>
+            <div style={{ fontSize: '0.65rem', color: C.textMut, fontFamily: "var(--v-font-mono)" }}>
               <div>ID: {selectedHazard.id}</div>
               <div>Type: {selectedHazard.type}</div>
               <div>Severity: {selectedHazard.severity}/5</div>
@@ -83,13 +83,13 @@ export function MaintenancePanel() {
               onChange={(e) => setNotes(e.target.value.slice(0, 500))}
               placeholder="Additional notes (optional)"
               style={{
-                background: 'rgba(255,255,255,0.04)',
-                border: `1px solid ${C.border}`,
+                background: 'var(--v-hover)',
+                border: `1px solid var(--v-border-default)`,
                 borderRadius: 3,
                 padding: 8,
                 fontSize: '0.7rem',
                 color: C.text,
-                fontFamily: "'IBM Plex Sans', sans-serif",
+                fontFamily: "var(--v-font-ui)",
                 resize: 'vertical',
                 minHeight: 60,
               }}
@@ -120,7 +120,7 @@ export function MaintenancePanel() {
                   padding: '6px 12px',
                   fontSize: '0.7rem',
                   background: 'transparent',
-                  border: `1px solid ${C.border}`,
+                  border: `1px solid var(--v-border-default)`,
                   borderRadius: 3,
                   color: C.textSec,
                   cursor: 'pointer',
@@ -137,7 +137,8 @@ export function MaintenancePanel() {
         )}
 
         {/* Queue */}
-        <div style={{ marginTop: 20, borderTop: `1px solid ${C.border}`, paddingTop: 12 }}>
+        <div style={{ marginTop: 20, paddingTop: 12, position: 'relative' }}>
+          <div className="ide-divider" style={{ position: 'absolute', top: 0, left: 0, right: 0 }} />
           <div style={{ fontSize: '0.7rem', color: C.textSec, fontWeight: 600, marginBottom: 8 }}>
             Maintenance Queue ({maintenanceQueue.length})
           </div>
@@ -147,11 +148,11 @@ export function MaintenancePanel() {
               style={{
                 padding: 8,
                 marginBottom: 6,
-                background: 'rgba(255,255,255,0.02)',
-                border: `1px solid ${C.border}`,
+                background: 'var(--v-hover)',
+                border: `1px solid var(--v-border-default)`,
                 borderRadius: 3,
                 fontSize: '0.65rem',
-                fontFamily: "'IBM Plex Mono', monospace",
+                fontFamily: "var(--v-font-mono)",
               }}
             >
               <div style={{ color: C.text }}>{report.type} - ${report.estimatedCost}</div>

@@ -22,8 +22,8 @@ interface TreeNodeProps {
   onContextMenu?: (nodeId: string, event: React.MouseEvent) => void;
 }
 
-const FONT_UI   = "'IBM Plex Sans', system-ui, sans-serif";
-const FONT_MONO = "'IBM Plex Mono', monospace";
+const FONT_UI = 'var(--v-font-ui)';
+const FONT_MONO = 'var(--v-font-mono)';
 
 export function TreeNodeComponent({ node, selected, expanded, onExpand, onSelect, onContextMenu }: TreeNodeProps) {
   const hasChildren = node.children && node.children.length > 0;

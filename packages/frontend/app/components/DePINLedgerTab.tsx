@@ -2,8 +2,8 @@
 
 import { ROIWidget } from './ROIWidget';
 
-const FONT_UI   = "'IBM Plex Sans', system-ui, sans-serif";
-const FONT_MONO = "'IBM Plex Mono', monospace";
+const FONT_UI = 'var(--v-font-ui)';
+const FONT_MONO = 'var(--v-font-mono)';
 
 interface DePINLedgerTabProps { sessionId: string; }
 

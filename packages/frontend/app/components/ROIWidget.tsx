@@ -3,8 +3,8 @@
 import { useEconomicStore } from '@/stores/economicStore';
 import { useEffect } from 'react';
 
-const FONT_UI   = "'IBM Plex Sans', system-ui, sans-serif";
-const FONT_MONO = "'IBM Plex Mono', monospace";
+const FONT_UI = 'var(--v-font-ui)';
+const FONT_MONO = 'var(--v-font-mono)';
 
 interface ROIWidgetProps { sessionId: string; }
 
@@ -19,7 +19,7 @@ export function ROIWidget({ sessionId }: ROIWidgetProps) {
   }, [sessionId, fetchMetrics]);
 
   const cardStyle: React.CSSProperties = {
-    background: 'var(--c-panel)', border: '1px solid var(--c-border)',
+    background: 'var(--c-panel)', border: '1px solid var(--v-border-default)',
     borderRadius: 6, padding: 12, fontFamily: FONT_UI,
   };
 
@@ -75,7 +75,8 @@ export function ROIWidget({ sessionId }: ROIWidgetProps) {
         </div>
       </div>
 
-      <div style={{ borderTop: '1px solid var(--c-border)', paddingTop: 10 }}>
+      <div className="ide-divider" style={{ margin: '10px 0 0' }} />
+      <div style={{ paddingTop: 10 }}>
         <div style={{ fontSize: '0.60rem', fontWeight: 600, letterSpacing: '0.08em', textTransform: 'uppercase', color: 'var(--c-text-3)', marginBottom: 6 }}>
           Breakdown
         </div>

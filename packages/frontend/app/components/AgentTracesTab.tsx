@@ -4,8 +4,8 @@ import { useEffect, useState, useRef } from 'react';
 import { useAgentTraceStore } from '@/stores/agentTraceStore';
 import type { ReActStep, ReActTrace } from '@/types/shared';
 
-const MONO = "'IBM Plex Mono', monospace";
-const SANS = "'IBM Plex Sans', sans-serif";
+const MONO = 'var(--v-font-mono)';
+const SANS = 'var(--v-font-ui)';
 
 // ── Step sub-components ──────────────────────────────────────
 
@@ -117,7 +117,7 @@ function ThinkingBanner({ trace }: { trace: ThinkingState }) {
         display: 'flex', alignItems: 'center', gap: 10,
         padding: '8px 12px',
         background: 'var(--c-accent-glow)',
-        borderBottom: '1px solid var(--c-border)',
+        borderBottom: '1px solid var(--v-border-subtle)',
       }}>
         {trace.isThinking ? (
           <div style={{ display: 'flex', gap: 3 }}>
@@ -179,7 +179,7 @@ function TraceCard({ trace, index }: { trace: ReActTrace; index: number }) {
     <div style={{
       margin: '0 10px 6px',
       background: 'var(--c-panel)',
-      border: '1px solid var(--c-border)',
+      border: '1px solid var(--v-border-default)',
       borderRadius: 4, overflow: 'hidden',
     }}>
       <button
@@ -222,7 +222,7 @@ function TraceCard({ trace, index }: { trace: ReActTrace; index: number }) {
         </span>
       </button>
       {expanded && (
-        <div style={{ padding: '8px 12px 10px', borderTop: '1px solid var(--c-border)' }}>
+        <div style={{ padding: '8px 12px 10px', borderTop: '1px solid var(--v-border-subtle)' }}>
           {trace.steps.map((step, i) => <StepBlock key={i} step={step} index={i} />)}
         </div>
       )}
@@ -290,10 +290,10 @@ export function AgentTracesTab() {
       `}</style>
 
       {/* Toolbar */}
-      <div style={{
+      <div className="vigia-panel-header" style={{
         display: 'flex', alignItems: 'center', gap: 8,
         padding: '0 10px', height: 34, flexShrink: 0,
-        background: 'var(--c-panel)', borderBottom: '1px solid var(--c-border)',
+        background: 'var(--c-panel)', borderBottom: 'none',
       }}>
         <input
           type="text"
@@ -303,18 +303,18 @@ export function AgentTracesTab() {
           style={{
             flex: 1, padding: '3px 8px',
             fontSize: '0.68rem', fontFamily: MONO,
-            background: 'var(--c-input)', border: '1px solid var(--c-border)',
+            background: 'var(--c-input)', border: '1px solid var(--v-border-default)',
             borderRadius: 3, color: 'var(--c-text)', outline: 'none',
           }}
-          onFocus={(e) => (e.currentTarget.style.borderColor = 'var(--c-accent-2)')}
-          onBlur={(e)  => (e.currentTarget.style.borderColor = 'var(--c-border)')}
+          onFocus={(e) => (e.currentTarget.style.borderColor = 'color-mix(in srgb, var(--v-accent) 50%, transparent)')}
+          onBlur={(e)  => (e.currentTarget.style.borderColor = 'var(--v-border-default)')}
         />
         {filter && (
           <button
             onClick={() => setFilter('')}
             style={{
               padding: '2px 8px', borderRadius: 3, fontSize: '0.62rem', fontFamily: MONO,
-              background: 'var(--c-elevated)', border: '1px solid var(--c-border)',
+              background: 'var(--c-elevated)', border: '1px solid var(--v-border-default)',
               color: 'var(--c-text-2)', cursor: 'pointer',
             }}
             onMouseEnter={(e) => (e.currentTarget as HTMLElement).style.background = 'var(--c-hover)'}
@@ -364,10 +364,10 @@ export function AgentTracesTab() {
       </div>
 
       {/* Status bar */}
-      <div style={{
+      <div className="vigia-sidebar-footer" style={{
         display: 'flex', alignItems: 'center', justifyContent: 'space-between',
         padding: '0 10px', height: 22, flexShrink: 0,
-        background: 'var(--c-panel)', borderTop: '1px solid var(--c-border)',
+        background: 'var(--c-panel)', borderTop: 'none',
         fontSize: '0.6rem', fontFamily: MONO, color: 'var(--c-text-3)',
       }}>
         <span>

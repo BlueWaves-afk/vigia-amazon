@@ -1,71 +1,191 @@
 'use client';
 
-import { User, CheckCircle, AlertTriangle, Cpu, Wifi, Activity } from 'lucide-react';
+import { CheckCircle, AlertTriangle, Activity, Cpu, Wifi, MapPin } from 'lucide-react';
 
-const FONT_UI   = "'IBM Plex Sans', system-ui, sans-serif";
-const FONT_MONO = "'IBM Plex Mono', monospace";
+// ─────────────────────────────────────────────
+// Shared style constants
+// ─────────────────────────────────────────────
 
-function StatusItem({ children, borderLeft = true, accentBg = false }: {
-  children: React.ReactNode; borderLeft?: boolean; accentBg?: boolean;
-}) {
+const TEXT: React.CSSProperties = {
+  fontSize: 11,
+  fontFamily: 'Inter, system-ui, sans-serif',
+  lineHeight: 1,
+  whiteSpace: 'nowrap',
+};
+
+// ─────────────────────────────────────────────
+// Separator — 1px vertical line
+// ─────────────────────────────────────────────
+
+function Sep() {
   return (
-    <div style={{
-      display: 'flex', alignItems: 'center', gap: 5,
-      padding: '0 10px', height: '100%', flexShrink: 0,
-      borderLeft: borderLeft ? '1px solid var(--c-border)' : undefined,
-      background: accentBg ? 'var(--c-accent)' : 'transparent',
-      transition: 'background var(--dur-fast)',
-    }}>
+    <span style={{
+      display: 'inline-block',
+      width: 1,
+      height: 14,
+      background: 'var(--v-sb-sep)',
+      flexShrink: 0,
+      alignSelf: 'center',
+    }} />
+  );
+}
+
+// ─────────────────────────────────────────────
+// StatusSegment — a clickable, hoverable cell
+// ─────────────────────────────────────────────
+
+function Seg({
+  children,
+  accent = false,
+  onClick,
+  title,
+}: {
+  children: React.ReactNode;
+  accent?: boolean;
+  onClick?: () => void;
+  title?: string;
+}) {
+  const isInteractive = !!onClick;
+
+  return (
+    <div
+      title={title}
+      onClick={onClick}
+      className={accent ? 'vsb-accent' : isInteractive ? 'vsb-seg' : undefined}
+      style={{
+        display: 'flex',
+        alignItems: 'center',
+        gap: 5,
+        padding: '0 12px',
+        height: '100%',
+        flexShrink: 0,
+        cursor: isInteractive ? 'pointer' : 'default',
+        userSelect: 'none',
+        ...(accent ? {
+          background: 'var(--v-sb-accent-bg)',
+          color: 'var(--v-sb-accent-text)',
+        } : {
+          background: 'transparent',
+          color: 'var(--v-sb-text)',
+        }),
+      }}
+    >
       {children}
     </div>
   );
 }
 
-const S = { fontSize: '0.62rem', fontFamily: FONT_UI,   color: 'var(--c-text-2)' } as const;
-const M = { fontSize: '0.62rem', fontFamily: FONT_MONO, color: 'var(--c-text-2)' } as const;
+// ─────────────────────────────────────────────
+// ONNX pill badge
+// ─────────────────────────────────────────────
+
+function OnnxPill({ active }: { active: boolean }) {
+  return (
+    <span style={{
+      display: 'inline-flex',
+      alignItems: 'center',
+      gap: 4,
+      padding: '1px 6px',
+      borderRadius: 10,
+      fontSize: 10,
+      fontFamily: 'Inter, system-ui, sans-serif',
+      fontWeight: 600,
+      letterSpacing: '0.02em',
+      lineHeight: 1,
+      background: active ? 'rgba(74,222,128,0.13)' : 'rgba(107,114,128,0.15)',
+      color:      active ? 'var(--v-success)'       : 'var(--v-sb-text)',
+      border: `1px solid ${active ? 'rgba(74,222,128,0.28)' : 'rgba(107,114,128,0.20)'}`,
+    }}>
+      <span style={{
+        width: 5, height: 5, borderRadius: '50%',
+        background: active ? 'var(--v-success)' : 'var(--v-sb-text)',
+        flexShrink: 0,
+      }} />
+      {active ? 'Active' : 'Idle'}
+    </span>
+  );
+}
+
+// ─────────────────────────────────────────────
+// StatusBar
+// ─────────────────────────────────────────────
 
 export function StatusBar() {
   return (
     <footer
       className="vigia-statusbar"
       style={{
-        display: 'flex', alignItems: 'center', justifyContent: 'space-between',
-        height: 24, flexShrink: 0, userSelect: 'none',
-        background: 'var(--c-deep)',
-        boxShadow: 'inset 0 1px 0 rgba(255,255,255,0.02)',
+        display: 'flex',
+        alignItems: 'center',
+        justifyContent: 'space-between',
+        height: 24,
+        flexShrink: 0,
+        userSelect: 'none',
+        background: 'var(--v-sb-bg)',
       }}
     >
+      {/* ── Left group ───────────────────────── */}
       <div style={{ display: 'flex', alignItems: 'center', height: '100%' }}>
-        <StatusItem borderLeft={false} accentBg>
-          <User size={10} style={{ color: '#fff' }} />
-          <span style={{ ...S, color: '#fff', fontWeight: 600 }}>user</span>
-        </StatusItem>
-        <StatusItem>
-          <CheckCircle size={10} style={{ color: 'var(--c-green)' }} />
-          <span style={S}>No errors</span>
-        </StatusItem>
-        <StatusItem>
-          <AlertTriangle size={10} style={{ color: 'var(--c-yellow)' }} />
-          <span style={S}>7 hazards</span>
-        </StatusItem>
+
+        {/* Accent pill: location / connectivity */}
+        <Seg accent title="Current location">
+          <MapPin size={10} strokeWidth={2.2} style={{ color: 'rgba(255,255,255,0.75)', flexShrink: 0 }} />
+          <span style={{ ...TEXT, color: 'var(--v-sb-accent-text)', fontWeight: 600 }}>
+            Rourkela · India · Online
+          </span>
+        </Seg>
+
+        <Sep />
+
+        {/* No errors */}
+        <Seg onClick={() => {}} title="0 errors, 0 warnings">
+          <CheckCircle size={10} strokeWidth={2.2} style={{ color: 'var(--v-success)', flexShrink: 0 }} />
+          <span style={TEXT}>No errors</span>
+        </Seg>
+
+        <Sep />
+
+        {/* Hazard count */}
+        <Seg onClick={() => {}} title="Active hazard reports">
+          <AlertTriangle size={10} strokeWidth={2.2} style={{ color: 'var(--v-warning)', flexShrink: 0 }} />
+          <span style={TEXT}>7 hazards</span>
+        </Seg>
+
       </div>
 
+      {/* ── Right group ──────────────────────── */}
       <div style={{ display: 'flex', alignItems: 'center', height: '100%' }}>
-        <StatusItem>
-          <Activity size={10} style={{ color: 'var(--c-text-3)' }} />
-          <span style={M}>48 nodes</span>
-        </StatusItem>
-        <StatusItem>
-          <Cpu size={10} style={{ color: 'var(--c-text-3)' }} />
-          <span style={M}>ONNX · Active</span>
-        </StatusItem>
-        <StatusItem>
-          <Wifi size={10} style={{ color: 'var(--c-text-3)' }} />
-          <span style={M}>8ms</span>
-        </StatusItem>
-        <StatusItem>
-          <span style={{ ...S, color: 'var(--c-text-3)' }}>UTF-8 · GeoJSON</span>
-        </StatusItem>
+
+        {/* Network nodes */}
+        <Seg onClick={() => {}} title="Connected DePIN nodes">
+          <Activity size={10} strokeWidth={2.2} style={{ color: '#60a5fa', flexShrink: 0 }} />
+          <span style={TEXT}>48 nodes</span>
+        </Seg>
+
+        <Sep />
+
+        {/* ONNX runtime + pill */}
+        <Seg onClick={() => {}} title="ONNX inference runtime">
+          <Cpu size={10} strokeWidth={2.2} style={{ color: 'var(--v-sb-text)', flexShrink: 0 }} />
+          <span style={TEXT}>ONNX</span>
+          <OnnxPill active />
+        </Seg>
+
+        <Sep />
+
+        {/* Latency */}
+        <Seg title="API latency">
+          <Wifi size={10} strokeWidth={2.2} style={{ color: 'var(--v-sb-text)', flexShrink: 0 }} />
+          <span style={TEXT}>8ms</span>
+        </Seg>
+
+        <Sep />
+
+        {/* Encoding */}
+        <Seg title="File encoding and format">
+          <span style={{ ...TEXT, color: 'var(--v-sb-text)', opacity: 0.7 }}>UTF-8 · GeoJSON</span>
+        </Seg>
+
       </div>
     </footer>
   );

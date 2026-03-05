@@ -3,8 +3,8 @@
 import { useState, useRef, useEffect, useId } from 'react';
 import { Bot, Send, RefreshCw, AlertCircle } from 'lucide-react';
 
-const MONO = "'IBM Plex Mono', monospace";
-const SANS = "'IBM Plex Sans', sans-serif";
+const MONO = 'var(--v-font-mono)';
+const SANS = 'var(--v-font-ui)';
 
 const C = {
   bg:      'var(--c-bg)',

@@ -224,10 +224,9 @@ export function CommandPalette({ open, onClose, onNavigate, onSettingsOpen }: Co
           {query && (
             <button
               onClick={() => setQuery('')}
-              style={{
-                color: 'var(--c-text-3)',
-                cursor: 'pointer', fontSize: '0.62rem', fontFamily: "'IBM Plex Mono', monospace",
-                padding: '2px 6px', borderRadius: 3,
+              style={{              color: 'var(--c-text-3)',
+              cursor: 'pointer', fontSize: '0.62rem', fontFamily: 'var(--v-font-mono)',
+              padding: '2px 6px', borderRadius: 3,
                 background: 'var(--c-panel)', border: '1px solid var(--c-border)',
               }}
             >
@@ -244,7 +243,7 @@ export function CommandPalette({ open, onClose, onNavigate, onSettingsOpen }: Co
             <div style={{
               padding: '32px 16px', textAlign: 'center',
               color: 'var(--c-text-3)', fontSize: '0.76rem',
-              fontFamily: "'IBM Plex Sans', system-ui, sans-serif",
+              fontFamily: 'var(--v-font-ui)',
             }}>
               No commands match <strong style={{ color: 'var(--c-text-2)' }}>"{query}"</strong>
             </div>

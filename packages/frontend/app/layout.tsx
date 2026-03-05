@@ -29,7 +29,9 @@ export default function RootLayout({ children }: { children: React.ReactNode }) 
         transition: 'background 0.18s ease, color 0.18s ease',
       }}>
         <SettingsProvider>
-          {children}
+          <div className="vigia-root" style={{ height: '100%', overflow: 'hidden' }}>
+            {children}
+          </div>
         </SettingsProvider>
       </body>
     </html>

@@ -311,7 +311,7 @@ export function LiveMap({ selectedSession }: { selectedSession?: any }) {
           .setLngLat([hazard.lon, hazard.lat])
           .setPopup(
             new maplibregl.Popup({ closeButton: false, offset: 12 }).setHTML(`
-              <div style="font-family:'IBM Plex Mono',monospace;font-size:0.68rem;line-height:1.6;color:var(--c-text)">
+              <div style="font-family:var(--v-font-mono);font-size:0.68rem;line-height:1.6;color:var(--c-text)">
                 <div style="font-weight:500;color:${hazard.status==='verified' ? 'var(--c-accent-2)' : 'var(--c-red)'};margin-bottom:4px">
                   ${hazard.hazardType || 'HAZARD'} · ${hazard.status.toUpperCase()}
                 </div>
@@ -362,7 +362,7 @@ export function LiveMap({ selectedSession }: { selectedSession?: any }) {
               borderTopColor: 'var(--c-rose)',
               animation: 'spin 0.85s linear infinite',
             }} />
-            <span style={{ fontSize: '0.66rem', color: 'var(--c-text-3)', fontFamily: "'IBM Plex Mono', monospace", letterSpacing: '0.06em' }}>
+            <span style={{ fontSize: '0.66rem', color: 'var(--c-text-3)', fontFamily: "var(--v-font-mono)", letterSpacing: '0.06em' }}>
               LOADING MAP
             </span>
           </div>
@@ -384,11 +384,11 @@ export function LiveMap({ selectedSession }: { selectedSession?: any }) {
         }}>
           {selectedSession && (
             <>
-              <span style={{ fontSize: '0.62rem', color: 'var(--c-yellow)', fontFamily: "'IBM Plex Mono', monospace", fontWeight: 600 }}>
+              <span style={{ fontSize: '0.62rem', color: 'var(--c-yellow)', fontFamily: "var(--v-font-mono)", fontWeight: 600 }}>
                 SNAPSHOT
               </span>
               <span style={{ color: 'var(--c-rose-border)', fontSize: '0.7rem' }}>│</span>
-              <span style={{ fontSize: '0.60rem', color: 'var(--c-text-2)', fontFamily: "'IBM Plex Mono', monospace" }}>
+              <span style={{ fontSize: '0.60rem', color: 'var(--c-text-2)', fontFamily: "var(--v-font-mono)" }}>
                 {new Date(selectedSession.temporal?.createdAt || selectedSession.timestamp).toLocaleString()}
               </span>
               <span style={{ color: 'var(--c-rose-border)', fontSize: '0.7rem' }}>│</span>
@@ -396,25 +396,25 @@ export function LiveMap({ selectedSession }: { selectedSession?: any }) {
           )}
           <div style={{ display: 'flex', alignItems: 'center', gap: 5 }}>
             <span style={{ width: 5, height: 5, borderRadius: '50%', background: 'var(--c-accent-2)', flexShrink: 0 }} />
-            <span style={{ fontSize: '0.62rem', color: 'var(--c-text-2)', fontFamily: "'IBM Plex Mono', monospace" }}>
+            <span style={{ fontSize: '0.62rem', color: 'var(--c-text-2)', fontFamily: "var(--v-font-mono)" }}>
               {hazards.filter(h => h.status === 'verified').length} verified
             </span>
           </div>
           <span style={{ color: 'var(--c-rose-border)', fontSize: '0.7rem' }}>│</span>
           <div style={{ display: 'flex', alignItems: 'center', gap: 5 }}>
             <span style={{ width: 5, height: 5, borderRadius: '50%', background: 'var(--c-red)', flexShrink: 0 }} />
-            <span style={{ fontSize: '0.62rem', color: 'var(--c-text-2)', fontFamily: "'IBM Plex Mono', monospace" }}>
+            <span style={{ fontSize: '0.62rem', color: 'var(--c-text-2)', fontFamily: "var(--v-font-mono)" }}>
               {hazards.filter(h => h.status !== 'verified').length} unverified
             </span>
           </div>
           <span style={{ color: 'var(--c-rose-border)', fontSize: '0.7rem' }}>│</span>
-          <span style={{ fontSize: '0.62rem', color: 'var(--c-rose)', fontFamily: "'IBM Plex Mono', monospace", fontWeight: 500 }}>
+          <span style={{ fontSize: '0.62rem', color: 'var(--c-rose)', fontFamily: "var(--v-font-mono)", fontWeight: 500 }}>
             {STYLE_LABELS[settings.mapStyle]}
           </span>
           {settings.showGrid && (
             <>
               <span style={{ color: 'var(--c-rose-border)', fontSize: '0.7rem' }}>│</span>
-              <span style={{ fontSize: '0.60rem', color: 'var(--c-rose)', fontFamily: "'IBM Plex Mono', monospace", opacity: 0.7 }}>
+              <span style={{ fontSize: '0.60rem', color: 'var(--c-rose)', fontFamily: "var(--v-font-mono)", opacity: 0.7 }}>
                 GRID
               </span>
             </>
@@ -433,7 +433,7 @@ export function LiveMap({ selectedSession }: { selectedSession?: any }) {
             return (
               <button key={s} onClick={() => update({ mapStyle: s })} style={{
                 padding: '4px 9px', borderRadius: 4, cursor: 'pointer',
-                fontFamily: "'IBM Plex Mono', monospace", fontSize: '0.60rem',
+                fontFamily: "var(--v-font-mono)", fontSize: '0.60rem',
                 fontWeight: active ? 600 : 400,
                 letterSpacing: '0.05em',
                 border: `1px solid ${active ? 'var(--c-rose-border)' : 'var(--c-border)'}`,
@@ -464,7 +464,7 @@ export function LiveMap({ selectedSession }: { selectedSession?: any }) {
           {/* Grid toggle */}
           <button onClick={() => update({ showGrid: !settings.showGrid })} style={{
             padding: '4px 9px', borderRadius: 4, cursor: 'pointer',
-            fontFamily: "'IBM Plex Mono', monospace", fontSize: '0.60rem', fontWeight: 600,
+            fontFamily: "var(--v-font-mono)", fontSize: '0.60rem', fontWeight: 600,
             letterSpacing: '0.05em', textTransform: 'uppercase',
             border: `1px solid ${settings.showGrid ? 'var(--c-rose-border)' : 'var(--c-border)'}`,
             background: settings.showGrid ? 'var(--c-rose-dim)' : 'var(--c-overlay)',
@@ -491,7 +491,7 @@ export function LiveMap({ selectedSession }: { selectedSession?: any }) {
           {/* Labels toggle */}
           <button onClick={() => update({ showLabels: !settings.showLabels })} style={{
             padding: '4px 9px', borderRadius: 4, cursor: 'pointer',
-            fontFamily: "'IBM Plex Mono', monospace", fontSize: '0.60rem', fontWeight: 600,
+            fontFamily: "var(--v-font-mono)", fontSize: '0.60rem', fontWeight: 600,
             letterSpacing: '0.05em', textTransform: 'uppercase',
             border: `1px solid ${settings.showLabels ? 'var(--c-accent-glow)' : 'var(--c-border)'}`,
             background: settings.showLabels ? 'var(--c-accent-glow)' : 'var(--c-overlay)',
@@ -596,7 +596,7 @@ export function LiveMap({ selectedSession }: { selectedSession?: any }) {
               backdropFilter: 'blur(8px)',
               color: 'var(--c-accent-2)',
               fontSize: '0.62rem',
-              fontFamily: "'IBM Plex Mono', monospace",
+              fontFamily: "var(--v-font-mono)",
               fontWeight: 600,
               letterSpacing: '0.05em',
               textTransform: 'uppercase',
@@ -630,7 +630,7 @@ export function LiveMap({ selectedSession }: { selectedSession?: any }) {
               <div className="vigia-toggle-thumb" style={{ transform: showUnverified ? 'translateX(14px)' : 'translateX(2px)' }} />
             </div>
             <input type="checkbox" checked={showUnverified} onChange={e => setShowUnverified(e.target.checked)} style={{ display: 'none' }} />
-            <span style={{ fontSize: '0.64rem', color: 'var(--c-text-2)', fontFamily: "'IBM Plex Mono', monospace" }}>
+            <span style={{ fontSize: '0.64rem', color: 'var(--c-text-2)', fontFamily: "var(--v-font-mono)" }}>
               Unverified
             </span>
           </label>
