@@ -91,14 +91,59 @@ export default function Dashboard() {
       switchMainTab(diffId);
       toast.success('Diff Created', label);
     };
+    const handleHazardSession = async (event: CustomEvent) => {
+      const { lat, lon, hazardId } = event.detail;
+      const geohash = hazardId.split('#')[0];
+      
+      // Fetch hazards for this geohash
+      let hazardsData = [];
+      try {
+        const response = await fetch(`${process.env.NEXT_PUBLIC_TELEMETRY_API_URL}/hazards?geohash=${geohash}`);
+        if (response.ok) {
+          const data = await response.json();
+          hazardsData = data.hazards || [];
+        }
+      } catch (error) {
+        console.error('Failed to fetch hazards:', error);
+      }
+      
+      // Create a new session for this hazard
+      const newSession = {
+        sessionId: hazardId,
+        geohash7: geohash,
+        timestamp: new Date().toISOString(),
+        location: { city: 'Hazard Location' },
+        coverage: {
+          centerPoint: { lat, lon },
+          radiusKm: 1
+        },
+        hazards: hazardsData
+      };
+      
+      // Add new tab
+      const tabId = `hazard-${Date.now()}`;
+      setExplorerTabs(prev => [...prev, {
+        id: tabId,
+        label: `Hazard ${geohash.substring(0, 8)}`,
+        session: newSession
+      }]);
+      
+      // Switch to explorer activity and select the new tab
+      setSidebarActivity('explorer');
+      switchMainTab(tabId);
+      
+      toast.success('Hazard Location', `Loaded ${hazardsData.length} hazards`);
+    };
     
     window.addEventListener('vigia-report-maintenance', handleMaintenanceReport as EventListener);
     window.addEventListener('vigia-split-view', handleSplitView as EventListener);
     window.addEventListener('vigia-diff-created', handleDiffCreated as EventListener);
+    window.addEventListener('create-hazard-session', handleHazardSession as unknown as EventListener);
     return () => {
       window.removeEventListener('vigia-report-maintenance', handleMaintenanceReport as EventListener);
       window.removeEventListener('vigia-split-view', handleSplitView as EventListener);
       window.removeEventListener('vigia-diff-created', handleDiffCreated as EventListener);
+      window.removeEventListener('create-hazard-session', handleHazardSession as unknown as EventListener);
     };
   }, []);
 
@@ -640,6 +685,11 @@ export default function Dashboard() {
           <AgentChatPanel
             contextType="livemap"
             context={{ sessionId: selectedSession?.sessionId, city: selectedSession?.location?.city }}
+            availableSessions={explorerTabs.map(tab => ({
+              sessionId: tab.session?.sessionId || tab.id,
+              label: tab.label,
+              geohash: tab.session?.geohash
+            }))}
           />
         )}
 

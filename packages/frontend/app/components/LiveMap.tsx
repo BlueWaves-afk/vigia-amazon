@@ -108,6 +108,38 @@ export function LiveMap({ selectedSession }: { selectedSession?: any }) {
   const [showUnverified, setShowUnverified]  = useState(true);
   const [mapReady,       setMapReady]        = useState(false);
 
+  // ── Map viewport trigger for agent ──────────────────────────────────────────
+  useEffect(() => {
+    console.log('[LiveMap] Setting up viewport trigger, map ready:', mapReady);
+    (window as any).__mapViewportTrigger = () => {
+      const viewport = (window as any).__mapViewport;
+      console.log('[LiveMap] Trigger called, viewport:', viewport, 'map exists:', !!map.current, 'map ready:', mapReady);
+      if (viewport && map.current && mapReady) {
+        console.log('[LiveMap] Flying to:', viewport.center, 'zoom:', viewport.zoom);
+        map.current.flyTo({
+          center: viewport.center,
+          zoom: viewport.zoom || 15,
+          duration: 1500,
+        });
+      } else if (viewport) {
+        console.warn('[LiveMap] Map not ready yet, retrying in 1000ms');
+        setTimeout(() => {
+          if (map.current && mapReady) {
+            console.log('[LiveMap] Retry successful, flying to:', viewport.center);
+            map.current.flyTo({
+              center: viewport.center,
+              zoom: viewport.zoom || 15,
+              duration: 1500,
+            });
+          } else {
+            console.error('[LiveMap] Map still not ready after retry');
+          }
+        }, 1000);
+      }
+    };
+    // Don't delete on unmount - keep it available
+  }, [mapReady]);
+
   // ── Real-time hazard events (only when no session selected) ─────────────────
   useEffect(() => {
     // Don't listen for real-time hazards when viewing a session

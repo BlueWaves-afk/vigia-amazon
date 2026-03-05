@@ -30,15 +30,21 @@ export async function POST(req: NextRequest) {
       agentAliasId,
       sessionId: `network-analysis-${Date.now()}`,
       inputText,
+      enableTrace: true,
     });
 
     const response = await client.send(command);
 
     let completion = '';
+    const traces: any[] = [];
+    
     if (response.completion) {
       for await (const event of response.completion) {
         if (event.chunk?.bytes) {
           completion += new TextDecoder().decode(event.chunk.bytes);
+        }
+        if (event.trace) {
+          traces.push(event.trace);
         }
       }
     }
@@ -46,6 +52,7 @@ export async function POST(req: NextRequest) {
     return NextResponse.json({
       analysis: completion || 'No response from agent.',
       sessionId: response.sessionId,
+      traces,
     });
   } catch (err: any) {
     console.error('[network-analysis] Error:', err);

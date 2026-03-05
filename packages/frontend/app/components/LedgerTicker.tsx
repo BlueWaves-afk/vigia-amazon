@@ -23,7 +23,7 @@ export function LedgerTicker() {
   // ── Original fetch logic preserved ────────
   const fetchEntries = async () => {
     try {
-      const response = await fetch(`${process.env.NEXT_PUBLIC_API_URL}/ledger`);
+      const response = await fetch('/api/ledger');
       const data = await response.json();
       setEntries(data.entries || []);
       setLoading(false);
