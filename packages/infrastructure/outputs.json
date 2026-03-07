@@ -1,10 +1,27 @@
 {
   "VigiaStack": {
+    "IntelligenceWithHazardsRouteCalculatorName01371D01": "VigiaStack-VigiaRouteCalculator",
     "HazardsTableName": "VigiaStack-IngestionHazardsTable05BAEAEE-1B0GEE1NV7PU5",
-    "SessionApiEndpoint": "https://eepqy4yku7.execute-api.us-east-1.amazonaws.com/prod/",
-    "IngestionVigiaAPIEndpoint6EC1B0D1": "https://sq2ri2n51g.execute-api.us-east-1.amazonaws.com/prod/",
+    "IntelligenceWithHazardsMaintenanceLogisticsFunctionArn6B9EAB5E": "arn:aws:lambda:us-east-1:203800220566:function:VigiaStack-IntelligenceWithHazardsMaintenanceLogis-DFZlsGUW5tBE",
+    "IntelligenceWithHazardsVigiaAgentConfigHazardVerificationLambdaArn58BB1764": "arn:aws:lambda:us-east-1:203800220566:function:VigiaStack-IntelligenceWithHazardsBedrockRouterFun-gW5JPucnZJJG",
+    "IntelligenceWithHazardsVigiaAgentConfigNetworkIntelligenceLambdaArn49B6AF2A": "arn:aws:lambda:us-east-1:203800220566:function:VigiaStack-IntelligenceWithHazardsNetworkIntellige-BQpjldvWdtKt",
+    "IntelligenceWithHazardsVigiaAgentConfigUrbanPlannerLambdaArn3FCE2818": "arn:aws:lambda:us-east-1:203800220566:function:VigiaStack-IntelligenceWithHazardsUrbanPlannerFunc-spESG0Jxisgr",
+    "IntelligenceWithHazardsNetworkIntelligenceFunctionArn57DA2645": "arn:aws:lambda:us-east-1:203800220566:function:VigiaStack-IntelligenceWithHazardsNetworkIntellige-BQpjldvWdtKt",
     "ApiEndpoint": "https://sq2ri2n51g.execute-api.us-east-1.amazonaws.com/prod/",
+    "InnovationInnovationApiEndpointA408E484": "https://p4qc9upgsf.execute-api.us-east-1.amazonaws.com/prod/",
     "SessionSessionAPIEndpointC8F32A54": "https://eepqy4yku7.execute-api.us-east-1.amazonaws.com/prod/",
-    "IntelligenceWithHazardsBedrockRouterFunctionArnEA97357A": "arn:aws:lambda:us-east-1:203800220566:function:VigiaStack-IntelligenceWithHazardsBedrockRouterFun-gW5JPucnZJJG"
+    "IntelligenceWithHazardsUrbanPlannerFunctionArnF796A95D": "arn:aws:lambda:us-east-1:203800220566:function:VigiaStack-IntelligenceWithHazardsUrbanPlannerFunc-spESG0Jxisgr",
+    "IntelligenceWithHazardsBedrockRouterFunctionArnEA97357A": "arn:aws:lambda:us-east-1:203800220566:function:VigiaStack-IntelligenceWithHazardsBedrockRouterFun-gW5JPucnZJJG",
+    "IntelligenceWithHazardsGeofenceCollectionName5B8EC322": "VigiaRestrictedZones",
+    "SessionApiEndpoint": "https://eepqy4yku7.execute-api.us-east-1.amazonaws.com/prod/",
+    "IntelligenceWithHazardsUrbanPlannerStateMachineArn0542F742": "arn:aws:states:us-east-1:203800220566:stateMachine:IntelligenceWithHazardsUrbanPlannerStateMachine4D4809DC-6apsCjWJDlAM",
+    "IntelligenceWithHazardsVigiaAgentConfigAgentAliasId238D31C2": "TSTALIASID",
+    "IntelligenceWithHazardsVigiaAgentConfigAgentInstruction051EA306": "You are VIGIA's infrastructure intelligence agent. You can: 1) Verify hazards using historical data 2) Analyze DePIN network health and coverage gaps 3) Prioritize maintenance tasks and estimate costs 4) Propose optimal road paths to bypass hazard zones. Always provide clear reasoning.",
+    "IngestionVigiaAPIEndpoint6EC1B0D1": "https://sq2ri2n51g.execute-api.us-east-1.amazonaws.com/prod/",
+    "InnovationApiEndpoint": "https://p4qc9upgsf.execute-api.us-east-1.amazonaws.com/prod/",
+    "AgentRateLimitTableName": "VigiaStack-AgentRateLimitTable1EBB5C79-1HLEEI3Z8H9QH",
+    "IntelligenceWithHazardsVigiaAgentConfigMaintenanceLogisticsLambdaArn8120F682": "arn:aws:lambda:us-east-1:203800220566:function:VigiaStack-IntelligenceWithHazardsMaintenanceLogis-DFZlsGUW5tBE",
+    "InnovationInnovationApiEndpointBECC0904": "https://p4qc9upgsf.execute-api.us-east-1.amazonaws.com/prod/",
+    "IntelligenceWithHazardsVigiaAgentConfigAgentId02F52830": "TAWWC3SQ0L"
   }
 }
