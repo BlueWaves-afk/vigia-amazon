@@ -3,11 +3,10 @@ import type { NextConfig } from "next";
 const nextConfig: NextConfig = {
   reactCompiler: true,
 
-  // Prevent Next.js from bundling the AWS SDK — let Node.js require() it at runtime.
-  // This is required for Amplify Hosting SSR (the Lambda has aws-sdk available via node_modules).
-  serverExternalPackages: ['@aws-sdk/client-bedrock-agent-runtime'],
-
-  // Note: 'standalone' output is NOT used — Amplify Hosting manages the SSR runtime.
+  // NOTE: Do NOT externalize AWS SDK packages for Amplify SSR.
+  // With Turbopack builds, Amplify can fail at runtime attempting to require a
+  // non-existent hashed external module name (e.g. "@aws-sdk/client-...-<hash>").
+  // Bundling the AWS SDK avoids that failure mode.
 };
 
 export default nextConfig;

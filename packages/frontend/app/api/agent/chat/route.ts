@@ -7,13 +7,58 @@ import {
 // Increase API route timeout for complex agent queries
 export const maxDuration = 60; // 60 seconds
 
+function getAwsRegion() {
+  return (
+    process.env.AWS_REGION ||
+    process.env.AWS_DEFAULT_REGION ||
+    process.env.NEXT_PUBLIC_AWS_REGION ||
+    'us-east-1'
+  );
+}
+
+function normalizeAwsError(err: unknown) {
+  const anyErr = err as any;
+  const name = anyErr?.name ?? 'UnknownError';
+  const message = anyErr?.message ?? String(err);
+  const requestId = anyErr?.$metadata?.requestId;
+  const httpStatusCode = anyErr?.$metadata?.httpStatusCode;
+
+  let errorType:
+    | 'aws_credentials'
+    | 'aws_access_denied'
+    | 'aws_resource_not_found'
+    | 'aws_invalid_token'
+    | 'aws_throttling'
+    | 'timeout'
+    | 'unknown' = 'unknown';
+
+  if (name.includes('Credentials') || /Could not load credentials/i.test(message)) {
+    errorType = 'aws_credentials';
+  } else if (name === 'AccessDeniedException' || /AccessDenied/i.test(message) || httpStatusCode === 403) {
+    errorType = 'aws_access_denied';
+  } else if (name === 'ResourceNotFoundException') {
+    errorType = 'aws_resource_not_found';
+  } else if (name === 'UnrecognizedClientException' || /invalid security token/i.test(message)) {
+    errorType = 'aws_invalid_token';
+  } else if (name === 'ThrottlingException' || httpStatusCode === 429) {
+    errorType = 'aws_throttling';
+  } else if (/timeout/i.test(message) || name === 'TimeoutError') {
+    errorType = 'timeout';
+  }
+
+  return { name, message, requestId, httpStatusCode, errorType };
+}
+
 export async function POST(req: NextRequest) {
   try {
     const { query, sessionId, diffContext, context } = await req.json();
 
-    const agentId = process.env.NEXT_PUBLIC_BEDROCK_AGENT_ID;
-    const agentAliasId = process.env.NEXT_PUBLIC_BEDROCK_AGENT_ALIAS_ID;
-    const region = process.env.NEXT_PUBLIC_AWS_REGION || 'us-east-1';
+    const agentId =
+      process.env.BEDROCK_AGENT_ID || process.env.NEXT_PUBLIC_BEDROCK_AGENT_ID;
+    const agentAliasId =
+      process.env.BEDROCK_AGENT_ALIAS_ID ||
+      process.env.NEXT_PUBLIC_BEDROCK_AGENT_ALIAS_ID;
+    const region = getAwsRegion();
 
     if (!agentId || !agentAliasId) {
       return NextResponse.json(
@@ -116,9 +161,10 @@ export async function POST(req: NextRequest) {
       thinking: thinkingSteps,
     });
   } catch (err: any) {
-    console.error('[agent/chat] Error:', err);
+    const awsError = normalizeAwsError(err);
+    console.error('[agent/chat] Error', { ...awsError, region: getAwsRegion() });
 
-    if (err.message?.includes('timeout') || err.message?.includes('Timeout')) {
+    if (awsError.errorType === 'timeout') {
       return NextResponse.json(
         {
           content:
@@ -128,9 +174,16 @@ export async function POST(req: NextRequest) {
         { status: 200 }
       );
     }
-    
+
+    const debugDetails =
+      process.env.DEBUG_API_ERRORS === 'true' || process.env.NODE_ENV !== 'production';
     return NextResponse.json(
-      { error: err.message || 'Agent invocation failed' },
+      {
+        error: err?.message || 'Agent invocation failed',
+        errorType: awsError.errorType,
+        requestId: awsError.requestId,
+        ...(debugDetails ? { details: awsError } : {}),
+      },
       { status: 500 }
     );
   }

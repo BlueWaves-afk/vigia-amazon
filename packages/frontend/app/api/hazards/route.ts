@@ -2,10 +2,52 @@ import { NextRequest, NextResponse } from 'next/server';
 import { DynamoDBClient } from '@aws-sdk/client-dynamodb';
 import { DynamoDBDocumentClient, ScanCommand } from '@aws-sdk/lib-dynamodb';
 
-const client = new DynamoDBClient({ region: 'us-east-1' });
+function getAwsRegion() {
+  return (
+    process.env.AWS_REGION ||
+    process.env.AWS_DEFAULT_REGION ||
+    process.env.NEXT_PUBLIC_AWS_REGION ||
+    'us-east-1'
+  );
+}
+
+function normalizeAwsError(err: unknown) {
+  const anyErr = err as any;
+  const name = anyErr?.name ?? 'UnknownError';
+  const message = anyErr?.message ?? String(err);
+  const requestId = anyErr?.$metadata?.requestId;
+  const httpStatusCode = anyErr?.$metadata?.httpStatusCode;
+
+  let errorType:
+    | 'aws_credentials'
+    | 'aws_access_denied'
+    | 'aws_resource_not_found'
+    | 'aws_invalid_token'
+    | 'aws_throttling'
+    | 'unknown' = 'unknown';
+
+  if (name.includes('Credentials') || /Could not load credentials/i.test(message)) {
+    errorType = 'aws_credentials';
+  } else if (name === 'AccessDeniedException' || /AccessDenied/i.test(message) || httpStatusCode === 403) {
+    errorType = 'aws_access_denied';
+  } else if (name === 'ResourceNotFoundException') {
+    errorType = 'aws_resource_not_found';
+  } else if (name === 'UnrecognizedClientException' || /invalid security token/i.test(message)) {
+    errorType = 'aws_invalid_token';
+  } else if (name === 'ThrottlingException' || httpStatusCode === 429) {
+    errorType = 'aws_throttling';
+  }
+
+  return { name, message, requestId, httpStatusCode, errorType };
+}
+
+const region = getAwsRegion();
+const client = new DynamoDBClient({ region });
 const docClient = DynamoDBDocumentClient.from(client);
 
-const HAZARDS_TABLE = 'VigiaStack-IngestionHazardsTable05BAEAEE-1B0GEE1NV7PU5';
+const HAZARDS_TABLE =
+  process.env.HAZARDS_TABLE_NAME ||
+  'VigiaStack-IngestionHazardsTable05BAEAEE-1B0GEE1NV7PU5';
 
 function calculateDistance(lat1: number, lon1: number, lat2: number, lon2: number): number {
   const R = 6371000; // Earth radius in meters
@@ -51,7 +93,24 @@ export async function GET(req: NextRequest) {
 
     return NextResponse.json({ hazards });
   } catch (error) {
-    console.error('Failed to fetch hazards:', error);
-    return NextResponse.json({ error: 'Failed to fetch hazards', hazards: [] }, { status: 500 });
+    const awsError = normalizeAwsError(error);
+    console.error('[hazards] Failed to fetch hazards', {
+      ...awsError,
+      region,
+      tableName: HAZARDS_TABLE,
+    });
+
+    const debugDetails =
+      process.env.DEBUG_API_ERRORS === 'true' || process.env.NODE_ENV !== 'production';
+    return NextResponse.json(
+      {
+        error: 'Failed to fetch hazards',
+        hazards: [],
+        errorType: awsError.errorType,
+        requestId: awsError.requestId,
+        ...(debugDetails ? { details: awsError } : {}),
+      },
+      { status: 500 }
+    );
   }
 }
