@@ -99,6 +99,7 @@ Declarative workflow orchestration using JSON-based state machine definitions. N
 
 **Performance**: 206ms execution time (target: <5s)
 
+
 ### 2. Step Functions Express Workflows
 Synchronous workflow execution with <5 second response time. Parallel execution of 3 micro-Lambdas: Bezier path generation, cost calculation, zone compliance.
 
@@ -111,6 +112,7 @@ const stateMachine = new sfn.StateMachine(this, 'UrbanPlannerStateMachine', {
   stateMachineType: sfn.StateMachineType.EXPRESS,
 });
 ```
+<img width="1505" height="1322" alt="image" src="https://github.com/user-attachments/assets/0b080811-75f5-493a-9761-4c10aade2517" />
 
 ### 3. Amazon Location Service Geofences
 Managed spatial intelligence for zone-based regulations. 4 demo zones: Residential (low priority), Commercial (medium), Industrial (high), Protected (no construction).
@@ -125,6 +127,9 @@ Enterprise-grade routing with Esri road network data. Calculates fastest and saf
 **CDK**: `packages/infrastructure/lib/stacks/intelligence-stack.ts` (lines 246-250)
 
 **Performance**: 355ms average response time
+
+<img width="1485" height="649" alt="image" src="https://github.com/user-attachments/assets/bbb44766-2b23-406c-8cef-d895927620e9" />
+
 
 ### 5. DynamoDB Streams + Lambda Triggers
 Event-driven architecture with change data capture. New hazards automatically trigger verification workflow.
@@ -143,7 +148,6 @@ Event-driven architecture with change data capture. New hazards automatically tr
 - MaintenanceLogistics: `prioritize_repair_queue`, `estimate_repair_cost`
 - UrbanPlanner: `find_optimal_path` (invokes Step Functions)
 
-<img width="1280" height="517" alt="image" src="https://github.com/user-attachments/assets/7a8d4202-cf81-4445-b62f-52df4343c936" />
 
 ---
 
