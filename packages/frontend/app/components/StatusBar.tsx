@@ -2,6 +2,7 @@
 
 import { CheckCircle, AlertTriangle, Activity, Cpu, Wifi, MapPin } from 'lucide-react';
 import { useEffect, useState } from 'react';
+import { AgentUsageIndicator } from './AgentUsageIndicator';
 
 // ─────────────────────────────────────────────
 // Shared style constants
@@ -197,6 +198,11 @@ export function StatusBar() {
           <span style={TEXT}>ONNX</span>
           <OnnxPill active />
         </Seg>
+
+        <Sep />
+
+        {/* Agent Usage Indicator */}
+        <AgentUsageIndicator />
 
         <Sep />
 

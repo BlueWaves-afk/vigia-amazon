@@ -4,7 +4,7 @@
 
 ### Main API
 ```
-https://sq2ri2n51g.execute-api.us-east-1.amazonaws.com/prod/
+https://<YOUR_API_GATEWAY_URL>/
 ```
 
 ### Session API
@@ -36,7 +36,7 @@ https://p4qc9upgsf.execute-api.us-east-1.amazonaws.com/prod/
 
 Update `.env.local`:
 ```bash
-NEXT_PUBLIC_API_ENDPOINT=https://sq2ri2n51g.execute-api.us-east-1.amazonaws.com/prod
+NEXT_PUBLIC_API_ENDPOINT=<YOUR_API_GATEWAY_URL>
 NEXT_PUBLIC_INNOVATION_API_ENDPOINT=https://p4qc9upgsf.execute-api.us-east-1.amazonaws.com/prod
 NEXT_PUBLIC_SESSION_API_ENDPOINT=https://eepqy4yku7.execute-api.us-east-1.amazonaws.com/prod
 ```

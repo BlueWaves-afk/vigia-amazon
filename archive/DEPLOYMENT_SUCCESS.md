@@ -9,7 +9,7 @@
 ## 📊 Deployment Details
 
 ### API Gateway
-- **Endpoint**: https://sq2ri2n51g.execute-api.us-east-1.amazonaws.com/prod/
+- **Endpoint**: <YOUR_API_GATEWAY_URL>
 - **Status**: ✅ Active
 - **Test Result**: Signature verification working correctly
 
@@ -20,7 +20,7 @@
 
 ### CloudFormation Stack
 - **Stack Name**: VigiaStack
-- **ARN**: arn:aws:cloudformation:us-east-1:203800220566:stack/VigiaStack/b52d87d0-13be-11f1-b48b-0e4a4acaa081
+- **ARN**: arn:aws:cloudformation:us-east-1:<YOUR_ACCOUNT_ID>:stack/VigiaStack/...
 - **Status**: ✅ CREATE_COMPLETE
 
 ---
@@ -29,7 +29,7 @@
 
 ### Test 1: API Gateway Reachability
 ```bash
-curl https://sq2ri2n51g.execute-api.us-east-1.amazonaws.com/prod/telemetry
+curl <YOUR_API_GATEWAY_URL>/telemetry
 ```
 ✅ **Result**: API responding
 
@@ -130,7 +130,7 @@ aws dynamodb scan \
 
 | Component | Status | Details |
 |-----------|--------|---------|
-| API Gateway | ✅ Live | https://sq2ri2n51g.execute-api.us-east-1.amazonaws.com/prod/ |
+| API Gateway | ✅ Live | <YOUR_API_GATEWAY_URL> |
 | Lambda Validator | ✅ Active | Signature verification working |
 | Lambda Orchestrator | ✅ Deployed | Waiting for Bedrock Agent |
 | DynamoDB Hazards | ✅ Active | Storing records with TTL |

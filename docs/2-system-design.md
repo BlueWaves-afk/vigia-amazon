@@ -372,8 +372,8 @@ GET /api/economic/metrics?sessionId={id}
 
 #### Auditor/Strategist Agent
 - **Model**: Amazon Nova Lite
-- **Agent ID**: TAWWC3SQ0L
-- **Alias ID**: TSTALIASID
+- **Agent ID**: <YOUR_AGENT_ID>
+- **Alias ID**: <YOUR_ALIAS_ID>
 - **Action Groups**:
   - `queryHazards`: Query DynamoDB for similar hazards
   - `calculateScore`: Compute verification score

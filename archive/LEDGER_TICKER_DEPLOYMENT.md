@@ -65,7 +65,7 @@ npx cdk deploy --require-approval never
 
 ### Test 1: API Endpoint
 ```bash
-curl https://sq2ri2n51g.execute-api.us-east-1.amazonaws.com/prod/ledger
+curl <YOUR_API_GATEWAY_URL>/ledger
 ```
 
 **Expected Response** (if ledger has entries):
@@ -175,12 +175,12 @@ VigiaStack: creating CloudFormation changeset...
  ✅  VigiaStack
 
 Outputs:
-VigiaStack.ApiEndpoint = https://sq2ri2n51g.execute-api.us-east-1.amazonaws.com/prod/
+VigiaStack.ApiEndpoint = <YOUR_API_GATEWAY_URL>
 VigiaStack.HazardsTableName = VigiaStack-IngestionHazardsTable...
-VigiaStack.IngestionVigiaAPIEndpoint... = https://sq2ri2n51g.execute-api.us-east-1.amazonaws.com/prod/
+VigiaStack.IngestionVigiaAPIEndpoint... = <YOUR_API_GATEWAY_URL>
 
 Stack ARN:
-arn:aws:cloudformation:us-east-1:203800220566:stack/VigiaStack/...
+arn:aws:cloudformation:us-east-1:<YOUR_ACCOUNT_ID>:stack/VigiaStack/...
 
 ✨  Total time: 180s
 ```

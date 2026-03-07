@@ -390,8 +390,8 @@ export default function Dashboard() {
       }
     }
     
-    if (!activeTab?.isDirty || !activeTab.session) {
-      console.log('Not saving - no dirty tab or session');
+    if (!activeTab?.session) {
+      console.log('Not saving - no session');
       return;
     }
 
@@ -405,34 +405,12 @@ export default function Dashboard() {
         return;
       }
 
-      // Convert MapFile to SessionData format
       const session = activeTab.session;
-      const sessionData = {
-        userId: 'default',
-        geohash7: session.coverage.centerPoint.geohash,
-        timestamp: new Date(session.temporal.createdAt).toISOString(),
-        hazardCount: session.metadata.totalHazards,
-        verifiedCount: session.hazards.filter((h: any) => h.status === 'verified').length,
-        contributorId: 'user',
-        status: session.temporal.status,
-        location: session.location,
-        hazards: session.hazards,
-        metadata: {
-          ...session.metadata,
-          displayName: session.displayName, // Preserve displayName
-          coverage: session.coverage, // Preserve coverage data
-          temporal: session.temporal, // Preserve temporal data
-        },
-      };
+      const sessionId = `${session.coverage.centerPoint.geohash}#${new Date(session.temporal.createdAt).toISOString()}`;
 
-      console.log('Saving session data:', sessionData);
-      const saved = await vfsManager.createSession(sessionData);
-      console.log('Session saved:', saved);
-
-      // Delete from temporary storage (IndexedDB) since it's now in permanent storage
-      const { useMapFileStore } = await import('@/stores/mapFileStore');
-      await useMapFileStore.getState().deleteMapFile(session.sessionId);
-      console.log('Deleted from temporary storage');
+      // Save to localStorage (moves from sessionStorage)
+      await vfsManager.saveSession(sessionId);
+      console.log('Session saved to localStorage:', sessionId);
 
       // Mark as saved and update tab label
       const newTabs = openTabs.map(t =>

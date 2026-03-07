@@ -12,7 +12,7 @@
 1. **AWS Location Service Route Calculator**
    - Name: `VigiaRouteCalculator`
    - Data Source: Esri
-   - ARN: `arn:aws:geo:us-east-1:203800220566:route-calculator/VigiaRouteCalculator`
+   - ARN: `arn:aws:geo:us-east-1:<YOUR_ACCOUNT_ID>:route-calculator/VigiaRouteCalculator`
    - Created: 2026-03-06T22:47:37Z
 
 2. **IAM Permissions**

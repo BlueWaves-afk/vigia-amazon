@@ -356,6 +356,9 @@ export function AgentChatPanel({ contextType, context = {}, availableSessions = 
     setMessages(prev => [...prev, userMsg]);
     setLoading(true);
 
+    // Emit usage event for rate limit tracking
+    window.dispatchEvent(new CustomEvent('vigia-agent-query'));
+
     try {
       // Detect query types
       const isUrbanPlanning = /\b(path|route|construction|road|optimal|build)\b/i.test(text);
@@ -372,6 +375,19 @@ export function AgentChatPanel({ contextType, context = {}, availableSessions = 
             context: { ...context, ...attachCtx, ...contextOverride },
           }),
         });
+        
+        if (res.status === 429) {
+          const data = await res.json();
+          const retryAfter = Math.ceil((data.retryAfter || 60000) / 1000);
+          setMessages(prev => [...prev, { 
+            id: mkId(), 
+            role: 'assistant', 
+            content: `⚠️ ${data.error}\n\nPlease wait ${retryAfter} seconds before trying again.`, 
+            timestamp: Date.now() 
+          }]);
+          return;
+        }
+        
         const data = await res.json();
         const content = data.analysis ?? data.message ?? JSON.stringify(data);
         setMessages(prev => [...prev, { id: mkId(), role: 'assistant', content, timestamp: Date.now() }]);
@@ -393,6 +409,19 @@ export function AgentChatPanel({ contextType, context = {}, availableSessions = 
               context: fullContext,
             }),
           });
+          
+          if (res.status === 429) {
+            const data = await res.json();
+            const retryAfter = Math.ceil((data.retryAfter || 60000) / 1000);
+            setMessages(prev => [...prev, { 
+              id: mkId(), 
+              role: 'assistant', 
+              content: `⚠️ ${data.error}\n\nPlease wait ${retryAfter} seconds before trying again.`, 
+              timestamp: Date.now() 
+            }]);
+            return;
+          }
+          
           const data = await res.json();
           const content = data.analysis ?? data.message ?? JSON.stringify(data);
           setMessages(prev => [...prev, { id: mkId(), role: 'assistant', content, timestamp: Date.now() }]);
@@ -409,6 +438,18 @@ export function AgentChatPanel({ contextType, context = {}, availableSessions = 
             constraints: { avoidHazardTypes: ['POTHOLE', 'DEBRIS'] }
           }),
         });
+        
+        if (res.status === 429) {
+          const data = await res.json();
+          const retryAfter = Math.ceil((data.retryAfter || 60000) / 1000);
+          setMessages(prev => [...prev, { 
+            id: mkId(), 
+            role: 'assistant', 
+            content: `⚠️ ${data.error}\n\nPlease wait ${retryAfter} seconds before trying again.`, 
+            timestamp: Date.now() 
+          }]);
+          return;
+        }
         
         if (!res.ok) {
           const error = await res.json();
@@ -446,6 +487,19 @@ export function AgentChatPanel({ contextType, context = {}, availableSessions = 
             hazards: context.hazards,
           }),
         });
+        
+        if (res.status === 429) {
+          const data = await res.json();
+          const retryAfter = Math.ceil((data.retryAfter || 60000) / 1000);
+          setMessages(prev => [...prev, { 
+            id: mkId(), 
+            role: 'assistant', 
+            content: `⚠️ ${data.error}\n\nPlease wait ${retryAfter} seconds before trying again.`, 
+            timestamp: Date.now() 
+          }]);
+          return;
+        }
+        
         const data = await res.json();
         const content = data.analysis ?? data.message ?? JSON.stringify(data);
         setMessages(prev => [...prev, { id: mkId(), role: 'assistant', content, timestamp: Date.now() }]);
@@ -488,6 +542,19 @@ Use this context to answer questions about the infrastructure changes between th
             context: fullContext,
           }),
         });
+        
+        if (res.status === 429) {
+          const data = await res.json();
+          const retryAfter = Math.ceil((data.retryAfter || 60000) / 1000);
+          setMessages(prev => [...prev, { 
+            id: mkId(), 
+            role: 'assistant', 
+            content: `⚠️ ${data.error}\n\nPlease wait ${retryAfter} seconds before trying again.`, 
+            timestamp: Date.now() 
+          }]);
+          return;
+        }
+        
         const data = await res.json();
         const rawTraces: any[] = data.traces ?? data.thinking ?? [];
         const thinkStart = Date.now();

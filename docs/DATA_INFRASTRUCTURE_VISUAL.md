@@ -67,7 +67,7 @@
 │    timestamp: NUMBER             - Unix timestamp (milliseconds)           │
 │    hazardId: STRING              - Reference to hazard                     │
 │    geohash: STRING               - Spatial index                           │
-│    agentId: STRING               - Bedrock Agent ID (TAWWC3SQ0L)           │
+│    agentId: STRING               - Bedrock Agent ID           │
 │    steps: ARRAY                  - ReAct reasoning steps                   │
 │      ├─ thought: STRING          - Agent's reasoning                       │
 │      ├─ action: STRING           - Tool invoked                            │

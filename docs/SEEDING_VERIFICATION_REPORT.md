@@ -129,14 +129,14 @@ aws dynamodb scan \
 {
   "traceId": "trace-1772834347973-35",
   "hazardId": "drt2yzr#2026-02-23T15:49:35.375Z",
-  "agentId": "TAWWC3SQ0L",
+  "agentId": "<YOUR_AGENT_ID>",
   "stepsCount": 2,
   "finalAnswer": "This ACCIDENT is verified with a score of 72/100. Found 15 similar reports in the area, indicating..."
 }
 ```
 
 **Validation**: ✅
-- Agent ID matches Bedrock Agent (TAWWC3SQ0L)
+- Agent ID matches Bedrock Agent
 - Multi-step reasoning (2 steps)
 - Hazard ID references actual hazard
 - Final answer includes verification score

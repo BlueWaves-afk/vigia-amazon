@@ -2,7 +2,7 @@
 
 ## ✅ Your Deployment
 
-**API Endpoint**: https://sq2ri2n51g.execute-api.us-east-1.amazonaws.com/prod/  
+**API Endpoint**: <YOUR_API_GATEWAY_URL>  
 **Region**: us-east-1  
 **Status**: 🟢 OPERATIONAL
 

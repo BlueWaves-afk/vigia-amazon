@@ -65,8 +65,8 @@
 ### 2.5 **IMPORTANT: Save Your Keys**
 You'll see:
 ```
-Access key ID: AKIAIOSFODNN7EXAMPLE
-Secret access key: wJalrXUtnFEMI/K7MDENG/bPxRfiCYEXAMPLEKEY
+Access key ID: <YOUR_ACCESS_KEY_ID>
+Secret access key: <YOUR_SECRET_ACCESS_KEY>
 ```
 
 **⚠️ SAVE THESE NOW! You can't see the secret key again!**
@@ -114,8 +114,8 @@ aws configure
 
 ### 4.2 Enter Your Credentials
 ```
-AWS Access Key ID [None]: AKIAIOSFODNN7EXAMPLE  # Paste your access key
-AWS Secret Access Key [None]: wJalrXUtnFEMI/...  # Paste your secret key
+AWS Access Key ID [None]: <YOUR_ACCESS_KEY_ID>  # Paste your access key
+AWS Secret Access Key [None]: <YOUR_SECRET_ACCESS_KEY>  # Paste your secret key
 Default region name [None]: us-east-1            # Or your preferred region
 Default output format [None]: json               # Press Enter
 ```

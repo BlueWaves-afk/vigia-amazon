@@ -105,7 +105,7 @@ currentHash = SHA256(JSON.stringify(entry) + previousHash)
   timestamp: number,         // Unix timestamp (milliseconds)
   hazardId: string,          // Reference to hazard
   geohash: string,           // Geohash for spatial queries
-  agentId: string,           // Bedrock Agent ID (TAWWC3SQ0L)
+  agentId: string,           // Bedrock Agent ID
   sessionId: string,         // Frontend session
   steps: [                   // ReAct reasoning steps
     {

@@ -6,7 +6,7 @@ import {
   Settings, Search, AlertTriangle,
   Navigation, ChevronRight, ChevronDown,
   Folder, FolderOpen, FileText, Video,
-  Clock, MapPin, Activity, Wrench, Map, User,
+  Clock, MapPin, Activity, Wrench, Map, User, Lock,
 } from 'lucide-react';
 import { VFSManager } from '../lib/vfs-manager';
 import { useMapFileStore } from '../../stores/mapFileStore';
@@ -83,6 +83,7 @@ function TreeNode({
   label, icon, depth = 0, isActive = false,
   onClick, onContextMenu, children, badge, badgeColor,
   draggable, onDragStart, onDragOver, onDragLeave, onDrop, sessionData,
+  readOnly,
 }: {
   label: string;
   icon: 'folder' | 'file' | 'video' | 'session';
@@ -99,6 +100,7 @@ function TreeNode({
   onDragLeave?: (e: React.DragEvent) => void;
   onDrop?: (e: React.DragEvent) => void;
   sessionData?: any;
+  readOnly?: boolean;
 }) {
   const [expanded, setExpanded] = useState(depth === 0);
   const [dragOver, setDragOver] = useState(false);
@@ -174,6 +176,14 @@ function TreeNode({
         </span>
 
         {iconEl()}
+
+        {readOnly && (
+          <Lock
+            size={14}
+            style={{ color: C.textMut, flexShrink: 0 }}
+            aria-label="Read-only"
+          />
+        )}
 
         <span style={{
           flex: 1,
@@ -661,12 +671,12 @@ export function Sidebar({ onSentinelEyeClick, isSentinelEyeActive, onSettingsOpe
   const formatSessionLabel = (session: any) => {
     // Use displayName if available (for both temp and saved files)
     if (session.displayName) {
-      return session.isTemporary ? `* ${session.displayName}` : session.displayName;
+      return session.isTemporary ? `* ${session.displayName}` : `${session.displayName}`;
     }
     
     // Check metadata for displayName (saved sessions store it here)
     if (session.metadata?.displayName) {
-      return session.isTemporary ? `* ${session.metadata.displayName}` : session.metadata.displayName;
+      return session.isTemporary ? `* ${session.metadata.displayName}` : `${session.metadata.displayName}`;
     }
     
     // Fallback to timestamp formatting
@@ -676,7 +686,7 @@ export function Sidebar({ onSentinelEyeClick, isSentinelEyeActive, onSettingsOpe
     const day = String(date.getDate()).padStart(2, '0');
     const time = session.timestamp.split('T')[1]?.substring(0, 5) || '00:00';
     const label = `${year}-${month}-${day} ${time}`;
-    return session.isTemporary ? `* ${label}` : label;
+    return session.isTemporary ? `* ${label}` : `${label}`;
   };
 
   const handleSessionRightClick = (e: React.MouseEvent, session: any) => {
@@ -705,12 +715,29 @@ export function Sidebar({ onSentinelEyeClick, isSentinelEyeActive, onSettingsOpe
     const session = contextMenu.session;
     const isFolder = !session.sessionId; // Folders don't have sessionId
     
+    // Check if it's a preloaded session (read-only)
+    const isPreloaded = session.sessionId?.startsWith('preloaded_');
+    if (isPreloaded) {
+      alert('Cannot delete preloaded sessions. Only user-created sessions can be deleted.');
+      setContextMenu(null);
+      return;
+    }
+    
     if (isFolder) {
       // Delete all sessions in folder
       const sessionsToDelete = session.sessions || [];
       
+      // Filter out preloaded sessions
+      const userSessions = sessionsToDelete.filter((s: any) => !s.sessionId?.startsWith('preloaded_'));
+      
+      if (userSessions.length === 0) {
+        alert('This folder only contains preloaded sessions which cannot be deleted.');
+        setContextMenu(null);
+        return;
+      }
+      
       const confirmed = window.confirm(
-        `Are you sure you want to delete "${session.label}" and all ${sessionsToDelete.length} session(s) inside it?`
+        `Are you sure you want to delete ${userSessions.length} user-created session(s)? (${sessionsToDelete.length - userSessions.length} preloaded sessions will be kept)`
       );
       
       if (!confirmed) {
@@ -722,7 +749,7 @@ export function Sidebar({ onSentinelEyeClick, isSentinelEyeActive, onSettingsOpe
         const deletedIds: string[] = [];
         const { useMapFileStore } = await import('@/stores/mapFileStore');
         
-        for (const s of sessionsToDelete) {
+        for (const s of userSessions) {
           console.log('Deleting session:', s.sessionId);
           
           // Delete from VFSManager if not temporary
@@ -1008,6 +1035,7 @@ export function Sidebar({ onSentinelEyeClick, isSentinelEyeActive, onSettingsOpe
                               })
                               .map((session: any) => {
                                 const label = formatSessionLabel(session);
+                                const isPreloaded = session.sessionId?.startsWith('preloaded_');
                                 const badgeColor = session.hazardCount > 5 ? C.red : session.hazardCount > 2 ? C.yellow : C.green;
                                 return (
                                   <TreeNode
@@ -1015,6 +1043,7 @@ export function Sidebar({ onSentinelEyeClick, isSentinelEyeActive, onSettingsOpe
                                     label={label}
                                     icon="session"
                                     depth={5}
+                                    readOnly={isPreloaded}
                                     badge={`${session.hazardCount} hz`}
                                     badgeColor={badgeColor}
                                     onClick={() => onSessionClick?.(session)}

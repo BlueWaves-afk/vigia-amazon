@@ -50,6 +50,8 @@ export function NewSessionView({ onSessionCreated, onRefreshSessions }: NewSessi
   const mapInstanceRef = useRef<any>(null);
   const drawStartRef = useRef<{ lat: number; lon: number } | null>(null);
   const drawModeRef = useRef(false);
+  const activePointerIdRef = useRef<number | null>(null);
+  const pointerCleanupRef = useRef<null | (() => void)>(null);
   const rectangleRef = useRef<any>(null);
 
   // Keep drawModeRef in sync with drawMode state
@@ -179,19 +181,18 @@ export function NewSessionView({ onSessionCreated, onRefreshSessions }: NewSessi
           console.error('Failed to load hazards:', err);
         }
         
-        // Draw bounding box handlers
-        map.on('mousedown', (e) => {
-          if (!drawModeRef.current) return;
-          e.preventDefault();
-          drawStartRef.current = { lat: e.lngLat.lat, lon: e.lngLat.lng };
-        });
+        // Draw bounding box handlers (pointer events + capture for reliable drag)
+        const canvas = map.getCanvas();
 
-        map.on('mousemove', (e) => {
-          if (!drawModeRef.current || !drawStartRef.current) return;
-          
-          const start = drawStartRef.current;
-          const end = { lat: e.lngLat.lat, lon: e.lngLat.lng };
-          
+        const getLngLatFromPointer = (ev: PointerEvent) => {
+          const rect = canvas.getBoundingClientRect();
+          const x = ev.clientX - rect.left;
+          const y = ev.clientY - rect.top;
+          const lngLat = map.unproject([x, y]);
+          return { lat: lngLat.lat, lon: lngLat.lng };
+        };
+
+        const updateBoxOverlay = (start: { lat: number; lon: number }, end: { lat: number; lon: number }) => {
           const box = {
             north: Math.max(start.lat, end.lat),
             south: Math.min(start.lat, end.lat),
@@ -235,29 +236,87 @@ export function NewSessionView({ onSessionCreated, onRefreshSessions }: NewSessi
               paint: { 'line-color': '#3B82F6', 'line-width': 2 },
             });
           }
-        });
 
-        map.on('mouseup', (e) => {
-          if (!drawModeRef.current || !drawStartRef.current) return;
-          
+          return box;
+        };
+
+        const onPointerDown = (ev: PointerEvent) => {
+          if (!drawModeRef.current) return;
+          if (ev.button !== 0) return;
+
+          ev.preventDefault();
+          try {
+            canvas.setPointerCapture(ev.pointerId);
+          } catch {
+            // Ignore capture errors (older browsers)
+          }
+
+          activePointerIdRef.current = ev.pointerId;
+          drawStartRef.current = getLngLatFromPointer(ev);
+        };
+
+        const onPointerMove = (ev: PointerEvent) => {
+          if (!drawModeRef.current) return;
+          if (activePointerIdRef.current !== ev.pointerId) return;
+          if (!drawStartRef.current) return;
+
+          ev.preventDefault();
           const start = drawStartRef.current;
-          const end = { lat: e.lngLat.lat, lon: e.lngLat.lng };
-          
-          const box = {
-            north: Math.max(start.lat, end.lat),
-            south: Math.min(start.lat, end.lat),
-            east: Math.max(start.lon, end.lon),
-            west: Math.min(start.lon, end.lon),
-          };
+          const end = getLngLatFromPointer(ev);
+          updateBoxOverlay(start, end);
+        };
 
-          setBoundingBox(box);
+        const onPointerUpOrCancel = (ev: PointerEvent) => {
+          if (!drawModeRef.current) return;
+          if (activePointerIdRef.current !== ev.pointerId) return;
+          if (!drawStartRef.current) return;
+
+          ev.preventDefault();
+          const start = drawStartRef.current;
+          const end = getLngLatFromPointer(ev);
+          const finalBox = updateBoxOverlay(start, end);
+
+          setBoundingBox(finalBox);
           setDrawMode(false);
           drawStartRef.current = null;
-        });
+          activePointerIdRef.current = null;
+
+          try {
+            canvas.releasePointerCapture(ev.pointerId);
+          } catch {
+            // Ignore
+          }
+        };
+
+        canvas.addEventListener('pointerdown', onPointerDown, { passive: false });
+        canvas.addEventListener('pointermove', onPointerMove, { passive: false });
+        canvas.addEventListener('pointerup', onPointerUpOrCancel, { passive: false });
+        canvas.addEventListener('pointercancel', onPointerUpOrCancel, { passive: false });
+
+        pointerCleanupRef.current = () => {
+          canvas.removeEventListener('pointerdown', onPointerDown);
+          canvas.removeEventListener('pointermove', onPointerMove);
+          canvas.removeEventListener('pointerup', onPointerUpOrCancel);
+          canvas.removeEventListener('pointercancel', onPointerUpOrCancel);
+        };
       });
     };
     
     initMap();
+
+    return () => {
+      pointerCleanupRef.current?.();
+      pointerCleanupRef.current = null;
+      if (mapInstanceRef.current) {
+        try {
+          const map = mapInstanceRef.current;
+          map.remove();
+        } catch {
+          // ignore
+        }
+        mapInstanceRef.current = null;
+      }
+    };
   }, [selectedLocation]);
 
   // Separate effect to handle drawMode changes

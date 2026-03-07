@@ -7,6 +7,66 @@ import {
 // Increase API route timeout for complex agent queries
 export const maxDuration = 60; // 60 seconds
 
+// Rate limiting configuration
+const RATE_LIMIT_WINDOW_MS = 60 * 1000; // 1 minute
+const MAX_REQUESTS_PER_WINDOW = 5;
+const RATE_LIMIT_HOUR_MS = 60 * 60 * 1000; // 1 hour
+const MAX_REQUESTS_PER_HOUR = 30;
+
+// In-memory rate limit store (per IP)
+const rateLimitStore = new Map<string, { requests: number[]; hourlyRequests: number[] }>();
+
+function checkRateLimit(ip: string): { allowed: boolean; reason?: string; retryAfter?: number } {
+  const now = Date.now();
+  
+  // Get or create rate limit entry
+  let entry = rateLimitStore.get(ip);
+  if (!entry) {
+    entry = { requests: [], hourlyRequests: [] };
+    rateLimitStore.set(ip, entry);
+  }
+
+  // Clean old requests (older than 1 minute)
+  entry.requests = entry.requests.filter(t => now - t < RATE_LIMIT_WINDOW_MS);
+  entry.hourlyRequests = entry.hourlyRequests.filter(t => now - t < RATE_LIMIT_HOUR_MS);
+
+  // Check per-minute limit
+  if (entry.requests.length >= MAX_REQUESTS_PER_WINDOW) {
+    const oldestRequest = Math.min(...entry.requests);
+    const retryAfter = RATE_LIMIT_WINDOW_MS - (now - oldestRequest);
+    return {
+      allowed: false,
+      reason: `Rate limit: ${MAX_REQUESTS_PER_WINDOW} queries per minute`,
+      retryAfter,
+    };
+  }
+
+  // Check per-hour limit
+  if (entry.hourlyRequests.length >= MAX_REQUESTS_PER_HOUR) {
+    const oldestRequest = Math.min(...entry.hourlyRequests);
+    const retryAfter = RATE_LIMIT_HOUR_MS - (now - oldestRequest);
+    return {
+      allowed: false,
+      reason: `Rate limit: ${MAX_REQUESTS_PER_HOUR} queries per hour`,
+      retryAfter,
+    };
+  }
+
+  // Record this request
+  entry.requests.push(now);
+  entry.hourlyRequests.push(now);
+
+  return { allowed: true };
+}
+
+function getClientIp(req: NextRequest): string {
+  return (
+    req.headers.get('x-forwarded-for')?.split(',')[0] ||
+    req.headers.get('x-real-ip') ||
+    'unknown'
+  );
+}
+
 function getAwsRegion() {
   return (
     process.env.AWS_REGION ||
@@ -51,6 +111,25 @@ function normalizeAwsError(err: unknown) {
 
 export async function POST(req: NextRequest) {
   try {
+    // Check rate limit
+    const clientIp = getClientIp(req);
+    const rateLimitCheck = checkRateLimit(clientIp);
+    
+    if (!rateLimitCheck.allowed) {
+      return NextResponse.json(
+        {
+          error: rateLimitCheck.reason,
+          retryAfter: rateLimitCheck.retryAfter,
+        },
+        {
+          status: 429,
+          headers: {
+            'Retry-After': String(Math.ceil((rateLimitCheck.retryAfter || 0) / 1000)),
+          },
+        }
+      );
+    }
+
     const { query, sessionId, diffContext, context } = await req.json();
 
     const agentId =
