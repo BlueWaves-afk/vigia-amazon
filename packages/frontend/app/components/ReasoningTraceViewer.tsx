@@ -144,7 +144,7 @@ export function ReasoningTraceViewer() {
   useEffect(() => {
     const apiUrl = process.env.NEXT_PUBLIC_API_URL || 'https://p4qc9upgsf.execute-api.us-east-1.amazonaws.com/prod';
     // Only connect if innovation endpoint is configured
-    if (process.env.NEXT_PUBLIC_INNOVATION_API_ENDPOINT) {
+    if (process.env.NEXT_PUBLIC_INNOVATION_API_URL) {
       connectSSE(`${apiUrl}/agent-traces/stream`);
     }
     

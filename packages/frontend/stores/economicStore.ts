@@ -20,8 +20,7 @@ export const useEconomicStore = create<EconomicStore>((set) => ({
   fetchMetrics: async (sessionId) => {
     set({ isLoading: true });
     try {
-      const apiEndpoint = process.env.NEXT_PUBLIC_INNOVATION_API_ENDPOINT || 'https://p4qc9upgsf.execute-api.us-east-1.amazonaws.com/prod';
-      const response = await fetch(`${apiEndpoint}/economic/metrics?sessionId=${sessionId}`);
+      const response = await fetch(`/api/economic/metrics?${new URLSearchParams({ sessionId }).toString()}`);
       if (!response.ok) throw new Error('Failed to fetch metrics');
       
       const metrics: EconomicMetrics = await response.json();
@@ -69,8 +68,7 @@ export const useEconomicStore = create<EconomicStore>((set) => ({
   updateMaintenanceReportStatus: async ({ reportId, status }) => {
     set({ isLoading: true });
     try {
-      const apiEndpoint = process.env.NEXT_PUBLIC_INNOVATION_API_ENDPOINT || 'https://p4qc9upgsf.execute-api.us-east-1.amazonaws.com/prod';
-      const response = await fetch(`${apiEndpoint}/maintenance/report`, {
+      const response = await fetch(`/api/maintenance/report`, {
         method: 'POST',
         headers: { 'Content-Type': 'application/json' },
         body: JSON.stringify({ reportId, status }),

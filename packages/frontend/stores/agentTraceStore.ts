@@ -32,11 +32,11 @@ export const useAgentTraceStore = create<AgentTraceStore>((set, get) => ({
       return;
     }
 
-    const apiEndpoint = process.env.NEXT_PUBLIC_INNOVATION_API_ENDPOINT || 'https://p4qc9upgsf.execute-api.us-east-1.amazonaws.com/prod';
+    const apiEndpoint = process.env.NEXT_PUBLIC_INNOVATION_API_URL || 'https://p4qc9upgsf.execute-api.us-east-1.amazonaws.com/prod';
     const fullEndpoint = endpoint.startsWith('http') ? endpoint : `${apiEndpoint}${endpoint}`;
     
     // Skip if innovation endpoint is not configured
-    if (!process.env.NEXT_PUBLIC_INNOVATION_API_ENDPOINT) {
+    if (!process.env.NEXT_PUBLIC_INNOVATION_API_URL) {
       console.log('[AgentTraceStore] Innovation API endpoint not configured, skipping SSE connection');
       return;
     }
@@ -63,7 +63,7 @@ export const useAgentTraceStore = create<AgentTraceStore>((set, get) => ({
       eventSource.close();
       
       // Don't reconnect if endpoint is not configured
-      if (!process.env.NEXT_PUBLIC_INNOVATION_API_ENDPOINT) {
+      if (!process.env.NEXT_PUBLIC_INNOVATION_API_URL) {
         return;
       }
       

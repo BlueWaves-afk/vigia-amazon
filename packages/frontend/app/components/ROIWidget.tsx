@@ -12,7 +12,7 @@ export function ROIWidget({ sessionId }: ROIWidgetProps) {
   const { metrics, isLoading, fetchMetrics } = useEconomicStore();
 
   useEffect(() => {
-    if (!process.env.NEXT_PUBLIC_INNOVATION_API_ENDPOINT) return;
+    if (!process.env.NEXT_PUBLIC_INNOVATION_API_URL) return;
     fetchMetrics(sessionId);
     const interval = setInterval(() => fetchMetrics(sessionId), 30000);
     return () => clearInterval(interval);

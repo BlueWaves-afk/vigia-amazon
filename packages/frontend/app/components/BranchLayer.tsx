@@ -62,7 +62,7 @@ export function BranchLayer({ map }: { map: maplibregl.Map | null }) {
 
     setIsComputing(true);
     try {
-      const apiEndpoint = process.env.NEXT_PUBLIC_INNOVATION_API_ENDPOINT || 'https://p4qc9upgsf.execute-api.us-east-1.amazonaws.com/prod';
+      const apiEndpoint = process.env.NEXT_PUBLIC_INNOVATION_API_URL || 'https://p4qc9upgsf.execute-api.us-east-1.amazonaws.com/prod';
       const response = await fetch(`${apiEndpoint}/routing-agent/branch`, {
         method: 'POST',
         headers: { 'Content-Type': 'application/json' },
