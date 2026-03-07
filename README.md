@@ -215,7 +215,7 @@ Event-driven architecture with change data capture. New hazards automatically tr
 
 ## Kiro Spec-Driven Development
 <img width="611" height="306" alt="image" src="https://github.com/user-attachments/assets/490abbd9-9e50-4a7e-a59d-20a4908db331" />
-
+Kiro streamlines development by acting as a Technical Lead rather than just a code completion tool. Instead of writing code line-by-line, you provide a high-level goal, and Kiro automatically generates a Requirement Document, a Technical Design (including architectural diagrams), and a Task List. This structured approach eliminates the "guesswork" for the AI; because it understands the architecture before it writes a single character, it can execute complex, multi-file changes with high precision.
 ### Documentation Structure
 
 **Core Specifications** (`docs/`):
