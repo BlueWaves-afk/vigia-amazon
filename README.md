@@ -1,3 +1,5 @@
+<img width="3780" height="1890" alt="image" src="https://github.com/user-attachments/assets/71c5ec70-44f0-41f5-9fad-b8ebb12b6ed1" />
+
 <div align="center">
   <h1>VIGIA IDE</h1>
   <p><strong>Sentient Road Infrastructure IDE</strong></p>
@@ -8,13 +10,12 @@
     <img alt="Deployment" src="https://img.shields.io/badge/Deployment-AWS%20Amplify-FF9900?logo=awsamplify&logoColor=white">
     <img alt="Frontend" src="https://img.shields.io/badge/Frontend-Next.js%20%2B%20React-black.svg">
     <img alt="Backend" src="https://img.shields.io/badge/Backend-Node.js%20%2B%20Python-43853D.svg">
-    <img alt="Status" src="https://img.shields.io/badge/Status-Production--ready%20demo-success.svg">
     <a href="https://main.d2nkopgztcw9g1.amplifyapp.com/"><img alt="Live demo" src="https://img.shields.io/badge/Live-Demo-2563EB?logo=googlechrome&logoColor=white"></a>
   </p>
 </div>
 
 ## What VIGIA does in one sentence
-VIGIA IDE turns smartphones into a distributed road-safety intelligence network using client-side AI, Bedrock Agent verification, and a tamper-evident ledger, presented through an IDE-like workflow that blends maps and infrastructure telemetry into a development-style interface.
+VIGIA IDE treats road infrastructure like infrastructure-as-code, turning hazards, zones, and repairs into versionable, auditable “changesets” that teams can review, verify, and deploy as real-world maintenance actions.
 
 ## At a glance
 - Competition: Amazon 10,000 AIdeas (Semi-Finalist)
@@ -51,7 +52,7 @@ https://main.d2nkopgztcw9g1.amplifyapp.com/
 
 ## Executive Summary
 
-VIGIA IDE is a road-infrastructure intelligence platform that combines on-device hazard detection, serverless verification, and a tamper-evident ledger. It presents hazards, routes, and zone compliance through an IDE-like workflow to support faster planning, monitoring, and response.
+VIGIA IDE is a road-infrastructure intelligence platform that combines on-device hazard detection, agentic verification, and a tamper-evident ledger. It presents hazards, routes, and zone compliance through an IDE-like workflow to support faster planning, monitoring, and response.
 
 **Key Innovation**: Complete DePIN (Decentralized Physical Infrastructure Network) platform combining edge AI inference, agentic verification, and tamper-evident ledger technology for trustworthy infrastructure monitoring at near-zero operational cost.
 
@@ -71,8 +72,8 @@ Amazon Nova Lite ($0.06/1M tokens) instead of Claude 3.5 Sonnet ($3.00/1M tokens
 ### 4. Local-First Operations
 Diff computation, scenario branching, and forensic analysis run in browser (IndexedDB + Web Workers). Zero server costs for analysis. Data sent to cloud only on explicit user action.
 
-### 5. Cryptographic Trust
-ECDSA P-256 signatures on all telemetry. Server-side signature verification. Tamper-evident ledger with SHA-256 hash chain. Zero-knowledge contributor privacy.
+### 5. Cryptographic Trust(Future Scope)
+ECDSA P-256 signatures on all telemetry. Server-side signature verification. Tamper-evident ledger with SHA-256 hash chain. Zero-knowledge contributor privacy. Not implemented in this browser demo, but is a core principle of how nodes in the VIGIA system will transmit telemetry.
 
 ### 6. Explainable AI
 ReAct pattern (Reasoning + Acting) for all agent decisions. Full transparency with thought/action/observation logs. Streaming traces via Server-Sent Events (SSE). Users see exactly how AI reached conclusions.
@@ -92,7 +93,7 @@ ReAct pattern (Reasoning + Acting) for all agent decisions. Full transparency wi
 │  │  Next.js UI   │◄────────┤   Dedicated Web Worker          │  │
 │  │  (React 19)   │         │   - YOLOv26-FP32 ONNX (6 MB)     │  │
 │  │               │         │   - 60ms inference              │  │
-│  │  IndexedDB    │         │   - ECDSA P-256 signing         │  │
+│  │  IndexedDB    │         │ 
 │  │  (Local VFS)  │         │   - Privacy controls (blur)     │  │
 │  └──────────────────────────────────────────────────────────────────────┘  │
 │                          │ HTTPS (Signed Telemetry)                        │
@@ -189,8 +190,7 @@ Event-driven architecture with change data capture. New hazards automatically tr
 
 ### 6. Amazon Bedrock Agents
 4 Action Groups with 8 tools for hazard verification, network intelligence, maintenance logistics, and urban planning.
-
-**Agent ID**: TAWWC3SQ0L  
+ 
 **Model**: Amazon Nova Lite  
 **Cost**: $0.006 per query
 
@@ -205,7 +205,7 @@ Event-driven architecture with change data capture. New hazards automatically tr
 
 ## Cost Analysis
 
-### Voting Phase (7 Days): $1.39 Total
+### Voting Phase (7 Days): Estimated $1.39 Total
 
 | Service | Usage | Cost | Notes |
 |---------|-------|------|-------|
@@ -368,7 +368,6 @@ Event-driven architecture with change data capture. New hazards automatically tr
 ### Backend (Zones 2-4)
 - Node.js 20 (10 Lambdas), Python 3.12 (5 Lambdas)
 - AWS SDK v3, Bedrock Agent Runtime
-- ECDSA signature verification (Web Crypto API)
 
 ### Infrastructure (AWS CDK)
 - AWS CDK 2.170.0 (TypeScript)
@@ -428,7 +427,7 @@ NEXT_PUBLIC_BEDROCK_AGENT_ALIAS_ID=<YOUR_ALIAS_ID>
 ### 1. Edge Hazard Detection
 Frame extraction at 5 FPS, YOLOv26-FP32 inference in Web Worker (60ms), ECDSA P-256 signing, privacy controls (blur faces/plates).
 
-### 2. Cryptographic Trust
+### 2. Cryptographic Trust(Future Scope, not implemented in browser.)
 ECDSA signatures on all telemetry, server-side verification, tamper-evident ledger with SHA-256 hash chain.
 
 ### 3. Agent Verification
@@ -512,7 +511,7 @@ Maintenance queue with repair reports, cost estimation ($500/pothole, $5K/accide
 
 ## Security Architecture
 
-### Cryptographic Signing
+### Cryptographic Signing(In actual VIGIA nodes, simulated in browser).
 - ECDSA P-256 (secp256r1 curve)
 - Private key: Browser Web Crypto API (non-exportable)
 - Public key: AWS Secrets Manager
@@ -536,7 +535,6 @@ Maintenance queue with repair reports, cost estimation ($500/pothole, $5K/accide
 - Secrets Manager for sensitive data
 
 ### Privacy Controls
-- Client-side anonymization (blur faces/plates)
 - Zero-knowledge contributor IDs (hashed signatures)
 - No PII in ReAct logs
 - 7-day TTL on traces
@@ -556,7 +554,7 @@ Maintenance queue with repair reports, cost estimation ($500/pothole, $5K/accide
 ## Future Roadmap
 
 ### Phase 1: Production Hardening
-Replace placeholder ONNX model, add Cognito authentication, implement API key management, WAF for DDoS protection, CI/CD pipeline.
+Implement authentication, pricing tiers, careful rate limits, domain name, end to end connectivity, data privacy.
 
 ### Phase 2: Mobile SDK
 Native iOS/Android libraries, real-time GPS integration, background detection mode, offline queue with sync.
@@ -564,7 +562,7 @@ Native iOS/Android libraries, real-time GPS integration, background detection mo
 ### Phase 3: Advanced Features
 WebSocket streaming, multi-tenant support, ML-based predictions, gamification, API marketplace.
 
-### Phase 4: Blockchain Migration
+### Phase 4: Blockchain Migration(Using mock datatable right now)
 Replace DynamoDB ledger with Ethereum L2, smart contracts for DePIN rewards, token economics, decentralized governance.
 
 ---
@@ -602,11 +600,11 @@ Apache License 2.0 - See [LICENSE](LICENSE)
 ## Contact
 
 **Project Lead**: Tom Mathew 
-**Repository**: https://github.com/<your-org>/vigia-amazon  
+**Repository**: https://github.com/BlueWaves-afk/vigia-amazon  
 **Competition**: Amazon 10,000 AIdeas (Semi-Finalist)
 
 ---
 
-**Status**: Production-ready demo system  
+**Status**: Near Production-ready demo system  
 **Last Updated**: March 8, 2026  
 **Version**: 2.0
