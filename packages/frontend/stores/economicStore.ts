@@ -43,7 +43,6 @@ export const useEconomicStore = create<EconomicStore>((set) => ({
       if (!response.ok) throw new Error('Failed to submit report');
 
       const result = await response.json();
-      console.log('[EconomicStore] Report submitted:', result);
 
       // Optimistically show the new report in the queue immediately.
       if (result?.reportId && typeof result?.estimatedCost === 'number') {

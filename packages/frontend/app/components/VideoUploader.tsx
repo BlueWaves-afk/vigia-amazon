@@ -299,7 +299,6 @@ export function VideoUploader() {
   // Request browser geolocation on mount
   useEffect(() => {
     if (!navigator.geolocation) {
-      console.log('[VideoUploader] Geolocation not supported, using fallback');
       setLocationStatus('error');
       return;
     }
@@ -307,12 +306,10 @@ export function VideoUploader() {
     navigator.geolocation.getCurrentPosition(
       (position) => {
         const { latitude, longitude } = position.coords;
-        console.log('[VideoUploader] Got user location:', latitude, longitude);
         setUserLocation({ lat: latitude, lon: longitude });
         setLocationStatus('success');
       },
       (error) => {
-        console.warn('[VideoUploader] Geolocation error:', error.message);
         setLocationStatus(error.code === 1 ? 'denied' : 'error');
       },
       { enableHighAccuracy: true, timeout: 10000, maximumAge: 60000 }
@@ -351,16 +348,12 @@ export function VideoUploader() {
   // ── Set up video when URL changes and video element exists ───────
   useEffect(() => {
     if (!videoUrl || !videoElement) {
-      console.log('[VideoUploader] Waiting for video element or URL', { videoUrl: !!videoUrl, videoElement: !!videoElement });
       return;
     }
     
     const video = videoElement;
     
-    console.log('[VideoUploader] Setting up video with URL:', videoUrl);
-    
     const handleLoadedMetadata = () => {
-      console.log('[VideoUploader] Metadata loaded, dimensions:', video.videoWidth, 'x', video.videoHeight);
       setVideoDuration(video.duration);
 
       // Dynamically match wrapper aspect ratio to the uploaded video.
@@ -372,13 +365,11 @@ export function VideoUploader() {
     };
     
     const handleCanPlay = () => {
-      console.log('[VideoUploader] Video can play');
       setVideoLoading(false);
       setVideoReady(true);
     };
     
     const handleLoadedData = () => {
-      console.log('[VideoUploader] Video data loaded, dimensions:', video.videoWidth, 'x', video.videoHeight);
       // Seek to first frame to show thumbnail
       if (video.currentTime === 0) {
         video.currentTime = 0.001;
@@ -468,8 +459,6 @@ export function VideoUploader() {
 
     if (currentDetection?.bbox) {
       const { x, y, width, height } = currentDetection.bbox;
-      
-      console.log('[VideoUploader] Drawing bbox:', { x, y, width, height });
 
       // Clamp bbox to original video bounds to avoid negative/overflow draws
       const x0 = Math.max(0, Math.min(vw, x));
@@ -484,8 +473,6 @@ export function VideoUploader() {
       const y1 = offY + y0 * scale;
       const w  = bw * scale;
       const h  = bh * scale;
-      
-      console.log('[VideoUploader] Scaled bbox:', { x1, y1, w, h });
 
       // Glowing box for dark theme
       ctx.strokeStyle = '#9A72A2';
@@ -531,7 +518,6 @@ export function VideoUploader() {
     
     // Auto-stop when video ends
     const handleVideoEnd = () => {
-      console.log('[VideoUploader] Video ended, stopping detection');
       stopProcessing();
     };
     video.addEventListener('ended', handleVideoEnd);

@@ -28,7 +28,6 @@ class HazardDetectorWorker {
         graphOptimizationLevel: 'all'
       });
 
-      console.log('[Worker] Model loaded');
     } catch (e) {
       console.error('[Worker] Model load failed:', e);
     }
@@ -80,7 +79,6 @@ class HazardDetectorWorker {
     let height = size?.height ?? size?.videoHeight;
 
     if (!width || !height || isNaN(width) || isNaN(height)) {
-      console.warn('[Worker] Invalid size, using fallback 640x480');
       return { width: 640, height: 480 };
     }
 
@@ -94,8 +92,6 @@ class HazardDetectorWorker {
     const { width, height } = this.parseSize(size);
 
     const rgba = new Uint8ClampedArray(frameBuffer);
-    
-    console.log('[Worker] Preprocess - width:', width, 'height:', height, 'buffer length:', rgba.length, 'expected:', 4 * width * height);
 
     if (rgba.length !== 4 * width * height) {
       throw new Error(`Buffer size mismatch: got ${rgba.length}, expected ${4 * width * height} for ${width}x${height}`);
@@ -189,25 +185,18 @@ class HazardDetectorWorker {
 
       if (!best) return null;
 
-      console.log('[Worker] Raw detection:', best, 'INPUT_SIZE:', INPUT_SIZE);
-      console.log('[Worker] Prep params:', { scale: prep.scale, dx: prep.dx, dy: prep.dy });
-
       // YOLO outputs are already in pixel coords [0-320], not normalized
       const boxX = best.x;
       const boxY = best.y;
       const boxW = best.w;
       const boxH = best.h;
       
-      console.log('[Worker] Letterboxed coords:', { boxX, boxY, boxW, boxH });
-
       // Remove letterbox padding and scale back to original image
       const cx = (boxX - prep.dx) / prep.scale;
       const cy = (boxY - prep.dy) / prep.scale;
       const bw = boxW / prep.scale;
       const bh = boxH / prep.scale;
       
-      console.log('[Worker] Original coords:', { cx, cy, bw, bh });
-
       const telemetry = {
         hazardType: CLASSES[bestClassIdx] || 'UNKNOWN',
         lat: gpsCoords.lat,
@@ -225,8 +214,6 @@ class HazardDetectorWorker {
         height: bh
       };
       
-      console.log('[Worker] Returning bbox:', bbox, 'from original size:', size);
-
       return {
         ...telemetry,
         signature,

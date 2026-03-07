@@ -326,3 +326,93 @@
   --v-shadow-md: 0 8px 24px rgba(0,0,0,0.14);
   --v-shadow-lg: 0 20px 60px rgba(0,0,0,0.18);
 }
+
+/* ─────────────────────────────────────────────────────────────
+   High contrast / forced colors
+   Respect OS accessibility settings (Windows High Contrast, etc.)
+   ───────────────────────────────────────────────────────────── */
+@media (forced-colors: active) {
+  :root {
+    --v-bg-base:     Canvas;
+    --v-bg-surface:  Canvas;
+    --v-bg-elevated: Canvas;
+    --v-bg-overlay:  Canvas;
+    --v-bg-deep:     Canvas;
+
+    --v-border-subtle:  GrayText;
+    --v-border-default: CanvasText;
+
+    --v-text-primary:   CanvasText;
+    --v-text-secondary: CanvasText;
+    --v-text-muted:     GrayText;
+    --v-text-disabled:  GrayText;
+
+    --v-accent:        Highlight;
+    --v-accent-hover:  Highlight;
+    --v-accent-bright: Highlight;
+    --v-accent-muted:  transparent;
+    --v-accent-glow:   transparent;
+    --v-accent-ring:   Highlight;
+
+    --v-success:     Highlight;
+    --v-success-dim: transparent;
+    --v-warning:     Highlight;
+    --v-warning-dim: transparent;
+    --v-danger:      Highlight;
+    --v-danger-dim:  transparent;
+
+    --v-rose:        Highlight;
+    --v-rose-dim:    transparent;
+    --v-rose-border: Highlight;
+
+    --v-hover:    Highlight;
+    --v-hover-md: Highlight;
+    --v-active:   Highlight;
+
+    --v-topbar-bg:            Canvas;
+    --v-topbar-border:        GrayText;
+    --v-topbar-menu:          CanvasText;
+    --v-topbar-menu-hover:    Highlight;
+    --v-topbar-menu-active:   CanvasText;
+    --v-topbar-search-bg:     Canvas;
+    --v-topbar-search-border: GrayText;
+    --v-topbar-search-text:   CanvasText;
+
+    --v-sb-bg:          Canvas;
+    --v-sb-accent-bg:   Highlight;
+    --v-sb-accent-text: HighlightText;
+    --v-sb-text:        CanvasText;
+    --v-sb-sep:         GrayText;
+    --v-sb-hover:       Highlight;
+
+    --v-panel-bg:         Canvas;
+    --v-panel-border:     GrayText;
+    --v-panel-header-txt: CanvasText;
+    --v-panel-hover:      Highlight;
+    --v-panel-active:     Highlight;
+    --v-stat-bg:          Canvas;
+    --v-stat-border:      GrayText;
+
+    --v-rail-bg:          Canvas;
+    --v-rail-border:      GrayText;
+    --v-rail-icon:        CanvasText;
+    --v-rail-icon-hover:  CanvasText;
+    --v-rail-icon-active: Highlight;
+    --v-rail-active-bg:   transparent;
+    --v-rail-indicator:   Highlight;
+    --v-rail-tooltip-bg:  Canvas;
+    --v-rail-tooltip-text: CanvasText;
+
+    --v-shadow-sm: none;
+    --v-shadow-md: none;
+    --v-shadow-lg: none;
+  }
+}
+
+@media (prefers-contrast: more) {
+  :root {
+    --v-border-subtle: var(--v-border-default);
+    --v-text-muted: var(--v-text-secondary);
+    --v-hover-md: var(--v-hover);
+  }
+}

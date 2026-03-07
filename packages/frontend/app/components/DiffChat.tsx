@@ -2,6 +2,11 @@
 
 import { useState, useRef, useEffect, useId } from 'react';
 import { Bot, Send, RefreshCw, AlertCircle } from 'lucide-react';
+import {
+  agentFetch,
+  AgentRateLimitedError,
+  useAgentRateLimitLock,
+} from '../lib/client/agent-rate-limit-client';
 
 const MONO = 'var(--v-font-mono)';
 const SANS = 'var(--v-font-ui)';
@@ -52,6 +57,7 @@ export function DiffChat({ diffMap, agentAnalysis }: DiffChatProps) {
   const [agentSessionId, setAgentSessionId] = useState<string | null>(null);
   const messagesEndRef = useRef<HTMLDivElement>(null);
   const textareaRef = useRef<HTMLTextAreaElement>(null);
+  const { isLocked, secondsRemaining } = useAgentRateLimitLock();
 
   // Seed initial analysis message if provided
   useEffect(() => {
@@ -80,6 +86,15 @@ export function DiffChat({ diffMap, agentAnalysis }: DiffChatProps) {
   const sendQuery = async (text: string) => {
     const trimmed = text.trim();
     if (!trimmed || isLoading) return;
+    if (isLocked) {
+      setMessages(prev => [...prev, {
+        id: `${uid}-e-${Date.now()}`,
+        role: 'error',
+        content: `Rate limited — try again in ${secondsRemaining}s.`,
+        timestamp: Date.now(),
+      }]);
+      return;
+    }
 
     const userMsg: Message = {
       id: `${uid}-u-${Date.now()}`,
@@ -103,7 +118,7 @@ export function DiffChat({ diffMap, agentAnalysis }: DiffChatProps) {
     };
 
     try {
-      const res = await fetch('/api/agent/chat', {
+      const res = await agentFetch('/api/agent/chat', {
         method: 'POST',
         headers: { 'Content-Type': 'application/json' },
         body: JSON.stringify({
@@ -114,6 +129,20 @@ export function DiffChat({ diffMap, agentAnalysis }: DiffChatProps) {
       });
 
       const data = await res.json();
+
+      if (res.status === 429) {
+        const retryAfterHeader = Number(res.headers.get('Retry-After') || '0');
+        const retryAfterSeconds = retryAfterHeader > 0
+          ? retryAfterHeader
+          : Math.ceil(Number((data as any)?.retryAfter || 60000) / 1000);
+        setMessages(prev => [...prev, {
+          id: `${uid}-e-${Date.now()}`,
+          role: 'error',
+          content: `${(data as any)?.error || 'Rate limited'} — try again in ${retryAfterSeconds}s.`,
+          timestamp: Date.now(),
+        }]);
+        return;
+      }
 
       if (!res.ok || data.error) {
         setMessages(prev => [...prev, {
@@ -132,6 +161,15 @@ export function DiffChat({ diffMap, agentAnalysis }: DiffChatProps) {
         }]);
       }
     } catch (err: any) {
+      if (err instanceof AgentRateLimitedError) {
+        setMessages(prev => [...prev, {
+          id: `${uid}-e-${Date.now()}`,
+          role: 'error',
+          content: err.message,
+          timestamp: Date.now(),
+        }]);
+        return;
+      }
       setMessages(prev => [...prev, {
         id: `${uid}-e-${Date.now()}`,
         role: 'error',
@@ -157,7 +195,7 @@ export function DiffChat({ diffMap, agentAnalysis }: DiffChatProps) {
     e.target.style.height = `${Math.min(e.target.scrollHeight, 100)}px`;
   };
 
-  const canSend = input.trim().length > 0 && !isLoading;
+  const canSend = input.trim().length > 0 && !isLoading && !isLocked;
 
   return (
     <div style={{
@@ -196,6 +234,21 @@ export function DiffChat({ diffMap, agentAnalysis }: DiffChatProps) {
         display: 'flex', flexDirection: 'column', gap: 8,
       }}>
 
+        {isLocked && (
+          <div style={{
+            padding: '8px 10px',
+            border: `1px solid ${C.borderMd}`,
+            borderRadius: 6,
+            background: C.elevated,
+            color: C.text,
+            fontSize: '0.7rem',
+            fontFamily: MONO,
+            letterSpacing: '0.02em',
+          }}>
+            Agent locked — try again in {secondsRemaining}s.
+          </div>
+        )}
+
         {/* Empty state */}
         {messages.length === 0 && (
           <div style={{ padding: '16px 4px' }}>
@@ -211,7 +264,7 @@ export function DiffChat({ diffMap, agentAnalysis }: DiffChatProps) {
                 <button
                   key={p}
                   onClick={() => sendQuery(p)}
-                  disabled={isLoading}
+                  disabled={isLoading || isLocked}
                   style={{
                     textAlign: 'left',
                     padding: '6px 10px',

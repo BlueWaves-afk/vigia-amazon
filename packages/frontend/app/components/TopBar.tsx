@@ -96,7 +96,7 @@ export function TopBar({
       ],
       Help: [
         { type: 'item', label: 'Keyboard Shortcuts', shortcut: '⌘K', action: safe(onCommandOpen), disabled: !onCommandOpen },
-        { type: 'item', label: 'VIGIA v1.0', disabled: true },
+        { type: 'item', label: 'About VIGIA', disabled: true },
       ],
     };
 
@@ -181,17 +181,6 @@ export function TopBar({
             VIGIA
           </span>
 
-          {/* Version badge */}
-          <span style={{
-            fontSize: '0.56rem', fontFamily: 'var(--v-font-mono)',
-            letterSpacing: '0.06em', fontWeight: 500,
-            padding: '1px 6px', borderRadius: 99,
-            background: 'var(--v-accent-muted)',
-            border: '1px solid var(--v-rose-border)',
-            color: 'var(--v-rose)',
-          }}>
-            v1.0
-          </span>
         </div>
 
         {/* Menu items — pill hover */}

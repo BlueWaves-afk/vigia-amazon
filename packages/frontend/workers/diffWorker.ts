@@ -64,9 +64,6 @@ self.onmessage = (e: MessageEvent<DiffWorkerMessage>) => {
     },
   };
 
-  const duration = performance.now() - startTime;
-  console.log(`[DiffWorker] Computed diff in ${duration.toFixed(2)}ms`);
-
   const response: DiffWorkerResponse = { type: 'DIFF_RESULT', result };
   self.postMessage(response);
 };

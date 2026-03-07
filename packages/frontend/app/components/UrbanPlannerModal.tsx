@@ -2,6 +2,11 @@
 
 import { useState } from 'react';
 import { X, MapPin, Loader2, TrendingUp } from 'lucide-react';
+import {
+  agentFetch,
+  AgentRateLimitedError,
+  useAgentRateLimitLock,
+} from '../lib/client/agent-rate-limit-client';
 
 const C = {
   bg: 'var(--c-bg)',
@@ -30,8 +35,13 @@ export function UrbanPlannerModal({ onClose }: UrbanPlannerModalProps) {
   const [isAnalyzing, setIsAnalyzing] = useState(false);
   const [analysis, setAnalysis] = useState<string | null>(null);
   const [error, setError] = useState<string | null>(null);
+  const { isLocked, secondsRemaining } = useAgentRateLimitLock();
 
   const handleAnalyze = async () => {
+    if (isLocked) {
+      setError(`Rate limited — try again in ${secondsRemaining}s.`);
+      return;
+    }
     setIsAnalyzing(true);
     setError(null);
     setAnalysis(null);
@@ -41,7 +51,7 @@ export function UrbanPlannerModal({ onClose }: UrbanPlannerModalProps) {
       if (avoidPotholes) avoidTypes.push('POTHOLE');
       if (avoidDebris) avoidTypes.push('DEBRIS');
 
-      const response = await fetch('/api/agent/urban-planning', {
+      const response = await agentFetch('/api/agent/urban-planning', {
         method: 'POST',
         headers: { 'Content-Type': 'application/json' },
         body: JSON.stringify({
@@ -53,12 +63,25 @@ export function UrbanPlannerModal({ onClose }: UrbanPlannerModalProps) {
 
       const data = await response.json();
 
+      if (response.status === 429) {
+        const retryAfterHeader = Number(response.headers.get('Retry-After') || '0');
+        const retryAfterSeconds = retryAfterHeader > 0
+          ? retryAfterHeader
+          : Math.ceil(Number((data as any)?.retryAfter || 60000) / 1000);
+        setError(`${(data as any)?.error || 'Rate limited'} — try again in ${retryAfterSeconds}s.`);
+        return;
+      }
+
       if (!response.ok) {
         throw new Error(data.error || 'Analysis failed');
       }
 
       setAnalysis(data.analysis);
     } catch (err: any) {
+      if (err instanceof AgentRateLimitedError) {
+        setError(err.message);
+        return;
+      }
       setError(err.message || 'Network error');
     } finally {
       setIsAnalyzing(false);

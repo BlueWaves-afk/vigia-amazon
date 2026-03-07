@@ -10,7 +10,7 @@ import { AgentUsageIndicator } from './AgentUsageIndicator';
 
 const TEXT: React.CSSProperties = {
   fontSize: 11,
-  fontFamily: 'Inter, system-ui, sans-serif',
+  fontFamily: 'var(--v-font-ui)',
   lineHeight: 1,
   whiteSpace: 'nowrap',
 };
@@ -90,7 +90,7 @@ function OnnxPill({ active }: { active: boolean }) {
       padding: '1px 6px',
       borderRadius: 10,
       fontSize: 10,
-      fontFamily: 'Inter, system-ui, sans-serif',
+      fontFamily: 'var(--v-font-ui)',
       fontWeight: 600,
       letterSpacing: '0.02em',
       lineHeight: 1,

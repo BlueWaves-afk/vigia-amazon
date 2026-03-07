@@ -51,6 +51,7 @@ export const handler = async (event: APIGatewayProxyEvent): Promise<APIGatewayPr
         };
       }
 
+      // Query by reportId to get the reportedAt (sort key)
       const existing = await docClient.send(new QueryCommand({
         TableName: process.env.MAINTENANCE_QUEUE_TABLE!,
         KeyConditionExpression: 'reportId = :rid',
@@ -69,6 +70,7 @@ export const handler = async (event: APIGatewayProxyEvent): Promise<APIGatewayPr
         };
       }
 
+      // Update with both partition and sort key
       await docClient.send(new UpdateCommand({
         TableName: process.env.MAINTENANCE_QUEUE_TABLE!,
         Key: { reportId: item.reportId, reportedAt: item.reportedAt },

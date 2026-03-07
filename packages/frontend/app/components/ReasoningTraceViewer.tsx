@@ -191,17 +191,14 @@ export function ReasoningTraceViewer() {
   
   useEffect(() => {
     const handleStart = () => {
-      console.log('[ReasoningTraceViewer] START');
       setIsThinking(true);
       setThinkingSteps([]);
       setLoading(true);
     };
     const handleStep = (e: CustomEvent) => {
-      console.log('[ReasoningTraceViewer] STEP:', e.detail);
       setThinkingSteps(prev => [...prev, e.detail.step]);
     };
     const handleComplete = (e: CustomEvent) => {
-      console.log('[ReasoningTraceViewer] COMPLETE:', e.detail);
       setIsThinking(false);
       setLoading(false);
       // Store final reasoning

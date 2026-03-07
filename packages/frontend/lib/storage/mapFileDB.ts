@@ -397,7 +397,6 @@ class MapFileDB {
       // LRU eviction: remove oldest file by creation time
       files.sort((a, b) => a.temporal.createdAt - b.temporal.createdAt);
       await this.deleteMapFile(files[0].sessionId);
-      console.log(`[MapFileDB] Evicted oldest file: ${files[0].displayName}`);
     }
 
     // Check storage quota

@@ -152,6 +152,7 @@ const DENSITY_VARS: Record<Density, Record<string, string>> = {
 interface SettingsCtx {
   settings: AppSettings;
   update:   (partial: Partial<AppSettings>) => void;
+  ready:    boolean;
 }
 
 const Ctx = createContext<SettingsCtx | null>(null);
@@ -160,6 +161,11 @@ export function useSettings() {
   const ctx = useContext(Ctx);
   if (!ctx) throw new Error('useSettings must be used within SettingsProvider');
   return ctx;
+}
+
+export function useSettingsReady() {
+  const ctx = useContext(Ctx);
+  return ctx?.ready ?? false;
 }
 
 const STORAGE_KEY = 'vigia-settings';
@@ -186,6 +192,7 @@ function loadSettings(): AppSettings {
 
 export function SettingsProvider({ children }: { children: React.ReactNode }) {
   const [settings, setSettings] = useState<AppSettings>(DEFAULTS);
+  const [ready, setReady] = useState(false);
 
   const applyToDOM = useCallback((s: AppSettings) => {
     const root = document.documentElement;
@@ -211,6 +218,7 @@ export function SettingsProvider({ children }: { children: React.ReactNode }) {
     const saved = loadSettings();
     setSettings(saved);
     applyToDOM(saved);
+    setReady(true);
   }, []); // eslint-disable-line
 
   const update = useCallback((partial: Partial<AppSettings>) => {
@@ -222,5 +230,5 @@ export function SettingsProvider({ children }: { children: React.ReactNode }) {
     });
   }, [applyToDOM]);
 
-  return <Ctx.Provider value={{ settings, update }}>{children}</Ctx.Provider>;
+  return <Ctx.Provider value={{ settings, update, ready }}>{children}</Ctx.Provider>;
 }

@@ -10,10 +10,15 @@ export function MaintenancePanel() {
   const [selectedHazard, setSelectedHazard] = useState<any>(null);
   const [notes, setNotes] = useState('');
   const [queuedHazards, setQueuedHazards] = useState<any[]>([]);
+  const [hydrated, setHydrated] = useState(false);
+  const [queueLoading, setQueueLoading] = useState(true);
 
   useEffect(() => {
     // Load the current queue on entry.
-    fetchMaintenanceQueue().catch(() => undefined);
+    setQueueLoading(true);
+    fetchMaintenanceQueue()
+      .catch(() => undefined)
+      .finally(() => setQueueLoading(false));
     // eslint-disable-next-line react-hooks/exhaustive-deps
   }, []);
 
@@ -36,6 +41,8 @@ export function MaintenancePanel() {
       if (!selectedHazard && hazards.length) setSelectedHazard(hazards[0]);
     } catch {
       // ignore
+    } finally {
+      setHydrated(true);
     }
     // eslint-disable-next-line react-hooks/exhaustive-deps
   }, []);
@@ -96,8 +103,39 @@ export function MaintenancePanel() {
 
       {/* Content */}
       <div style={{ flex: 1, overflowY: 'auto', padding: 12 }}>
+        <style>{`@keyframes mt-shimmer{from{background-position:200% 0}to{background-position:-200% 0}}`}</style>
+
         {/* Queued from map */}
-        {queuedHazards.length > 0 && (
+        {!hydrated ? (
+          <div style={{ marginBottom: 14 }}>
+            <div style={{ fontSize: '0.7rem', color: C.textSec, fontWeight: 600, marginBottom: 8 }}>
+              Queued Hazards
+            </div>
+            {[88, 72, 60].map((w, i) => (
+              <div key={i} style={{
+                padding: 8, marginBottom: 6,
+                background: 'var(--v-hover)',
+                border: '1px solid var(--v-border-default)',
+                borderRadius: 3,
+                opacity: 1 - i * 0.18,
+              }}>
+                <div style={{
+                  height: 9, borderRadius: 3, width: `${w}%`, maxWidth: 120,
+                  background: 'linear-gradient(90deg,var(--v-hover) 25%,var(--v-hover-md) 50%,var(--v-hover) 75%)',
+                  backgroundSize: '200% 100%',
+                  animation: `mt-shimmer 1.6s ease-in-out ${i * 0.1}s infinite`,
+                  marginBottom: 5,
+                }} />
+                <div style={{
+                  height: 7, borderRadius: 3, width: `${w * 0.5}%`, maxWidth: 70,
+                  background: 'linear-gradient(90deg,var(--v-hover) 25%,var(--v-hover-md) 50%,var(--v-hover) 75%)',
+                  backgroundSize: '200% 100%',
+                  animation: `mt-shimmer 1.6s ease-in-out ${i * 0.1 + 0.05}s infinite`,
+                }} />
+              </div>
+            ))}
+          </div>
+        ) : queuedHazards.length > 0 && (
           <div style={{ marginBottom: 14 }}>
             <div style={{ fontSize: '0.7rem', color: C.textSec, fontWeight: 600, marginBottom: 8 }}>
               Queued Hazards ({queuedHazards.length})
@@ -206,9 +244,48 @@ export function MaintenancePanel() {
         <div style={{ marginTop: 20, paddingTop: 12, position: 'relative' }}>
           <div className="ide-divider" style={{ position: 'absolute', top: 0, left: 0, right: 0 }} />
           <div style={{ fontSize: '0.7rem', color: C.textSec, fontWeight: 600, marginBottom: 8 }}>
-            Maintenance Queue ({maintenanceQueue.length})
+            Maintenance Queue ({queueLoading ? '…' : maintenanceQueue.length})
           </div>
-          {maintenanceQueue.slice(0, 10).map((report: MaintenanceReport) => (
+          {queueLoading ? (
+            <>
+              {[80, 64, 72, 56].map((w, i) => (
+                <div key={i} style={{
+                  padding: 8, marginBottom: 6,
+                  background: 'var(--v-hover)',
+                  border: '1px solid var(--v-border-default)',
+                  borderRadius: 3,
+                  opacity: 1 - i * 0.16,
+                }}>
+                  <div style={{ display: 'flex', alignItems: 'center', justifyContent: 'space-between', gap: 8 }}>
+                    <div style={{
+                      height: 9, borderRadius: 3, width: `${w}%`, maxWidth: 110,
+                      background: 'linear-gradient(90deg,var(--v-hover) 25%,var(--v-hover-md) 50%,var(--v-hover) 75%)',
+                      backgroundSize: '200% 100%',
+                      animation: `mt-shimmer 1.6s ease-in-out ${i * 0.1}s infinite`,
+                    }} />
+                    <div style={{
+                      height: 16, borderRadius: 3, width: 64, flexShrink: 0,
+                      background: 'linear-gradient(90deg,var(--v-hover) 25%,var(--v-hover-md) 50%,var(--v-hover) 75%)',
+                      backgroundSize: '200% 100%',
+                      animation: `mt-shimmer 1.6s ease-in-out ${i * 0.1 + 0.05}s infinite`,
+                    }} />
+                  </div>
+                  <div style={{
+                    height: 7, borderRadius: 3, width: `${w * 0.45}%`, maxWidth: 60, marginTop: 5,
+                    background: 'linear-gradient(90deg,var(--v-hover) 25%,var(--v-hover-md) 50%,var(--v-hover) 75%)',
+                    backgroundSize: '200% 100%',
+                    animation: `mt-shimmer 1.6s ease-in-out ${i * 0.1 + 0.1}s infinite`,
+                  }} />
+                  <div style={{
+                    height: 14, borderRadius: 2, width: 48, marginTop: 5,
+                    background: 'linear-gradient(90deg,var(--v-hover) 25%,var(--v-hover-md) 50%,var(--v-hover) 75%)',
+                    backgroundSize: '200% 100%',
+                    animation: `mt-shimmer 1.6s ease-in-out ${i * 0.1 + 0.15}s infinite`,
+                  }} />
+                </div>
+              ))}
+            </>
+          ) : maintenanceQueue.slice(0, 10).map((report: MaintenanceReport) => (
             <div
               key={report.reportId}
               style={{

@@ -1,43 +1,18 @@
 import { NextRequest, NextResponse } from 'next/server';
 import { LambdaClient, InvokeCommand } from '@aws-sdk/client-lambda';
-
-// Rate limiting
-const RATE_LIMIT_WINDOW_MS = 60 * 1000;
-const MAX_REQUESTS_PER_WINDOW = 5;
-const RATE_LIMIT_HOUR_MS = 60 * 60 * 1000;
-const MAX_REQUESTS_PER_HOUR = 30;
-const rateLimitStore = new Map<string, { requests: number[]; hourlyRequests: number[] }>();
-
-function checkRateLimit(ip: string): { allowed: boolean; reason?: string; retryAfter?: number } {
-  const now = Date.now();
-  let entry = rateLimitStore.get(ip);
-  if (!entry) {
-    entry = { requests: [], hourlyRequests: [] };
-    rateLimitStore.set(ip, entry);
-  }
-  entry.requests = entry.requests.filter(t => now - t < RATE_LIMIT_WINDOW_MS);
-  entry.hourlyRequests = entry.hourlyRequests.filter(t => now - t < RATE_LIMIT_HOUR_MS);
-  if (entry.requests.length >= MAX_REQUESTS_PER_WINDOW) {
-    return { allowed: false, reason: `Rate limit: ${MAX_REQUESTS_PER_WINDOW} queries per minute`, retryAfter: RATE_LIMIT_WINDOW_MS - (now - Math.min(...entry.requests)) };
-  }
-  if (entry.hourlyRequests.length >= MAX_REQUESTS_PER_HOUR) {
-    return { allowed: false, reason: `Rate limit: ${MAX_REQUESTS_PER_HOUR} queries per hour`, retryAfter: RATE_LIMIT_HOUR_MS - (now - Math.min(...entry.hourlyRequests)) };
-  }
-  entry.requests.push(now);
-  entry.hourlyRequests.push(now);
-  return { allowed: true };
-}
-
-function getClientIp(req: NextRequest): string {
-  return req.headers.get('x-forwarded-for')?.split(',')[0] || req.headers.get('x-real-ip') || 'unknown';
-}
+import { enforceAgentRateLimit } from '@/app/lib/server/agent-rate-limit';
 
 export async function POST(req: NextRequest) {
   try {
-    const clientIp = getClientIp(req);
-    const rateLimitCheck = checkRateLimit(clientIp);
-    if (!rateLimitCheck.allowed) {
-      return NextResponse.json({ error: rateLimitCheck.reason, retryAfter: rateLimitCheck.retryAfter }, { status: 429, headers: { 'Retry-After': String(Math.ceil((rateLimitCheck.retryAfter || 0) / 1000)) } });
+    const rl = await enforceAgentRateLimit(req);
+    if (!rl.allowed) {
+      return NextResponse.json(
+        { error: rl.reason, retryAfter: rl.retryAfterMs },
+        {
+          status: 429,
+          headers: { 'Retry-After': String(Math.ceil((rl.retryAfterMs || 0) / 1000)) },
+        }
+      );
     }
 
     const body = await req.json();

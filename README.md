@@ -607,4 +607,4 @@ Apache License 2.0 - See [LICENSE](LICENSE)
 
 **Status**: Near Production-ready demo system  
 **Last Updated**: March 8, 2026  
-**Version**: 2.0
+**Version**: 1.0

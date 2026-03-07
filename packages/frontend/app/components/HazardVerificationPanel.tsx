@@ -185,8 +185,6 @@ export function HazardVerificationPanel({ onHazardDetected }: HazardVerification
       const result = await response.json();
       const { traceId, steps, verificationScore, reasoning } = result;
 
-      console.log('[HazardVerificationPanel] Received steps:', steps);
-
       // Emit steps one by one with delays to simulate streaming
       for (let i = 0; i < steps.length; i++) {
         await new Promise(resolve => setTimeout(resolve, i === 0 ? 0 : 800)); // 800ms between steps

@@ -205,7 +205,7 @@ export function DiffView({ diffMap }: DiffViewProps) {
         const rectB = mapBRef.current.getBoundingClientRect();
 
         if (rectA.width === 0 || rectA.height === 0 || rectB.width === 0 || rectB.height === 0) {
-          console.warn('Map containers have zero dimensions — retrying after layout...');
+          // Retry once after a short delay
           // Retry once after a short delay
           setTimeout(() => {
             if (mapAInstance.current || mapBInstance.current) return;
@@ -215,7 +215,6 @@ export function DiffView({ diffMap }: DiffViewProps) {
         }
 
         const styleSpec = getMapStyle(settings.mapStyle);
-        console.log('Using map style:', typeof styleSpec === 'string' ? styleSpec : 'OSM fallback');
 
         const centerA = diffMap.sessionA.coverage?.centerPoint || { lat: 0, lon: 0 };
         const centerB = diffMap.sessionB.coverage?.centerPoint || { lat: 0, lon: 0 };
@@ -226,23 +225,6 @@ export function DiffView({ diffMap }: DiffViewProps) {
           ...(diffMap.changes?.worsenedHazards ?? []),
           ...(diffMap.changes?.unchangedHazards ?? []),
         ];
-
-        console.log('🗺️ DiffView session data:', {
-          sessionA: {
-            id: diffMap.sessionA.sessionId,
-            location: diffMap.sessionA.location,
-            coverage: diffMap.sessionA.coverage,
-            centerPoint: centerA,
-            hazardCount: diffHazardPoints.length,
-          },
-          sessionB: {
-            id: diffMap.sessionB.sessionId,
-            location: diffMap.sessionB.location,
-            coverage: diffMap.sessionB.coverage,
-            centerPoint: centerB,
-            hazardCount: diffHazardPoints.length,
-          }
-        });
 
         // Calculate center from hazards if coverage.centerPoint is missing
         const calculateCenterFromHazards = (hazards: any[]) => {
@@ -296,8 +278,6 @@ export function DiffView({ diffMap }: DiffViewProps) {
             : (fromCity || { lat: 20.5937, lon: 78.9629 });
         }
 
-        console.log('✅ Using validated centers:', validCenterA, validCenterB);
-
         // Map A (older session)
         mapAInstance.current = new maplibregl.Map({
           container: mapARef.current!,
@@ -315,8 +295,6 @@ export function DiffView({ diffMap }: DiffViewProps) {
           zoom: 13,
           attributionControl: false,
         });
-
-        console.log('Maps created, waiting for load...');
 
         // Error handling
         mapAInstance.current.on('error', (e) => {
@@ -365,14 +343,12 @@ export function DiffView({ diffMap }: DiffViewProps) {
 
         // Add hazard markers + apply CSS filter after map loads
         mapAInstance.current.on('load', () => {
-          console.log('Map A loaded');
           setMapsLoaded(prev => ({ ...prev, a: true }));
           addHazardMarkers(mapAInstance.current!, 'A');
           applyMapFilter(mapARef.current, settings.mapStyle);
         });
         
         mapBInstance.current.on('load', () => {
-          console.log('Map B loaded');
           setMapsLoaded(prev => ({ ...prev, b: true }));
           addHazardMarkers(mapBInstance.current!, 'B');
           applyMapFilter(mapBRef.current, settings.mapStyle);

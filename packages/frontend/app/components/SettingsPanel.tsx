@@ -265,7 +265,7 @@ export function SettingsPanel({ onClose }: SettingsPanelProps) {
           display: 'flex', alignItems: 'center', justifyContent: 'space-between', flexShrink: 0,
         }}>
           <span style={{ fontSize: '0.6rem', color: 'var(--v-text-muted)', fontFamily: 'var(--v-font-mono)' }}>
-            VIGIA v1.0 · settings.json
+            VIGIA · settings.json
           </span>
           <button onClick={onClose} style={{
             padding: '4px 12px', borderRadius: 3,

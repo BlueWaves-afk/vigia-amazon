@@ -114,7 +114,7 @@ export class InnovationStack extends Construct {
       logRetention: logs.RetentionDays.ONE_WEEK,
     });
 
-    this.maintenanceQueueTable.grantWriteData(maintenanceReportHandlerFn);
+    this.maintenanceQueueTable.grantReadWriteData(maintenanceReportHandlerFn);
     this.economicMetricsTable.grantReadWriteData(maintenanceReportHandlerFn);
     props.hazardsTable.grantReadData(maintenanceReportHandlerFn);
 

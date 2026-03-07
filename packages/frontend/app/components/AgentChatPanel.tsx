@@ -1,11 +1,16 @@
 'use client';
 
 import { useRef, useState, useEffect } from 'react';
+import {
+  agentFetch,
+  AgentRateLimitedError,
+  useAgentRateLimitLock,
+} from '../lib/client/agent-rate-limit-client';
 
 // ─── Constants ────────────────────────────────────────────────────────────────
 
-const MONO = "'IBM Plex Mono', 'JetBrains Mono', monospace";
-const SANS = "'IBM Plex Sans', 'Inter', system-ui, sans-serif";
+const MONO = "var(--v-font-mono)";
+const SANS = "var(--v-font-ui)";
 const DEFAULT_WIDTH = 300;
 const MIN_OPEN_WIDTH = 200;
 const MAX_WIDTH = 500;
@@ -133,6 +138,7 @@ export function AgentChatPanel({ contextType, context = {}, availableSessions = 
   const [expandedTraces, setExpandedTraces] = useState<Set<string>>(new Set());
   const [attachments, setAttachments]     = useState<ContextAttachment[]>([]);
   const [showAttachMenu, setShowAttachMenu] = useState(false);
+  const { isLocked: isRateLimited, secondsRemaining: rateLimitSecondsRemaining } = useAgentRateLimitLock();
 
   const messagesEndRef = useRef<HTMLDivElement>(null);
   const textareaRef    = useRef<HTMLTextAreaElement>(null);
@@ -243,7 +249,6 @@ export function AgentChatPanel({ contextType, context = {}, availableSessions = 
   // Show diff analysis as initial message (append, don't replace)
   // Track shown diffs by their display name to avoid duplicates on reload
   useEffect(() => {
-    console.log('🔍 AgentChatPanel context.diffAnalysis:', context.diffAnalysis);
     if (context.diffAnalysis && context.currentDiff) {
       const diffId = `${context.currentDiff.sessionA.id}-${context.currentDiff.sessionB.id}`;
 
@@ -258,7 +263,6 @@ export function AgentChatPanel({ contextType, context = {}, availableSessions = 
         );
 
         if (alreadyShown) {
-          console.log('⏭️ Diff analysis already shown for:', diffId);
           return prev;
         }
 
@@ -266,11 +270,9 @@ export function AgentChatPanel({ contextType, context = {}, availableSessions = 
         const last = prev[prev.length - 1];
         const lastContent = typeof last?.content === 'string' ? last.content.trim() : '';
         if (last?.role === 'assistant' && lastContent && lastContent === nextContent) {
-          console.log('⏭️ Skipping consecutive duplicate assistant message for:', diffId);
           return prev;
         }
 
-        console.log('✅ Appending diff analysis message for:', diffId);
         return [...prev, {
           id: mkId(),
           role: 'assistant',
@@ -346,6 +348,15 @@ export function AgentChatPanel({ contextType, context = {}, availableSessions = 
   const sendQuery = async (q?: string, contextOverride?: Record<string, any>) => {
     const text = (q ?? query).trim();
     if (!text || loading) return;
+    if (isRateLimited) {
+      setMessages(prev => [...prev, {
+        id: mkId(),
+        role: 'assistant',
+        content: `Rate limited — try again in ${rateLimitSecondsRemaining}s.`,
+        timestamp: Date.now(),
+      }]);
+      return;
+    }
 
     if (textareaRef.current) {
       textareaRef.current.style.height = '30px';
@@ -356,9 +367,6 @@ export function AgentChatPanel({ contextType, context = {}, availableSessions = 
     setMessages(prev => [...prev, userMsg]);
     setLoading(true);
 
-    // Emit usage event for rate limit tracking
-    window.dispatchEvent(new CustomEvent('vigia-agent-query'));
-
     try {
       // Detect query types
       const isUrbanPlanning = /\b(path|route|construction|road|optimal|build)\b/i.test(text);
@@ -367,7 +375,7 @@ export function AgentChatPanel({ contextType, context = {}, availableSessions = 
       if (contextType === 'network') {
         // Use network-analysis API for network context
         const attachCtx = attachments.reduce<Record<string, any>>((acc, a) => ({ ...acc, ...a.data }), {});
-        const res = await fetch('/api/agent/network-analysis', {
+        const res = await agentFetch('/api/agent/network-analysis', {
           method: 'POST',
           headers: { 'Content-Type': 'application/json' },
           body: JSON.stringify({
@@ -377,12 +385,15 @@ export function AgentChatPanel({ contextType, context = {}, availableSessions = 
         });
         
         if (res.status === 429) {
+          const retryAfterHeader = Number(res.headers.get('Retry-After') || '0');
           const data = await res.json();
-          const retryAfter = Math.ceil((data.retryAfter || 60000) / 1000);
+          const retryAfter = retryAfterHeader > 0
+            ? retryAfterHeader
+            : Math.ceil(Number(data.retryAfter || 60000) / 1000);
           setMessages(prev => [...prev, { 
             id: mkId(), 
             role: 'assistant', 
-            content: `⚠️ ${data.error}\n\nPlease wait ${retryAfter} seconds before trying again.`, 
+            content: `${data.error}\n\nPlease wait ${retryAfter} seconds before trying again.`, 
             timestamp: Date.now() 
           }]);
           return;
@@ -401,7 +412,7 @@ export function AgentChatPanel({ contextType, context = {}, availableSessions = 
         
         if (!hasCoordinates) {
           // For text queries about routes, use regular chat API
-          const res = await fetch('/api/agent/chat', {
+          const res = await agentFetch('/api/agent/chat', {
             method: 'POST',
             headers: { 'Content-Type': 'application/json' },
             body: JSON.stringify({
@@ -411,12 +422,15 @@ export function AgentChatPanel({ contextType, context = {}, availableSessions = 
           });
           
           if (res.status === 429) {
+            const retryAfterHeader = Number(res.headers.get('Retry-After') || '0');
             const data = await res.json();
-            const retryAfter = Math.ceil((data.retryAfter || 60000) / 1000);
+            const retryAfter = retryAfterHeader > 0
+              ? retryAfterHeader
+              : Math.ceil(Number(data.retryAfter || 60000) / 1000);
             setMessages(prev => [...prev, { 
               id: mkId(), 
               role: 'assistant', 
-              content: `⚠️ ${data.error}\n\nPlease wait ${retryAfter} seconds before trying again.`, 
+              content: `${data.error}\n\nPlease wait ${retryAfter} seconds before trying again.`, 
               timestamp: Date.now() 
             }]);
             return;
@@ -429,7 +443,7 @@ export function AgentChatPanel({ contextType, context = {}, availableSessions = 
         }
         
         // Use coordinates for actual route calculation
-        const res = await fetch('/api/agent/urban-planning', {
+        const res = await agentFetch('/api/agent/urban-planning', {
           method: 'POST',
           headers: { 'Content-Type': 'application/json' },
           body: JSON.stringify({
@@ -440,12 +454,15 @@ export function AgentChatPanel({ contextType, context = {}, availableSessions = 
         });
         
         if (res.status === 429) {
+          const retryAfterHeader = Number(res.headers.get('Retry-After') || '0');
           const data = await res.json();
-          const retryAfter = Math.ceil((data.retryAfter || 60000) / 1000);
+          const retryAfter = retryAfterHeader > 0
+            ? retryAfterHeader
+            : Math.ceil(Number(data.retryAfter || 60000) / 1000);
           setMessages(prev => [...prev, { 
             id: mkId(), 
             role: 'assistant', 
-            content: `⚠️ ${data.error}\n\nPlease wait ${retryAfter} seconds before trying again.`, 
+            content: `${data.error}\n\nPlease wait ${retryAfter} seconds before trying again.`, 
             timestamp: Date.now() 
           }]);
           return;
@@ -479,7 +496,7 @@ export function AgentChatPanel({ contextType, context = {}, availableSessions = 
       } else if (isMaintenance && context.type === 'maintenance') {
         // Use maintenance-priority API
         const hazardIds = context.hazardIds || [];
-        const res = await fetch('/api/agent/maintenance-priority', {
+        const res = await agentFetch('/api/agent/maintenance-priority', {
           method: 'POST',
           headers: { 'Content-Type': 'application/json' },
           body: JSON.stringify({
@@ -489,12 +506,15 @@ export function AgentChatPanel({ contextType, context = {}, availableSessions = 
         });
         
         if (res.status === 429) {
+          const retryAfterHeader = Number(res.headers.get('Retry-After') || '0');
           const data = await res.json();
-          const retryAfter = Math.ceil((data.retryAfter || 60000) / 1000);
+          const retryAfter = retryAfterHeader > 0
+            ? retryAfterHeader
+            : Math.ceil(Number(data.retryAfter || 60000) / 1000);
           setMessages(prev => [...prev, { 
             id: mkId(), 
             role: 'assistant', 
-            content: `⚠️ ${data.error}\n\nPlease wait ${retryAfter} seconds before trying again.`, 
+            content: `${data.error}\n\nPlease wait ${retryAfter} seconds before trying again.`, 
             timestamp: Date.now() 
           }]);
           return;
@@ -533,7 +553,7 @@ Use this context to answer questions about the infrastructure changes between th
         };
         
         // Use default chat API for other contexts
-        const res = await fetch('/api/agent/chat', {
+        const res = await agentFetch('/api/agent/chat', {
           method: 'POST',
           headers: { 'Content-Type': 'application/json' },
           body: JSON.stringify({
@@ -545,11 +565,14 @@ Use this context to answer questions about the infrastructure changes between th
         
         if (res.status === 429) {
           const data = await res.json();
-          const retryAfter = Math.ceil((data.retryAfter || 60000) / 1000);
+          const retryAfterHeader = Number(res.headers.get('Retry-After') || '0');
+          const retryAfter = retryAfterHeader > 0
+            ? retryAfterHeader
+            : Math.ceil(Number(data.retryAfter || 60000) / 1000);
           setMessages(prev => [...prev, { 
             id: mkId(), 
             role: 'assistant', 
-            content: `⚠️ ${data.error}\n\nPlease wait ${retryAfter} seconds before trying again.`, 
+            content: `${data.error}\n\nPlease wait ${retryAfter} seconds before trying again.`, 
             timestamp: Date.now() 
           }]);
           return;
@@ -600,13 +623,22 @@ Use this context to answer questions about the infrastructure changes between th
           }), 900);
         }
       }
-    } catch {
-      setMessages(prev => [...prev, {
-        id: mkId(),
-        role: 'error',
-        content: 'Request failed — check your connection.',
-        timestamp: Date.now(),
-      }]);
+    } catch (err: any) {
+      if (err instanceof AgentRateLimitedError) {
+        setMessages(prev => [...prev, {
+          id: mkId(),
+          role: 'assistant',
+          content: err.message,
+          timestamp: Date.now(),
+        }]);
+      } else {
+        setMessages(prev => [...prev, {
+          id: mkId(),
+          role: 'error',
+          content: 'Request failed — check your connection.',
+          timestamp: Date.now(),
+        }]);
+      }
     } finally {
       setLoading(false);
     }
@@ -951,21 +983,25 @@ Use this context to answer questions about the infrastructure changes between th
               <button
                 key={i}
                 onClick={() => sendQuery(p)}
+                disabled={loading || isRateLimited}
                 style={{
                   textAlign: 'left', padding: '5px 8px', borderRadius: 3,
                   background: 'transparent',
                   border: '1px solid var(--c-border)',
-                  cursor: 'pointer', color: 'var(--c-text-3)',
+                  cursor: loading || isRateLimited ? 'not-allowed' : 'pointer',
+                  color: loading || isRateLimited ? 'var(--c-text-3)' : 'var(--c-text-3)',
                   fontSize: '0.60rem', fontFamily: SANS,
                   transition: 'background 0.12s, color 0.12s, border-color 0.12s',
                 }}
                 onMouseEnter={(e) => {
+                  if (loading || isRateLimited) return;
                   const el = e.currentTarget as HTMLElement;
                   el.style.borderColor = 'var(--c-rose-border)';
                   el.style.color       = 'var(--c-rose-2)';
                   el.style.background  = 'var(--c-rose-dim)';
                 }}
                 onMouseLeave={(e) => {
+                  if (loading || isRateLimited) return;
                   const el = e.currentTarget as HTMLElement;
                   el.style.borderColor = 'var(--c-border)';
                   el.style.color       = 'var(--c-text-3)';
@@ -1084,17 +1120,19 @@ Use this context to answer questions about the infrastructure changes between th
             <button
               onClick={() => setShowAttachMenu(v => !v)}
               title="Add context"
+              disabled={loading || isRateLimited}
               style={{
                 width: 28, height: 28, flexShrink: 0,
                 display: 'flex', alignItems: 'center', justifyContent: 'center',
                 background: showAttachMenu ? 'var(--c-rose-dim)' : 'transparent',
                 border: `1px solid ${showAttachMenu ? 'var(--c-rose-border)' : 'var(--c-border)'}`,
-                borderRadius: 3, cursor: 'pointer',
+                borderRadius: 3, cursor: loading || isRateLimited ? 'not-allowed' : 'pointer',
                 color: showAttachMenu ? 'var(--c-rose-2)' : 'var(--c-text-3)',
                 transition: 'background 0.12s, color 0.12s, border-color 0.12s',
               }}
               onMouseEnter={(e) => {
                 if (!showAttachMenu) {
+                  if (loading || isRateLimited) return;
                   const el = e.currentTarget as HTMLElement;
                   el.style.borderColor = 'var(--c-rose-border)';
                   el.style.color       = 'var(--c-rose-2)';
@@ -1103,6 +1141,7 @@ Use this context to answer questions about the infrastructure changes between th
               }}
               onMouseLeave={(e) => {
                 if (!showAttachMenu) {
+                  if (loading || isRateLimited) return;
                   const el = e.currentTarget as HTMLElement;
                   el.style.borderColor = 'var(--c-border)';
                   el.style.color       = 'var(--c-text-3)';
@@ -1120,6 +1159,7 @@ Use this context to answer questions about the infrastructure changes between th
             <textarea
               ref={textareaRef}
               value={query}
+              disabled={loading || isRateLimited}
               onChange={(e) => {
                 setQuery(e.target.value);
                 e.target.style.height = 'auto';
@@ -1131,7 +1171,7 @@ Use this context to answer questions about the infrastructure changes between th
                   sendQuery();
                 }
               }}
-              placeholder="Ask the agent…"
+              placeholder={isRateLimited ? `Rate limited — try again in ${rateLimitSecondsRemaining}s` : 'Ask the agent…'}
               rows={1}
               style={{
                 flex: 1, resize: 'none', overflow: 'hidden',
@@ -1151,15 +1191,15 @@ Use this context to answer questions about the infrastructure changes between th
             {/* Send button */}
             <button
               onClick={() => sendQuery()}
-              disabled={!query.trim() || loading}
+              disabled={!query.trim() || loading || isRateLimited}
               style={{
                 width: 28, height: 28, flexShrink: 0,
                 display: 'flex', alignItems: 'center', justifyContent: 'center',
-                background: query.trim() && !loading ? 'var(--c-rose-dim)' : 'var(--c-elevated)',
-                border: `1px solid ${query.trim() && !loading ? 'var(--c-rose-border)' : 'var(--c-border)'}`,
+                background: query.trim() && !loading && !isRateLimited ? 'var(--c-rose-dim)' : 'var(--c-elevated)',
+                border: `1px solid ${query.trim() && !loading && !isRateLimited ? 'var(--c-rose-border)' : 'var(--c-border)'}`,
                 borderRadius: 3,
-                cursor: query.trim() && !loading ? 'pointer' : 'not-allowed',
-                color: query.trim() && !loading ? 'var(--c-rose-2)' : 'var(--c-text-3)',
+                cursor: query.trim() && !loading && !isRateLimited ? 'pointer' : 'not-allowed',
+                color: query.trim() && !loading && !isRateLimited ? 'var(--c-rose-2)' : 'var(--c-text-3)',
                 fontSize: '0.85rem', transition: 'background 0.12s, color 0.12s, border-color 0.12s',
               }}
             >

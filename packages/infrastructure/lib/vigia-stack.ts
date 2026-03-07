@@ -1,5 +1,6 @@
 import * as cdk from 'aws-cdk-lib';
 import * as apigateway from 'aws-cdk-lib/aws-apigateway';
+import * as dynamodb from 'aws-cdk-lib/aws-dynamodb';
 import * as lambda from 'aws-cdk-lib/aws-lambda';
 import { Construct } from 'constructs';
 import { IngestionStack } from './stacks/ingestion-stack';
@@ -12,6 +13,14 @@ import { InnovationStack } from './stacks/innovation-stack';
 export class VigiaStack extends cdk.Stack {
   constructor(scope: Construct, id: string, props?: cdk.StackProps) {
     super(scope, id, props);
+
+    // Shared rate limiting table for Next.js agent API routes (Amplify/SSR) and other entrypoints.
+    const agentRateLimitTable = new dynamodb.Table(this, 'AgentRateLimitTable', {
+      partitionKey: { name: 'pk', type: dynamodb.AttributeType.STRING },
+      billingMode: dynamodb.BillingMode.PAY_PER_REQUEST,
+      timeToLiveAttribute: 'ttl',
+      removalPolicy: cdk.RemovalPolicy.DESTROY,
+    });
 
     // Zone 4: Trust Layer (DePIN Ledger)
     const trustStack = new TrustStack(this, 'Trust');
@@ -89,6 +98,11 @@ export class VigiaStack extends cdk.Stack {
     new cdk.CfnOutput(this, 'HazardsTableName', {
       value: ingestionStack.hazardsTable.tableName,
       description: 'DynamoDB Hazards table name',
+    });
+
+    new cdk.CfnOutput(this, 'AgentRateLimitTableName', {
+      value: agentRateLimitTable.tableName,
+      description: 'DynamoDB table name for agent rate limiting (pk + ttl)',
     });
   }
 }

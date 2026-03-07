@@ -50,7 +50,6 @@ export const useAgentTraceStore = create<AgentTraceStore>((set, get) => ({
     if (!endpoint || endpoint.includes('undefined')) {
       if (existingSource) existingSource.close();
       set({ eventSource: null, isStreaming: false });
-      console.log('[AgentTraceStore] SSE endpoint not configured, skipping connection');
       return;
     }
 
@@ -61,7 +60,6 @@ export const useAgentTraceStore = create<AgentTraceStore>((set, get) => ({
     if (!process.env.NEXT_PUBLIC_INNOVATION_API_URL) {
       if (existingSource) existingSource.close();
       set({ eventSource: null, isStreaming: false });
-      console.log('[AgentTraceStore] Innovation API endpoint not configured, skipping SSE connection');
       return;
     }
 
@@ -89,7 +87,6 @@ export const useAgentTraceStore = create<AgentTraceStore>((set, get) => ({
     set({ eventSource, isStreaming: false });
 
     eventSource.onopen = () => {
-      console.log('[AgentTraceStore] SSE connected');
       self._reconnectAttempts = 0;
       set({ isStreaming: true });
     };
@@ -149,7 +146,6 @@ export const useAgentTraceStore = create<AgentTraceStore>((set, get) => ({
         clearReconnectTimer();
         self._reconnectTimer = setTimeout(() => {
           if (self._manuallyDisconnected) return;
-          console.log('[AgentTraceStore] Reconnecting...');
           get().connectSSE(endpoint);
         }, delay);
       }

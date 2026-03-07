@@ -22,6 +22,7 @@ interface SidebarProps {
   onNewSessionClick?:  () => void;
   onRefreshSessions?:  () => void;
   onActivityChange?:   (activity: 'explorer' | 'detection' | 'network' | 'maintenance') => void;
+  activity?:           'explorer' | 'detection' | 'network' | 'maintenance';
 }
 
 // ─────────────────────────────────────────────
@@ -194,7 +195,7 @@ function TreeNode({
           textOverflow: 'ellipsis',
           whiteSpace: 'nowrap',
           textAlign: 'left',
-          fontFamily: 'Inter, system-ui, sans-serif',
+          fontFamily: 'var(--v-font-ui)',
           letterSpacing: '-0.005em',
         }}>
           {label}
@@ -207,7 +208,7 @@ function TreeNode({
             borderRadius: 20,
             background: badgeColor ? `${badgeColor}1A` : 'var(--v-hover)',
             color: badgeColor ?? C.textMut,
-            fontFamily: 'Inter, system-ui, sans-serif',
+            fontFamily: 'var(--v-font-ui)',
             fontWeight: 600,
             flexShrink: 0,
             letterSpacing: '0.01em',
@@ -220,7 +221,7 @@ function TreeNode({
           <span style={{
             fontSize: 10, padding: '2px 6px', borderRadius: 3,
             background: C.red, color: '#fff', fontWeight: 700,
-            letterSpacing: '0.06em', fontFamily: 'Inter, system-ui, sans-serif',
+            letterSpacing: '0.06em', fontFamily: 'var(--v-font-ui)',
             flexShrink: 0,
           }}>
             LIVE
@@ -253,7 +254,7 @@ const MIN_WIDTH = 0;   // Allow full collapse
 const MAX_WIDTH = 400;
 const DEFAULT_WIDTH = 240;
 
-export function Sidebar({ onSentinelEyeClick, isSentinelEyeActive, onSettingsOpen, onSessionClick, onSessionsDeleted, onNewSessionClick, onRefreshSessions, onActivityChange }: SidebarProps) {
+export function Sidebar({ onSentinelEyeClick, isSentinelEyeActive, onSettingsOpen, onSessionClick, onSessionsDeleted, onNewSessionClick, onRefreshSessions, onActivityChange, activity: activityProp }: SidebarProps) {
   const { computeDiff } = useMapFileStore();
   const { settings } = useSettings();
   const [width, setWidth]         = useState(DEFAULT_WIDTH);
@@ -270,7 +271,15 @@ export function Sidebar({ onSentinelEyeClick, isSentinelEyeActive, onSettingsOpe
   const [searchResults, setSearchResults] = useState<any[]>([]);
   const [selectedLocation, setSelectedLocation] = useState<{ lat: number; lon: number; name: string; city?: string; region?: string; country?: string } | null>(null);
   const [isSearching, setIsSearching] = useState(false);
-  const [activeActivity, setActiveActivity] = useState<'explorer' | 'detection' | 'network' | 'maintenance'>('explorer');
+  const [activeActivity, setActiveActivity] = useState<'explorer' | 'detection' | 'network' | 'maintenance'>(activityProp ?? 'explorer');
+
+  // Sync from parent when restored activity changes (e.g. after hydration from sessionStorage).
+  useEffect(() => {
+    if (activityProp && activityProp !== activeActivity) {
+      setActiveActivity(activityProp);
+    }
+  // eslint-disable-next-line react-hooks/exhaustive-deps
+  }, [activityProp]);
   const [showMap, setShowMap] = useState(false);
   const [contextMenu, setContextMenu] = useState<{ x: number; y: number; session: any } | null>(null);
   const [draggedSession, setDraggedSession] = useState<any>(null);
@@ -338,7 +347,6 @@ export function Sidebar({ onSentinelEyeClick, isSentinelEyeActive, onSettingsOpe
           });
         } else {
           // Don’t render potentially misleading defaults if the cloud endpoint is unavailable.
-          console.warn('Sidebar metrics endpoint returned non-OK:', res.status);
         }
       } catch (error) {
         console.error('Failed to fetch sidebar metrics:', error);
@@ -370,8 +378,7 @@ export function Sidebar({ onSentinelEyeClick, isSentinelEyeActive, onSettingsOpe
         // Expose to window for save functionality
         (window as any).__vfsManager = manager;
         loadSessions(manager);
-      } catch (error) {
-        console.warn('VFS Manager init failed (CORS or network issue), using IndexedDB only:', error);
+      } catch {
         // Still load from IndexedDB even if VFS fails
         loadSessions(null);
       }
@@ -397,8 +404,8 @@ export function Sidebar({ onSentinelEyeClick, isSentinelEyeActive, onSettingsOpe
       if (manager) {
         try {
           savedSessions = await manager.listSessions();
-        } catch (error) {
-          console.warn('Failed to load from VFS (CORS or network issue), using IndexedDB only');
+        } catch {
+          // Fallback to IndexedDB only
         }
       }
       
@@ -464,7 +471,6 @@ export function Sidebar({ onSentinelEyeClick, isSentinelEyeActive, onSettingsOpe
       }
       
       const data = await response.json();
-      console.log('Search results:', data);
       const results = data.ResultItems?.map((r: any) => ({
         name: r.Title,
         lat: r.Position[1],
@@ -531,7 +537,6 @@ export function Sidebar({ onSentinelEyeClick, isSentinelEyeActive, onSettingsOpe
           }
           
           const data = await response.json();
-          console.log('Reverse geocode result:', data);
           const place = data.ResultItems?.[0];
           
           setSelectedLocation({
@@ -750,8 +755,6 @@ export function Sidebar({ onSentinelEyeClick, isSentinelEyeActive, onSettingsOpe
         const { useMapFileStore } = await import('@/stores/mapFileStore');
         
         for (const s of userSessions) {
-          console.log('Deleting session:', s.sessionId);
-          
           // Delete from VFSManager if not temporary
           if (!s.isTemporary) {
             await vfsManager.deleteSession(s.sessionId);
@@ -788,8 +791,6 @@ export function Sidebar({ onSentinelEyeClick, isSentinelEyeActive, onSettingsOpe
       }
       
       try {
-        console.log('Deleting session:', session.sessionId);
-        
         // Delete from VFSManager (permanent storage) if not temporary
         if (!session.isTemporary) {
           await vfsManager.deleteSession(session.sessionId);
@@ -972,7 +973,7 @@ export function Sidebar({ onSentinelEyeClick, isSentinelEyeActive, onSettingsOpe
                   padding: '10px 16px',
                   color: C.textMut,
                   fontSize: 13,
-                  fontFamily: 'Inter, system-ui, sans-serif',
+                  fontFamily: 'var(--v-font-ui)',
                   fontStyle: 'italic',
                 }}>
                   No sessions yet
@@ -1253,7 +1254,7 @@ export function Sidebar({ onSentinelEyeClick, isSentinelEyeActive, onSettingsOpe
               flexShrink: 0,
             }}>
             <span style={{ width: 6, height: 6, borderRadius: '50%', background: C.green, flexShrink: 0 }} className="pulse" />
-            <span style={{ fontSize: 12, color: C.textMut, fontFamily: 'Inter, system-ui, sans-serif', overflow: 'hidden', textOverflow: 'ellipsis', whiteSpace: 'nowrap' }}>
+            <span style={{ fontSize: 12, color: C.textMut, fontFamily: 'var(--v-font-ui)', overflow: 'hidden', textOverflow: 'ellipsis', whiteSpace: 'nowrap' }}>
               Rourkela · India · Online
             </span>
           </div>

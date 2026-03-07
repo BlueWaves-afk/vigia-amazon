@@ -2,11 +2,10 @@
 
 import { useEffect, useState } from 'react';
 import { RefreshCw } from 'lucide-react';
-import { ROIWidget } from './ROIWidget';
 
 // ─────────────────────────────────────────────
-// LedgerTicker — ALL API logic preserved from v1
-// Visual layer updated to dark IDE style
+// LedgerTicker — DePIN Ledger Console
+// Matches Agent Trace Console style
 // ─────────────────────────────────────────────
 
 type LedgerEntry = {
@@ -20,7 +19,6 @@ export function LedgerTicker() {
   const [entries, setEntries] = useState<LedgerEntry[]>([]);
   const [loading, setLoading] = useState(true);
 
-  // ── Original fetch logic preserved ────────
   const fetchEntries = async () => {
     try {
       const response = await fetch('/api/ledger');
@@ -59,11 +57,6 @@ export function LedgerTicker() {
 
   return (
     <div className="font-data w-full h-full flex flex-col" style={{ fontSize: '0.78rem' }}>
-      {/* ROI Widget */}
-      <div className="vigia-panel-header" style={{ padding: '12px', borderBottom: 'none', flexShrink: 0 }}>
-        <ROIWidget sessionId="current" />
-      </div>
-
       {/* Ledger Table */}
       <div style={{ flex: 1, overflow: 'auto' }}>
         <table className="w-full border-collapse">

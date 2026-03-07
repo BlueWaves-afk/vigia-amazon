@@ -7,6 +7,7 @@ import { useSettings } from './SettingsContext';
 import type { MapStyle } from './SettingsContext';
 import { DiffMarkersLayer } from './DiffMarkersLayer';
 import { DiffLegend } from './DiffLegend';
+import { agentFetch } from '../lib/client/agent-rate-limit-client';
 
 // ─────────────────────────────────────────────
 // Types
@@ -301,7 +302,7 @@ export function LiveMap({ selectedSession }: { selectedSession?: any }) {
     if (!pinA || !pinB) return;
 
     try {
-      const res = await fetch('/api/agent/urban-planning', {
+      const res = await agentFetch('/api/agent/urban-planning', {
         method: 'POST',
         headers: { 'content-type': 'application/json' },
         body: JSON.stringify({
@@ -521,22 +522,17 @@ export function LiveMap({ selectedSession }: { selectedSession?: any }) {
 
   // ── Map viewport trigger for agent ──────────────────────────────────────────
   useEffect(() => {
-    console.log('[LiveMap] Setting up viewport trigger, map ready:', mapReady);
     (window as any).__mapViewportTrigger = () => {
       const viewport = (window as any).__mapViewport;
-      console.log('[LiveMap] Trigger called, viewport:', viewport, 'map exists:', !!map.current, 'map ready:', mapReady);
       if (viewport && map.current && mapReady) {
-        console.log('[LiveMap] Flying to:', viewport.center, 'zoom:', viewport.zoom);
         map.current.flyTo({
           center: viewport.center,
           zoom: viewport.zoom || 15,
           duration: 1500,
         });
       } else if (viewport) {
-        console.warn('[LiveMap] Map not ready yet, retrying in 1000ms');
         setTimeout(() => {
           if (map.current && mapReady) {
-            console.log('[LiveMap] Retry successful, flying to:', viewport.center);
             map.current.flyTo({
               center: viewport.center,
               zoom: viewport.zoom || 15,
@@ -635,9 +631,6 @@ export function LiveMap({ selectedSession }: { selectedSession?: any }) {
   // ── Load session hazards ────────────────────
   useEffect(() => {
     if (selectedSession?.hazards) {
-      console.log('LiveMap: Loading session', selectedSession);
-      console.log('LiveMap: Coverage', selectedSession.coverage);
-      
       const sessionHazards = selectedSession.hazards
         .map((h: any) => {
           const lat = Number(h.lat);
@@ -664,17 +657,14 @@ export function LiveMap({ selectedSession }: { selectedSession?: any }) {
       // Center map on session coverage
       if (map.current) {
         if (selectedSession.coverage?.centerPoint) {
-          console.log('LiveMap: Centering on', selectedSession.coverage.centerPoint);
           map.current.jumpTo({ 
             center: [selectedSession.coverage.centerPoint.lon, selectedSession.coverage.centerPoint.lat], 
             zoom: 12 
           });
         } else if (sessionHazards.length > 0) {
-          console.log('LiveMap: Centering on first hazard');
           map.current.jumpTo({ center: [sessionHazards[0].lon, sessionHazards[0].lat], zoom: 14 });
         }
       } else {
-        console.log('LiveMap: Map not ready, storing pending session');
         pendingSession.current = selectedSession;
       }
     } else {
@@ -735,16 +725,13 @@ export function LiveMap({ selectedSession }: { selectedSession?: any }) {
 
       // Handle pending session
       if (pendingSession.current) {
-        console.log('LiveMap: Map loaded, processing pending session');
         if (pendingSession.current.coverage?.centerPoint) {
-          console.log('LiveMap: Centering on coverage centerPoint', pendingSession.current.coverage.centerPoint);
           map.current?.jumpTo({ 
             center: [pendingSession.current.coverage.centerPoint.lon, pendingSession.current.coverage.centerPoint.lat], 
             zoom: 12 
           });
         } else if (pendingSession.current.hazards?.length > 0) {
           const h = pendingSession.current.hazards[0];
-          console.log('LiveMap: Centering on first hazard');
           map.current?.jumpTo({ center: [h.lon, h.lat], zoom: 14 });
         }
         pendingSession.current = null;

@@ -164,8 +164,6 @@ export default function Dashboard() {
         setSelectedSession(null);
       }
 
-      console.log('✅ Restored tabs from sessionStorage:', { restoredActivity, resolvedActiveMainTab });
-
       // If we loaded legacy state, immediately migrate it to v2 so subsequent loads are consistent.
       if (!savedRawV2) {
         try {
@@ -183,8 +181,8 @@ export default function Dashboard() {
           // Best-effort migration only
         }
       }
-    } catch (err) {
-      console.warn('Failed to restore tabs:', err);
+    } catch {
+      // Best-effort restore only
     } finally {
       // Mark hydration complete only AFTER attempting restore, so we don't overwrite stored tabs
       // with the initial empty state during the first mount.
@@ -234,7 +232,7 @@ export default function Dashboard() {
 
       sessionStorage.setItem(TAB_STORAGE_KEY, JSON.stringify(payload));
     } catch (err) {
-      console.warn('Failed to save tabs:', err);
+      // Best-effort save only
     }
   }, [explorerTabs, detectionTabs, activeMainTab, sidebarActivity, explorerActiveTab, detectionActiveTab]);
 
@@ -372,9 +370,7 @@ export default function Dashboard() {
 
   // ── Save active session to VFSManager ────
   const saveActiveSession = async () => {
-    console.log('saveActiveSession called', { activeMainTab, openTabs });
     const activeTab = openTabs.find(t => t.id === activeMainTab);
-    console.log('Active tab:', activeTab);
     
     // Handle diff map save
     if (activeTab?.diffMap) {
@@ -390,15 +386,11 @@ export default function Dashboard() {
       }
     }
     
-    if (!activeTab?.session) {
-      console.log('Not saving - no session');
-      return;
-    }
+    if (!activeTab?.session) return;
 
     try {
       // Get VFSManager instance from Sidebar
       const vfsManager = (window as any).__vfsManager;
-      console.log('VFSManager:', vfsManager);
       
       if (!vfsManager) {
         toast.error('Save failed', 'VFS Manager not initialized');
@@ -410,7 +402,6 @@ export default function Dashboard() {
 
       // Save to localStorage (moves from sessionStorage)
       await vfsManager.saveSession(sessionId);
-      console.log('Session saved to localStorage:', sessionId);
 
       // Mark as saved and update tab label
       const newTabs = openTabs.map(t =>
@@ -521,8 +512,6 @@ export default function Dashboard() {
 
   // ── Session handling ──────────────────────
   const handleSessionClick = async (session: any) => {
-    console.log('Session clicked:', session);
-    
     if (session.status === 'creating') {
       setSelectedSession(session);
       switchMainTab('map');
@@ -537,7 +526,6 @@ export default function Dashboard() {
         const mapFile = useMapFileStore.getState().files.get(session.sessionId);
         if (mapFile) {
           fullSession = mapFile;
-          console.log('Loaded full MapFile:', fullSession);
         }
       } catch (err) {
         console.error('Failed to load full session:', err);
@@ -551,7 +539,6 @@ export default function Dashboard() {
           temporal: session.metadata.temporal,
           displayName: session.metadata.displayName || session.displayName,
         };
-        console.log('Reconstructed saved session:', fullSession);
       }
     }
     
@@ -686,6 +673,7 @@ export default function Dashboard() {
 
       <div style={{ display: 'flex', flex: 1, overflow: 'hidden', minHeight: 0, position: 'relative' }}>
         <Sidebar
+          activity={sidebarActivity}
           onSentinelEyeClick={() => {
             if (!detectionTabs.find(t => t.id === 'sentinel'))
               setDetectionTabs(prev => [...prev, { id: 'sentinel', label: 'Detection Node' }]);
@@ -780,21 +768,21 @@ export default function Dashboard() {
                   background: 'var(--c-sidebar)',
                   border: '1px solid rgba(154,106,170,0.25)',
                   display: 'flex', alignItems: 'center', justifyContent: 'center',
-                  boxShadow: '0 4px 16px rgba(0,0,0,0.3), inset 0 1px 0 rgba(255,255,255,0.04), 0 0 0 1px rgba(92,143,248,0.08)',
+                  boxShadow: 'none',
                 }}>
                   <img src="/logo.svg" alt="VIGIA" style={{ width: 22, height: 22, opacity: 0.8 }} />
                 </div>
                 <div style={{ textAlign: 'center' }}>
                   <div style={{
                     fontSize: '0.82rem', color: 'var(--c-text-2)',
-                    fontFamily: "'IBM Plex Sans', system-ui, sans-serif",
+                    fontFamily: 'var(--v-font-ui)',
                     fontWeight: 500, letterSpacing: '-0.02em', marginBottom: 5,
                   }}>
                     {sidebarActivity === 'explorer' ? 'No session open' : 'Detection Node'}
                   </div>
                   <div style={{
                     fontSize: '0.70rem', color: 'var(--c-text-3)',
-                    fontFamily: "'IBM Plex Sans', system-ui, sans-serif",
+                    fontFamily: 'var(--v-font-ui)',
                     lineHeight: 1.6,
                   }}>
                     {sidebarActivity === 'explorer'
@@ -808,16 +796,16 @@ export default function Dashboard() {
                   padding: '5px 10px', borderRadius: 4,
                   background: 'var(--c-sidebar)', border: '1px solid rgba(154,106,170,0.2)',
                 }}>
-                  <span style={{ fontSize: '0.65rem', color: 'var(--c-text-3)', fontFamily: "'IBM Plex Sans', sans-serif" }}>
+                  <span style={{ fontSize: '0.65rem', color: 'var(--c-text-3)', fontFamily: 'var(--v-font-ui)' }}>
                     Press
                   </span>
                   <kbd style={{
-                    fontSize: '0.60rem', fontFamily: "'IBM Plex Mono', monospace",
+                    fontSize: '0.60rem', fontFamily: 'var(--v-font-mono)',
                     color: 'var(--c-text-2)', background: 'var(--c-elevated)',
                     border: '1px solid rgba(92,143,248,0.2)', borderRadius: 3,
                     padding: '1px 6px',
                   }}>⌘K</kbd>
-                  <span style={{ fontSize: '0.65rem', color: 'var(--c-text-3)', fontFamily: "'IBM Plex Sans', sans-serif" }}>
+                  <span style={{ fontSize: '0.65rem', color: 'var(--c-text-3)', fontFamily: 'var(--v-font-ui)' }}>
                     to open command palette
                   </span>
                 </div>
@@ -857,7 +845,7 @@ export default function Dashboard() {
                   borderTop: '2px solid var(--c-rose)',
                   animation: 'spin 0.9s linear infinite',
                 }} />
-                <div style={{ fontSize: '0.78rem', color: 'var(--c-text-2)', fontFamily: "'IBM Plex Sans', system-ui, sans-serif" }}>
+                <div style={{ fontSize: '0.78rem', color: 'var(--c-text-2)', fontFamily: 'var(--v-font-ui)' }}>
                   Creating session at {selectedSession.location?.name}...
                 </div>
               </div>
@@ -870,7 +858,7 @@ export default function Dashboard() {
                     <div style={{
                       position: 'absolute', top: 8, left: 8, zIndex: 10,
                       background: 'rgba(0,0,0,0.8)', padding: '4px 8px', borderRadius: 3,
-                      fontSize: '0.68rem', color: '#fff', fontFamily: "'IBM Plex Sans', system-ui, sans-serif",
+                      fontSize: '0.68rem', color: '#fff', fontFamily: 'var(--v-font-ui)',
                       border: '1px solid var(--c-rose-border)',
                     }}>
                       {s.location?.city || 'Session'} — {new Date(s.timestamp).toLocaleDateString()}
@@ -882,7 +870,7 @@ export default function Dashboard() {
                   position: 'absolute', top: 8, right: 8, zIndex: 20,
                   background: 'var(--c-elevated)', border: '1px solid var(--c-rose-border)',
                   borderRadius: 3, padding: '4px 10px', color: 'var(--c-rose-2)',
-                  fontSize: '0.70rem', cursor: 'pointer', fontFamily: "'IBM Plex Sans', system-ui, sans-serif",
+                  fontSize: '0.70rem', cursor: 'pointer', fontFamily: 'var(--v-font-ui)',
                 }}>
                   Close Split
                 </button>
@@ -944,7 +932,6 @@ export default function Dashboard() {
                 const activeTab = explorerTabs.find(t => t.id === activeMainTab);
                 const analysis = activeTab?.diffMap ? 
                   generateDiffAnalysisText(activeTab.diffMap) : undefined;
-                console.log('🔍 Diff analysis:', { activeMainTab, activeTab: activeTab?.label, hasDiffMap: !!activeTab?.diffMap, analysis });
                 return analysis;
               })(),
               currentDiff: (() => {

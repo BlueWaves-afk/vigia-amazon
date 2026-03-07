@@ -1,6 +1,7 @@
 'use client';
 
-import { useState, useEffect } from 'react';
+import { useCallback, useEffect, useState } from 'react';
+import { useAgentRateLimitLock } from '../lib/client/agent-rate-limit-client';
 
 const STORAGE_KEY = 'vigia_agent_usage';
 const MAX_PER_MINUTE = 5;
@@ -14,69 +15,53 @@ interface UsageData {
 export function AgentUsageIndicator() {
   const [showPopup, setShowPopup] = useState(false);
   const [usage, setUsage] = useState<UsageData>({ requests: [], hourlyRequests: [] });
+  const { isLocked, secondsRemaining } = useAgentRateLimitLock();
+
+  const updateUsage = useCallback(() => {
+    const stored = localStorage.getItem(STORAGE_KEY);
+    if (stored) {
+      try {
+        const data = JSON.parse(stored);
+        const now = Date.now();
+        const oneMinuteAgo = now - 60 * 1000;
+        const oneHourAgo = now - 60 * 60 * 1000;
+
+        setUsage({
+          requests: (data.requests || []).filter((t: number) => t > oneMinuteAgo),
+          hourlyRequests: (data.hourlyRequests || []).filter((t: number) => t > oneHourAgo),
+        });
+        return;
+      } catch (e) {
+        console.error('Failed to parse usage data:', e);
+      }
+    }
+
+    setUsage({ requests: [], hourlyRequests: [] });
+  }, []);
 
   useEffect(() => {
-    const updateUsage = () => {
-      const stored = localStorage.getItem(STORAGE_KEY);
-      if (stored) {
-        try {
-          const data = JSON.parse(stored);
-          const now = Date.now();
-          const oneMinuteAgo = now - 60 * 1000;
-          const oneHourAgo = now - 60 * 60 * 1000;
-          
-          setUsage({
-            requests: (data.requests || []).filter((t: number) => t > oneMinuteAgo),
-            hourlyRequests: (data.hourlyRequests || []).filter((t: number) => t > oneHourAgo),
-          });
-        } catch (e) {
-          console.error('Failed to parse usage data:', e);
-        }
-      }
-    };
-
     updateUsage();
     const interval = setInterval(updateUsage, 1000);
-    return () => clearInterval(interval);
-  }, []);
 
-  // Listen for agent queries
-  useEffect(() => {
-    const handleQuery = () => {
-      const now = Date.now();
-      const stored = localStorage.getItem(STORAGE_KEY);
-      let data: UsageData = { requests: [], hourlyRequests: [] };
-      
-      if (stored) {
-        try {
-          data = JSON.parse(stored);
-        } catch (e) {
-          console.error('Failed to parse usage data:', e);
-        }
-      }
-
-      data.requests.push(now);
-      data.hourlyRequests.push(now);
-      
-      localStorage.setItem(STORAGE_KEY, JSON.stringify(data));
-      setUsage(data);
+    const onAgentQuery = () => updateUsage();
+    window.addEventListener('vigia-agent-query', onAgentQuery);
+    return () => {
+      clearInterval(interval);
+      window.removeEventListener('vigia-agent-query', onAgentQuery);
     };
-
-    window.addEventListener('vigia-agent-query', handleQuery);
-    return () => window.removeEventListener('vigia-agent-query', handleQuery);
-  }, []);
+  }, [updateUsage]);
 
   const minuteUsage = usage.requests.length;
   const hourUsage = usage.hourlyRequests.length;
   const minutePercent = (minuteUsage / MAX_PER_MINUTE) * 100;
   const hourPercent = (hourUsage / MAX_PER_HOUR) * 100;
-  const isLimited = minuteUsage >= MAX_PER_MINUTE || hourUsage >= MAX_PER_HOUR;
+  const isLimited = isLocked || minuteUsage >= MAX_PER_MINUTE || hourUsage >= MAX_PER_HOUR;
 
   const getColor = (percent: number) => {
-    if (percent >= 100) return '#EF4444'; // Red
-    if (percent >= 80) return '#F59E0B'; // Orange
-    if (percent >= 60) return '#EAB308'; // Yellow
-    return '#10B981'; // Green
+    if (percent >= 100) return 'var(--c-red)';
+    if (percent >= 80) return 'var(--c-yellow)';
+    if (percent >= 60) return 'var(--c-yellow)';
+    return 'var(--c-green)';
   };
 
   return (
@@ -104,11 +89,11 @@ export function AgentUsageIndicator() {
       
       <span style={{ 
         fontSize: 11, 
-        fontFamily: 'Inter, system-ui, sans-serif',
+        fontFamily: 'var(--v-font-ui)',
         lineHeight: 1,
         color: 'var(--v-sb-text)',
       }}>
-        {hourUsage}/{MAX_PER_HOUR}
+        {isLocked ? `WAIT ${secondsRemaining}s` : `${hourUsage}/${MAX_PER_HOUR}`}
       </span>
 
       {/* Usage Popup */}
@@ -120,28 +105,28 @@ export function AgentUsageIndicator() {
             right: 0,
             marginBottom: 8,
             width: 280,
-            background: '#FFFFFF',
-            border: '1px solid #CBD5E1',
+            background: 'var(--c-elevated)',
+            border: '1px solid var(--c-border)',
             borderRadius: 6,
             padding: 12,
-            boxShadow: '0 4px 12px rgba(0,0,0,0.1)',
+            boxShadow: 'var(--v-shadow-md)',
             zIndex: 10000,
-            fontFamily: 'Inter, system-ui, sans-serif',
+            fontFamily: 'var(--v-font-ui)',
           }}
         >
-          <div style={{ fontSize: '0.75rem', fontWeight: 600, marginBottom: 12, color: '#1F2937' }}>
+          <div style={{ fontSize: '0.75rem', fontWeight: 600, marginBottom: 12, color: 'var(--c-text)' }}>
             Agent Usage
           </div>
 
           {/* Per-Minute Usage */}
           <div style={{ marginBottom: 12 }}>
             <div style={{ display: 'flex', justifyContent: 'space-between', marginBottom: 4 }}>
-              <span style={{ fontSize: '0.70rem', color: '#6B7280' }}>Per Minute</span>
+              <span style={{ fontSize: '0.70rem', color: 'var(--c-text-3)' }}>Per Minute</span>
               <span style={{ fontSize: '0.70rem', fontWeight: 500, color: getColor(minutePercent) }}>
                 {minuteUsage}/{MAX_PER_MINUTE}
               </span>
             </div>
-            <div style={{ height: 6, background: '#F3F4F6', borderRadius: 3, overflow: 'hidden' }}>
+            <div style={{ height: 6, background: 'var(--c-hover-md)', borderRadius: 3, overflow: 'hidden' }}>
               <div
                 style={{
                   height: '100%',
@@ -156,12 +141,12 @@ export function AgentUsageIndicator() {
           {/* Per-Hour Usage */}
           <div style={{ marginBottom: 12 }}>
             <div style={{ display: 'flex', justifyContent: 'space-between', marginBottom: 4 }}>
-              <span style={{ fontSize: '0.70rem', color: '#6B7280' }}>Per Hour</span>
+              <span style={{ fontSize: '0.70rem', color: 'var(--c-text-3)' }}>Per Hour</span>
               <span style={{ fontSize: '0.70rem', fontWeight: 500, color: getColor(hourPercent) }}>
                 {hourUsage}/{MAX_PER_HOUR}
               </span>
             </div>
-            <div style={{ height: 6, background: '#F3F4F6', borderRadius: 3, overflow: 'hidden' }}>
+            <div style={{ height: 6, background: 'var(--c-hover-md)', borderRadius: 3, overflow: 'hidden' }}>
               <div
                 style={{
                   height: '100%',
@@ -174,11 +159,13 @@ export function AgentUsageIndicator() {
           </div>
 
           {/* Status Message */}
-          <div style={{ fontSize: '0.68rem', color: isLimited ? '#EF4444' : '#6B7280', lineHeight: 1.4 }}>
-            {isLimited ? (
-              <>⚠️ Rate limit reached. Wait before next query.</>
+          <div style={{ fontSize: '0.68rem', color: isLimited ? 'var(--c-red)' : 'var(--c-text-3)', lineHeight: 1.4 }}>
+            {isLocked ? (
+              <>Rate limited — try again in {secondsRemaining}s.</>
+            ) : isLimited ? (
+              <>Rate limit reached. Wait before the next query.</>
             ) : (
-              <>✓ Agent available. {MAX_PER_HOUR - hourUsage} queries remaining this hour.</>
+              <>Agent available. {MAX_PER_HOUR - hourUsage} queries remaining this hour.</>
             )}
           </div>
         </div>
