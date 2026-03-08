@@ -67,6 +67,7 @@ YOLOv26-FP32 ONNX model runs in a browser Web Worker (6 MB model, ~60ms inferenc
 
 ### 3. Cost-Optimized AI
 Amazon Nova Lite ($0.06/1M tokens) instead of Claude 3.5 Sonnet ($3.00/1M tokens). 50x cost reduction. Aggressive caching and deduplication. Total AI cost: $1.20 for entire voting phase.
+![output](https://github.com/user-attachments/assets/cc195613-481e-454a-b387-aa53d0fb69bf)
 
 ### 4. Local-First Operations
 Diff computation, scenario branching, and forensic analysis run in browser (IndexedDB + Web Workers). Zero server costs for analysis. Data sent to cloud only on explicit user action.
