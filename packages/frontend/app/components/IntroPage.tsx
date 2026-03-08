@@ -1,6 +1,7 @@
 'use client';
 
 import { useState, useEffect, useCallback } from 'react';
+import { createPortal } from 'react-dom';
 import { motion, AnimatePresence } from 'framer-motion';
 import {
   ChevronRight, ChevronLeft, ArrowRight,
@@ -40,7 +41,7 @@ const slides: Slide[] = [
     accentFrom: '#6366f1',
     accentTo: '#a78bfa',
     screenshotLabel: 'VIGIA Dashboard Overview',
-    screenshot: '/intro/screenshot-welcome.png',
+    screenshot: '/intro/output.gif',
   },
   {
     tag: 'Explore',
@@ -57,7 +58,7 @@ const slides: Slide[] = [
     accentFrom: '#3b82f6',
     accentTo: '#06b6d4',
     screenshotLabel: 'Geo Explorer — Interactive Map View',
-    screenshot: '/intro/screenshot-explorer.png',
+    screenshot: '/intro/output1.gif',
   },
   {
     tag: 'Detect',
@@ -74,7 +75,7 @@ const slides: Slide[] = [
     accentFrom: '#8b5cf6',
     accentTo: '#d946ef',
     screenshotLabel: 'Detection Mode — AI Analysis',
-    screenshot: '/intro/screenshot-detection.png',
+    screenshot: '/intro/output2.gif',
   },
   {
     tag: 'Verify',
@@ -128,7 +129,11 @@ export function IntroPage({ onComplete }: { onComplete: () => void }) {
   const [current, setCurrent] = useState(0);
   const [direction, setDirection] = useState<'next' | 'prev'>('next');
   const [animating, setAnimating] = useState(false);
+  const [showVideo, setShowVideo] = useState(false);
+  const [mounted, setMounted] = useState(false);
   const total = slides.length;
+
+  useEffect(() => { setMounted(true); }, []);
 
   const go = useCallback(
     (idx: number) => {
@@ -144,13 +149,17 @@ export function IntroPage({ onComplete }: { onComplete: () => void }) {
   const next = useCallback(() => go(Math.min(current + 1, total - 1)), [current, go, total]);
   const prev = useCallback(() => go(Math.max(current - 1, 0)), [current, go]);
 
+  const slide = slides[current];
+  const slideDurationMs = slide.tag === 'Detect' ? 16000 : 12000;
+
   useEffect(() => {
-    const id = window.setInterval(() => {
+    const duration = slides[current].tag === 'Detect' ? 16000 : 12000;
+    const id = window.setTimeout(() => {
       if (!animating) {
         go((current + 1) % total);
       }
-    }, 7000);
-    return () => window.clearInterval(id);
+    }, duration);
+    return () => window.clearTimeout(id);
   }, [current, total, animating, go]);
 
   /* keyboard navigation */
@@ -169,7 +178,6 @@ export function IntroPage({ onComplete }: { onComplete: () => void }) {
     onComplete();
   };
 
-  const slide = slides[current];
   const isLast = current === total - 1;
   const fadeUp = {
     initial: { opacity: 0, y: 14 },
@@ -181,6 +189,7 @@ export function IntroPage({ onComplete }: { onComplete: () => void }) {
   };
 
   return (
+    <>
     <div className="intro-root">
       {/* ── Ambient background ─────────── */}
       <div className="intro-bg">
@@ -239,7 +248,11 @@ export function IntroPage({ onComplete }: { onComplete: () => void }) {
             <div className="intro-video-card intro-video-card--center">
               <div className="intro-video intro-video--logo">
                 <img src="/logo.svg" alt="VIGIA" className="intro-video__logo" />
-                <button className="intro-video__cta" type="button">
+                <button 
+                  className="intro-video__cta" 
+                  type="button"
+                  onClick={() => setShowVideo(true)}
+                >
                   Watch the film
                 </button>
               </div>
@@ -258,7 +271,10 @@ export function IntroPage({ onComplete }: { onComplete: () => void }) {
                 </div>
               </div>
               <div className="intro-carousel__loader" key={`loader-${current}`}>
-                <span className="intro-carousel__loader-bar" />
+                <span
+                  className="intro-carousel__loader-bar"
+                  style={{ animationDuration: `${slideDurationMs}ms` }}
+                />
               </div>
 
             <AnimatePresence mode="wait">
@@ -419,7 +435,43 @@ export function IntroPage({ onComplete }: { onComplete: () => void }) {
           </button>
         </motion.section>
       </div>
+
     </div>
+
+    {/* ── Video Modal (Apple-style) — portaled to body ── */}
+    {mounted && createPortal(
+      <AnimatePresence>
+        {showVideo && (
+          <motion.div
+            className="intro-film-overlay"
+            initial={{ opacity: 0 }}
+            animate={{ opacity: 1 }}
+            exit={{ opacity: 0 }}
+            transition={{ duration: 0.35, ease: [0.22, 1, 0.36, 1] }}
+          >
+            <button
+              className="intro-film-overlay__close"
+              onClick={() => setShowVideo(false)}
+              aria-label="Close video"
+            >
+              <svg width="18" height="18" viewBox="0 0 18 18" fill="none">
+                <path d="M1 1L17 17M17 1L1 17" stroke="currentColor" strokeWidth="2" strokeLinecap="round" />
+              </svg>
+            </button>
+            <div className="intro-film-overlay__container">
+              <video
+                src="https://vigia-static-assets-1772997117.s3.us-east-1.amazonaws.com/intro/demo.mov"
+                controls
+                autoPlay
+                className="intro-film-overlay__video"
+              />
+            </div>
+          </motion.div>
+        )}
+      </AnimatePresence>,
+      document.body
+    )}
+    </>
   );
 }
 

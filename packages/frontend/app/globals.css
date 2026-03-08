@@ -2155,7 +2155,11 @@ footer.vigia-statusbar::before {
   height: 100%;
   width: 100%;
   background: linear-gradient(90deg, var(--v-accent), var(--v-accent-hover));
-  animation: intro-carousel-progress 7s linear infinite;
+  animation-name: intro-carousel-progress;
+  animation-duration: 12000ms;
+  animation-timing-function: linear;
+  animation-iteration-count: 1;
+  animation-fill-mode: forwards;
 }
 @keyframes intro-carousel-progress {
   from { transform: translateX(-100%); }
@@ -2664,4 +2668,147 @@ footer.vigia-statusbar::before {
 
 .sparkle-marker {
   animation: sparkle 2s ease-out;
+}
+
+
+/* ─────────────────────────────────────────────
+   Intro Page Video Modal — Apple-style Film Overlay
+   ───────────────────────────────────────────── */
+
+.intro-film-overlay {
+  position: fixed;
+  inset: 0;
+  z-index: 999999;
+  background: #fff;
+  display: flex;
+  align-items: center;
+  justify-content: center;
+}
+
+.intro-film-overlay__close {
+  position: absolute;
+  top: 20px;
+  right: 20px;
+  z-index: 999999;
+  width: 36px;
+  height: 36px;
+  border-radius: 50%;
+  border: none;
+  background: rgba(0, 0, 0, 0.08);
+  color: rgba(0, 0, 0, 0.6);
+  cursor: pointer;
+  display: flex;
+  align-items: center;
+  justify-content: center;
+  transition: background 0.2s ease, transform 0.2s ease;
+  backdrop-filter: blur(4px);
+}
+
+.intro-film-overlay__close:hover {
+  background: rgba(0, 0, 0, 0.14);
+  transform: scale(1.08);
+}
+
+.intro-film-overlay__close:active {
+  transform: scale(0.95);
+}
+
+.intro-film-overlay__container {
+  position: relative;
+  width: 88vw;
+  max-width: 1200px;
+  aspect-ratio: 16 / 9;
+  border-radius: 12px;
+  overflow: hidden;
+  background: #000;
+  box-shadow: 0 4px 40px rgba(0, 0, 0, 0.12);
+}
+
+.intro-film-overlay__video {
+  width: 100%;
+  height: 100%;
+  object-fit: contain;
+  display: block;
+  border-radius: 8px;
+  transition: opacity 0.4s ease;
+}
+
+/* Mobile adjustments */
+@media (max-width: 768px) {
+  .intro-film-overlay__container {
+    width: 96vw;
+    border-radius: 4px;
+  }
+  .intro-film-overlay__close {
+    top: 12px;
+    right: 12px;
+    width: 32px;
+    height: 32px;
+  }
+}
+
+/* VIGIA Loader Animation */
+.vigia-loader {
+  position: relative;
+  width: 120px;
+  height: 120px;
+  display: flex;
+  align-items: center;
+  justify-content: center;
+}
+
+.vigia-loader__ring {
+  position: absolute;
+  border: 3px solid transparent;
+  border-radius: 50%;
+  animation: vigia-spin 2s cubic-bezier(0.5, 0, 0.5, 1) infinite;
+}
+
+.vigia-loader__ring:nth-child(1) {
+  width: 100%;
+  height: 100%;
+  border-top-color: #6366f1;
+  animation-delay: -0.45s;
+}
+
+.vigia-loader__ring:nth-child(2) {
+  width: 80%;
+  height: 80%;
+  border-right-color: #8b5cf6;
+  animation-delay: -0.3s;
+}
+
+.vigia-loader__ring:nth-child(3) {
+  width: 60%;
+  height: 60%;
+  border-bottom-color: #a78bfa;
+  animation-delay: -0.15s;
+}
+
+.vigia-loader__text {
+  font-family: 'Inter', sans-serif;
+  font-size: 14px;
+  font-weight: 700;
+  letter-spacing: 0.15em;
+  color: #6366f1;
+  text-transform: uppercase;
+  animation: vigia-pulse 2s ease-in-out infinite;
+}
+
+@keyframes vigia-spin {
+  0% {
+    transform: rotate(0deg);
+  }
+  100% {
+    transform: rotate(360deg);
+  }
+}
+
+@keyframes vigia-pulse {
+  0%, 100% {
+    opacity: 1;
+  }
+  50% {
+    opacity: 0.5;
+  }
 }
