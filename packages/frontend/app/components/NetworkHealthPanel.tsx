@@ -196,7 +196,7 @@ export function NetworkHealthPanel() {
         <div style={{
           padding: 12,
           background: 'var(--c-red-dim)',
-          border: '1px solid rgba(240,96,108,0.3)',
+          border: '1px solid color-mix(in srgb, var(--c-red) 30%, transparent)',
           borderRadius: 4,
           display: 'flex',
           alignItems: 'center',

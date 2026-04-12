@@ -5,7 +5,7 @@ import {
   X, Sun, Moon, Monitor, Layers, Type,
   Grid, Sliders, Check, Eye,
 } from 'lucide-react';
-import { useSettings, Theme, MapStyle, Density } from './SettingsContext';
+import { useSettings, MapStyle, Density } from './SettingsContext';
 
 // ─────────────────────────────────────────────
 // Sub-components
@@ -24,23 +24,24 @@ function SectionLabel({ label }: { label: string }) {
   );
 }
 
-function OptionPill({ label, active, onClick, icon }: {
+function OptionPill({ label, active, onClick, icon, disabled = false }: {
   label: string; active: boolean;
-  onClick: () => void; icon?: React.ReactNode;
+  onClick: () => void; icon?: React.ReactNode; disabled?: boolean;
 }) {
   return (
-    <button onClick={onClick} style={{
+    <button onClick={onClick} disabled={disabled} style={{
       display: 'flex', alignItems: 'center', justifyContent: 'center',
       gap: 5, padding: '5px 8px', borderRadius: 4, flex: 1,
       border: `1px solid ${active ? 'var(--v-accent-hover)' : 'var(--v-border-subtle)'}`,
       background: active ? 'var(--v-accent-glow)' : 'var(--v-hover)',
-      color: active ? 'var(--v-accent-hover)' : 'var(--v-text-secondary)',
-      fontSize: '0.7rem', cursor: 'pointer',
+      color: active ? 'var(--v-accent-hover)' : (disabled ? 'var(--v-text-muted)' : 'var(--v-text-secondary)'),
+      fontSize: '0.7rem', cursor: disabled ? 'not-allowed' : 'pointer',
+      opacity: disabled && !active ? 0.55 : 1,
       fontFamily: 'var(--v-font-ui)',
       transition: 'all 0.12s',
     }}
-    onMouseEnter={(e) => { if (!active) (e.currentTarget as HTMLElement).style.background = 'var(--v-hover-md)'; }}
-    onMouseLeave={(e) => { if (!active) (e.currentTarget as HTMLElement).style.background = 'var(--v-hover)'; }}
+    onMouseEnter={(e) => { if (!active && !disabled) (e.currentTarget as HTMLElement).style.background = 'var(--v-hover-md)'; }}
+    onMouseLeave={(e) => { if (!active && !disabled) (e.currentTarget as HTMLElement).style.background = 'var(--v-hover)'; }}
     >
       {icon}{label}
       {active && <Check size={9} style={{ marginLeft: 2 }} />}
@@ -101,10 +102,10 @@ function SliderRow({ label, value, min, max, step, unit = '', onChange }: {
 }
 
 const MAP_STYLES: { id: MapStyle; label: string; preview: string }[] = [
-  { id: 'dark-osm',  label: 'Dark',      preview: 'linear-gradient(135deg,#0C1016 0%,#1A2235 100%)' },
-  { id: 'satellite', label: 'Satellite', preview: 'linear-gradient(135deg,#1a2a1a 0%,#2a3d1a 100%)' },
-  { id: 'terrain',   label: 'Terrain',   preview: 'linear-gradient(135deg,#1e1a14 0%,#2e2810 100%)' },
-  { id: 'minimal',   label: 'Minimal',   preview: 'linear-gradient(135deg,#141920 0%,#1c2333 100%)' },
+  { id: 'dark-osm',  label: 'Dark',      preview: 'linear-gradient(135deg, var(--c-bg) 0%, var(--c-panel) 100%)' },
+  { id: 'satellite', label: 'Satellite', preview: 'linear-gradient(135deg, var(--c-elevated) 0%, var(--c-panel) 100%)' },
+  { id: 'terrain',   label: 'Terrain',   preview: 'linear-gradient(135deg, var(--c-panel) 0%, var(--c-deep) 100%)' },
+  { id: 'minimal',   label: 'Minimal',   preview: 'linear-gradient(135deg, var(--c-bg) 0%, var(--c-elevated) 100%)' },
 ];
 
 // ─────────────────────────────────────────────
@@ -118,6 +119,7 @@ interface SettingsPanelProps {
 export function SettingsPanel({ onClose }: SettingsPanelProps) {
   const { settings, update } = useSettings();
   const overlayRef = useRef<HTMLDivElement>(null);
+  const themeLocked = true;
 
   useEffect(() => {
     const handler = (e: KeyboardEvent) => { if (e.key === 'Escape') onClose(); };
@@ -164,10 +166,10 @@ export function SettingsPanel({ onClose }: SettingsPanelProps) {
           <div style={{ padding: '0 16px 10px' }}>
             <div style={{ fontSize: '0.7rem', color: 'var(--v-text-secondary)', marginBottom: 8, fontFamily: 'var(--v-font-ui)' }}>Color Theme</div>
             <div style={{ display: 'flex', gap: 6 }}>
-              <OptionPill label="Dark"    active={settings.theme === 'dark'}           onClick={() => update({ theme: 'dark' })}           icon={<Moon   size={10} />} />
-              <OptionPill label="Darker"  active={settings.theme === 'darker'}         onClick={() => update({ theme: 'darker' })}         icon={<Monitor size={10} />} />
+              <OptionPill label="Dark"    active={settings.theme === 'dark'}           onClick={() => update({ theme: 'dark' })}           icon={<Moon   size={10} />} disabled={themeLocked} />
+              <OptionPill label="Darker"  active={settings.theme === 'darker'}         onClick={() => update({ theme: 'darker' })}         icon={<Monitor size={10} />} disabled={themeLocked} />
               <OptionPill label="Light"   active={settings.theme === 'light'}          onClick={() => update({ theme: 'light' })}          icon={<Sun    size={10} />} />
-              <OptionPill label="Hi-Con"  active={settings.theme === 'high-contrast'}  onClick={() => update({ theme: 'high-contrast' })}  icon={<Eye    size={10} />} />
+              <OptionPill label="Hi-Con"  active={settings.theme === 'high-contrast'}  onClick={() => update({ theme: 'high-contrast' })}  icon={<Eye    size={10} />} disabled={themeLocked} />
             </div>
           </div>
 

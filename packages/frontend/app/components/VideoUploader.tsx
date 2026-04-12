@@ -2,7 +2,7 @@
 
 import { useState, useRef, useEffect, useCallback } from 'react';
 import {
-  Upload, Film, Key, Play, Square,
+  Upload, Film, Play, Square,
   AlertTriangle, CheckCircle, Cpu,
   FileVideo, X, Zap,
 } from 'lucide-react';
@@ -15,6 +15,7 @@ export type SignedTelemetry = {
   timestamp: string;
   confidence: number;
   signature: string;
+  driverWalletAddress?: string;
   bbox?: { x: number; y: number; width: number; height: number };
 };
 
@@ -39,6 +40,30 @@ const C = {
 };
 
 const FONT = 'var(--v-font-mono)';
+
+const getCssVar = (name: string, fallback: string) => {
+  if (typeof window === 'undefined') return fallback;
+  const value = getComputedStyle(document.documentElement).getPropertyValue(name).trim();
+  return value || fallback;
+};
+
+const toRgba = (color: string, alpha: number) => {
+  const c = color.trim();
+  if (c.startsWith('#')) {
+    const hex = c.slice(1);
+    const full = hex.length === 3 ? hex.split('').map(ch => ch + ch).join('') : hex;
+    const num = parseInt(full, 16);
+    const r = (num >> 16) & 255;
+    const g = (num >> 8) & 255;
+    const b = num & 255;
+    return `rgba(${r}, ${g}, ${b}, ${alpha})`;
+  }
+  const rgbMatch = c.match(/^rgb\((\d+),\s*(\d+),\s*(\d+)\)$/i);
+  if (rgbMatch) return `rgba(${rgbMatch[1]}, ${rgbMatch[2]}, ${rgbMatch[3]}, ${alpha})`;
+  const rgbaMatch = c.match(/^rgba\((\d+),\s*(\d+),\s*(\d+),\s*([0-9.]+)\)$/i);
+  if (rgbaMatch) return `rgba(${rgbaMatch[1]}, ${rgbaMatch[2]}, ${rgbaMatch[3]}, ${alpha})`;
+  return c;
+};
 
 // ─────────────────────────────────────────────
 // Simple Geohash Encoder (7 chars precision)
@@ -221,12 +246,17 @@ function StatBadge({ label, value, color }: { label: string; value: string | num
 // VideoUploader — ALL original logic preserved
 // ─────────────────────────────────────────────
 
-export function VideoUploader() {
+export function VideoUploader({
+  deviceAddress,
+  signPayload,
+}: {
+  deviceAddress: string;
+  signPayload: (s: string) => Promise<string>;
+}) {
   const [videoFile,       setVideoFile]       = useState<File | null>(null);
   const [videoUrl,        setVideoUrl]        = useState<string | null>(null);
   const [isProcessing,    setIsProcessing]    = useState(false);
   const [telemetryBatch,  setTelemetryBatch]  = useState<SignedTelemetry[]>([]);
-  const [privateKeyLoaded, setPrivateKeyLoaded] = useState(false);
   const [detectionCount,  setDetectionCount]  = useState(0);
   const [currentDetection, setCurrentDetection] = useState<SignedTelemetry | null>(null);
   const [totalSent,       setTotalSent]       = useState(0);
@@ -243,7 +273,7 @@ export function VideoUploader() {
   const videoRef    = useRef<HTMLVideoElement>(null);
   const canvasRef   = useRef<HTMLCanvasElement>(null);
   const intervalRef = useRef<NodeJS.Timeout | null>(null);
-  const { processFrame, loadPrivateKey } = useHazardDetector();
+  const { processFrame } = useHazardDetector();
 
   // Default fallback location (Rourkela, India - project default)
   const fallbackGPS = { lat: 22.2604, lon: 84.8536 };
@@ -253,15 +283,28 @@ export function VideoUploader() {
 
   // Send detection to cloud
   const sendToCloud = async (detection: SignedTelemetry) => {
+    // Don't send until the device wallet is initialised
+    if (!deviceAddress) return;
+
     try {
       setIsSending(true);
-      const apiUrl = process.env.NEXT_PUBLIC_TELEMETRY_API_URL || process.env.NEXT_PUBLIC_API_URL;
-      if (!apiUrl) {
-        console.warn('[VideoUploader] No API URL configured');
-        return;
+
+      // Sign the canonical payload string before sending
+      const payloadStr = `VIGIA:${detection.hazardType}:${detection.lat}:${detection.lon}:${detection.timestamp}:${detection.confidence}`;
+      const signature = await signPayload(payloadStr);
+
+      // Extract current video frame as base64 JPEG for VLM analysis
+      let frame_base64: string | undefined;
+      if (videoRef.current) {
+        const fc = document.createElement('canvas');
+        fc.width  = videoRef.current.videoWidth;
+        fc.height = videoRef.current.videoHeight;
+        fc.getContext('2d')!.drawImage(videoRef.current, 0, 0);
+        frame_base64 = fc.toDataURL('image/jpeg', 0.7).split(',')[1];
       }
 
-      const response = await fetch(`${apiUrl}/telemetry`, {
+      // Route through Next.js proxy (/api/telemetry) to avoid CORS
+      const response = await fetch('/api/telemetry', {
         method: 'POST',
         headers: { 'Content-Type': 'application/json' },
         body: JSON.stringify({
@@ -270,14 +313,17 @@ export function VideoUploader() {
           lon: detection.lon,
           confidence: detection.confidence,
           timestamp: detection.timestamp,
-          signature: detection.signature,
+          signature,
+          driverWalletAddress: deviceAddress,
+          frame_base64,
         }),
       });
 
-      if (response.ok) {
+      if (response.ok || response.status === 202) {
         setTotalSent(prev => prev + 1);
-        
-        // Emit event for LiveMap to catch
+        const body = await response.json().catch(() => ({}));
+        const hazardId = body.hazardId as string | undefined;
+
         window.dispatchEvent(new CustomEvent('new-hazard-detected', {
           detail: {
             hazardType: detection.hazardType,
@@ -285,9 +331,15 @@ export function VideoUploader() {
             lon: detection.lon,
             confidence: detection.confidence,
             timestamp: detection.timestamp,
-            status: 'UNVERIFIED',
+            status: 'PENDING',
+            hazardId,
           }
         }));
+
+        // Notify verification panel to start polling
+        if (hazardId) {
+          window.dispatchEvent(new CustomEvent('hazard-accepted', { detail: { hazardId } }));
+        }
       }
     } catch (error) {
       console.error('[VideoUploader] Failed to send telemetry:', error);
@@ -410,12 +462,6 @@ export function VideoUploader() {
     };
   }, [videoUrl]);
 
-  const handleKeyFile = async (file: File) => {
-    const text = await file.text();
-    await loadPrivateKey(text);
-    setPrivateKeyLoaded(true);
-  };
-
   const extractFrame = (video: HTMLVideoElement): ArrayBuffer => {
     const canvas = document.createElement('canvas');
     // Use actual video dimensions
@@ -475,16 +521,20 @@ export function VideoUploader() {
       const h  = bh * scale;
 
       // Glowing box for dark theme
-      ctx.strokeStyle = '#9A72A2';
+      const stroke = getCssVar('--c-rose-2', '#9A72A2');
+      const glow = getCssVar('--c-rose-glow', toRgba(stroke, 0.5));
+      const labelBg = getCssVar('--c-deep', '#2B2D30');
+
+      ctx.strokeStyle = stroke;
       ctx.lineWidth   = 1.5;
-      ctx.shadowColor = 'rgba(154,114,162,0.5)';
+      ctx.shadowColor = glow;
       ctx.shadowBlur  = 6;
       ctx.strokeRect(x1, y1, w, h);
       ctx.shadowBlur  = 0;
 
       // Corner marks
       const cs = 8;
-      ctx.strokeStyle = '#9A72A2';
+      ctx.strokeStyle = stroke;
       ctx.lineWidth   = 2;
       [
         [x1, y1, x1+cs, y1, x1, y1+cs],
@@ -500,10 +550,10 @@ export function VideoUploader() {
       const label = `POTHOLE  ${(currentDetection.confidence * 100).toFixed(0)}%`;
       ctx.font = "9px 'IBM Plex Mono', monospace";
       const tw = ctx.measureText(label).width;
-      ctx.fillStyle = '#2B2D30';
+      ctx.fillStyle = labelBg;
       const ly = Math.max(2, y1 - 16);
       ctx.fillRect(x1, ly, tw + 8, 14);
-      ctx.fillStyle = '#9A72A2';
+      ctx.fillStyle = stroke;
       ctx.fillText(label, x1 + 4, ly + 11);
     }
   };
@@ -527,7 +577,7 @@ export function VideoUploader() {
         const frameBuffer = extractFrame(videoRef.current);
         const width = videoRef.current.videoWidth || 640;
         const height = videoRef.current.videoHeight || 640;
-        const result = await processFrame(frameBuffer, width, height, { lat: currentGPS.lat, lon: currentGPS.lon });
+        const result = await processFrame(frameBuffer, width, height, { lat: currentGPS.lat, lon: currentGPS.lon }, deviceAddress || undefined);
         if (result) {
           setTelemetryBatch(prev => [...prev, result]);
           setDetectionCount(prev => prev + 1);
@@ -657,28 +707,6 @@ export function VideoUploader() {
             icon={<FileVideo size={18} />}
             file={videoFile}
           />
-          <DropZone
-            accept=".pem"
-            onFile={handleKeyFile}
-            label="Drop private key (.pem)"
-            sublabel="Optional — test mode enabled without key"
-            icon={<Key size={16} />}
-            file={null}
-            compact
-          />
-          {privateKeyLoaded && (
-            <div style={{
-              display: 'flex', alignItems: 'center', gap: 6,
-              padding: '4px 8px', borderRadius: 2,
-              background: 'var(--c-green-dim)',
-              border: `1px solid ${C.border}`,
-            }}>
-              <CheckCircle size={10} style={{ color: C.green }} />
-              <span style={{ fontSize: '0.65rem', color: C.green, fontFamily: FONT }}>
-                Private key loaded · signing enabled
-              </span>
-            </div>
-          )}
         </div>
       </div>
 

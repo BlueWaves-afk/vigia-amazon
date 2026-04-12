@@ -1,6 +1,6 @@
 'use client';
 
-import { useState } from 'react';
+import { useState, useEffect } from 'react';
 import { AgentTracesTab } from './AgentTracesTab';
 import { DePINLedgerTab } from './DePINLedgerTab';
 
@@ -8,6 +8,13 @@ interface InnovationConsolePanelProps { sessionId: string; }
 
 export function InnovationConsolePanel({ sessionId }: InnovationConsolePanelProps) {
   const [activeTab, setActiveTab] = useState<'traces' | 'ledger'>('traces');
+
+  // Switch to traces tab when "View Reasoning" is clicked from HazardVerificationPanel
+  useEffect(() => {
+    const handler = () => setActiveTab('traces');
+    window.addEventListener('open-agent-traces', handler);
+    return () => window.removeEventListener('open-agent-traces', handler);
+  }, []);
 
   return (
     <div style={{ height: '100%', display: 'flex', flexDirection: 'column', background: 'var(--v-bg-elevated)' }}>

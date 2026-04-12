@@ -23,6 +23,12 @@ const C = {
   accentRing: 'var(--v-accent-ring)',
 };
 
+const getCssVar = (name: string, fallback: string) => {
+  if (typeof window === 'undefined') return fallback;
+  const value = getComputedStyle(document.documentElement).getPropertyValue(name).trim();
+  return value || fallback;
+};
+
 interface NewSessionViewProps {
   onSessionCreated: (session: MapFile) => void;
   onRefreshSessions?: () => void;
@@ -166,12 +172,12 @@ export function NewSessionView({ onSessionCreated, onRefreshSessions }: NewSessi
                     'circle-color': [
                       'case',
                       ['==', ['get', 'status'], 'VERIFIED'],
-                      'rgb(34, 197, 94)',
-                      'rgb(239, 68, 68)',
+                      getCssVar('--c-green', '#22C55E'),
+                      getCssVar('--c-red', '#EF4444'),
                     ],
                     'circle-opacity': 0.6,
                     'circle-stroke-width': 1,
-                    'circle-stroke-color': '#ffffff',
+                    'circle-stroke-color': getCssVar('--c-text', '#FFFFFF'),
                   },
                 });
               }
@@ -227,13 +233,13 @@ export function NewSessionView({ onSessionCreated, onRefreshSessions }: NewSessi
               id: 'bbox-fill',
               type: 'fill',
               source: 'bbox',
-              paint: { 'fill-color': '#3B82F6', 'fill-opacity': 0.2 },
+              paint: { 'fill-color': getCssVar('--c-accent-2', '#3B82F6'), 'fill-opacity': 0.2 },
             });
             map.addLayer({
               id: 'bbox-outline',
               type: 'line',
               source: 'bbox',
-              paint: { 'line-color': '#3B82F6', 'line-width': 2 },
+              paint: { 'line-color': getCssVar('--c-accent-2', '#3B82F6'), 'line-width': 2 },
             });
           }
 
@@ -567,7 +573,7 @@ export function NewSessionView({ onSessionCreated, onRefreshSessions }: NewSessi
               onClick={startDrawing}
               disabled={drawMode}
               className="ns-btn"
-              style={{ padding: '8px 16px', background: drawMode ? C.panelAlt : C.accent, color: drawMode ? C.textMut : '#FFF', border: `1px solid ${drawMode ? C.border : 'transparent'}`, borderRadius: 8, cursor: drawMode ? 'not-allowed' : 'pointer', fontSize: '0.85rem', fontFamily: "var(--v-font-ui)", display: 'flex', alignItems: 'center', gap: 6 }}
+              style={{ padding: '8px 16px', background: drawMode ? C.panelAlt : C.accent, color: drawMode ? C.textMut : C.text, border: `1px solid ${drawMode ? C.border : 'transparent'}`, borderRadius: 8, cursor: drawMode ? 'not-allowed' : 'pointer', fontSize: '0.85rem', fontFamily: "var(--v-font-ui)", display: 'flex', alignItems: 'center', gap: 6 }}
             >
               <Square size={14} />
               {drawMode ? 'Drawing... (drag on map)' : 'Draw Coverage Area'}
@@ -606,7 +612,7 @@ export function NewSessionView({ onSessionCreated, onRefreshSessions }: NewSessi
             onClick={createSession}
             disabled={!boundingBox || isCreating}
             className="ns-btn"
-            style={{ padding: '12px 24px', background: (!boundingBox || isCreating) ? C.panelAlt : C.accent, color: (!boundingBox || isCreating) ? C.textMut : '#FFF', border: `1px solid ${(!boundingBox || isCreating) ? C.borderStrong : 'transparent'}`, borderRadius: 10, cursor: (!boundingBox || isCreating) ? 'not-allowed' : 'pointer', fontSize: '0.9rem', fontWeight: 600, fontFamily: "var(--v-font-ui)" }}
+            style={{ padding: '12px 24px', background: (!boundingBox || isCreating) ? C.panelAlt : C.accent, color: (!boundingBox || isCreating) ? C.textMut : C.text, border: `1px solid ${(!boundingBox || isCreating) ? C.borderStrong : 'transparent'}`, borderRadius: 10, cursor: (!boundingBox || isCreating) ? 'not-allowed' : 'pointer', fontSize: '0.9rem', fontWeight: 600, fontFamily: "var(--v-font-ui)" }}
           >
             {isCreating ? 'Creating...' : 'Create Session'}
           </button>

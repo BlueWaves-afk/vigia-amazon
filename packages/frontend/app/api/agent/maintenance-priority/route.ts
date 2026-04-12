@@ -46,7 +46,7 @@ export async function POST(req: NextRequest) {
     };
 
     const command = new InvokeCommand({
-      FunctionName: 'VigiaStack-IntelligenceWithHazardsMaintenanceLogis-DFZlsGUW5tBE',
+      FunctionName: process.env.MAINTENANCE_FUNCTION_NAME!,
       Payload: JSON.stringify(payload),
     });
 

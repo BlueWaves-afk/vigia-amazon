@@ -141,6 +141,7 @@ venv/
 ENV/
 env.bak/
 venv.bak/
+.keys/
 
 # Spyder project settings
 .spyderproject
@@ -242,3 +243,6 @@ yarn-error.log*
 *.swp
 *.swo
 *~
+packages/contracts/.env
+packages/infrastructure/outputs.json
+packages/backend/functions/enterprise/node_modules/

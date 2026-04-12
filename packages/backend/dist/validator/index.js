@@ -6,97 +6,61 @@ Object.defineProperty(exports, "__esModule", { value: true });
 exports.handler = void 0;
 const client_dynamodb_1 = require("@aws-sdk/client-dynamodb");
 const lib_dynamodb_1 = require("@aws-sdk/lib-dynamodb");
-const client_secrets_manager_1 = require("@aws-sdk/client-secrets-manager");
-const crypto_1 = require("crypto");
+const client_s3_1 = require("@aws-sdk/client-s3");
+const ethers_1 = require("ethers");
 const ngeohash_1 = __importDefault(require("ngeohash"));
-const dynamoClient = new client_dynamodb_1.DynamoDBClient({});
-const dynamodb = lib_dynamodb_1.DynamoDBDocumentClient.from(dynamoClient);
-const secretsManager = new client_secrets_manager_1.SecretsManagerClient({});
-let cachedPublicKey = null;
-async function getPublicKey() {
-    if (cachedPublicKey)
-        return cachedPublicKey;
-    const response = await secretsManager.send(new client_secrets_manager_1.GetSecretValueCommand({ SecretId: process.env.PUBLIC_KEY_SECRET_ARN }));
-    cachedPublicKey = response.SecretString;
-    return cachedPublicKey;
-}
-function verifySignature(payload, publicKeyPem) {
-    try {
-        const dataToSign = JSON.stringify({
-            hazardType: payload.hazardType,
-            lat: payload.lat,
-            lon: payload.lon,
-            timestamp: payload.timestamp,
-            confidence: payload.confidence,
-        });
-        const verify = (0, crypto_1.createVerify)('SHA256');
-        verify.update(dataToSign);
-        verify.end();
-        const signature = Buffer.from(payload.signature, 'base64');
-        return verify.verify(publicKeyPem, signature);
-    }
-    catch (error) {
-        console.error('Signature verification error:', error);
-        return false;
-    }
-}
+const dynamodb = lib_dynamodb_1.DynamoDBDocumentClient.from(new client_dynamodb_1.DynamoDBClient({}));
+const s3 = new client_s3_1.S3Client({});
+const CORS = {
+    'Content-Type': 'application/json',
+    'Access-Control-Allow-Origin': '*',
+    'Access-Control-Allow-Methods': 'POST, OPTIONS',
+    'Access-Control-Allow-Headers': 'Content-Type',
+};
 const handler = async (event) => {
-    const corsHeaders = {
-        'Content-Type': 'application/json',
-        'Access-Control-Allow-Origin': '*',
-        'Access-Control-Allow-Methods': 'POST, OPTIONS',
-        'Access-Control-Allow-Headers': 'Content-Type',
-    };
     try {
         const payload = JSON.parse(event.body || '{}');
-        // Test mode bypass
-        if (process.env.TEST_MODE === 'true' && payload.signature === 'TEST_MODE_SIGNATURE') {
-            console.log('[Validator] Test mode: bypassing signature verification');
+        const { hazardType, lat, lon, timestamp, confidence, signature, frame_base64 } = payload;
+        // ECDSA device registry check (unchanged)
+        const payloadStr = `VIGIA:${hazardType}:${lat}:${lon}:${timestamp}:${confidence}`;
+        const recoveredAddress = ethers_1.ethers.verifyMessage(payloadStr, signature);
+        const { Item } = await dynamodb.send(new lib_dynamodb_1.GetCommand({
+            TableName: process.env.DEVICE_REGISTRY_TABLE_NAME,
+            Key: { device_address: recoveredAddress },
+        }));
+        if (!Item) {
+            return { statusCode: 401, headers: CORS, body: JSON.stringify({ error: 'DEVICE_NOT_REGISTERED' }) };
         }
-        else {
-            // Verify signature
-            const publicKey = await getPublicKey();
-            const isValid = verifySignature(payload, publicKey);
-            if (!isValid) {
-                return {
-                    statusCode: 400,
-                    headers: corsHeaders,
-                    body: JSON.stringify({ error: 'INVALID_SIGNATURE' }),
-                };
-            }
+        const geohash = ngeohash_1.default.encode(lat, lon, 7);
+        const hazardId = `${geohash}#${timestamp}`;
+        // S3 Pointer Pattern — upload frame, store key (null if frame absent)
+        let s3_key = null;
+        if (frame_base64) {
+            s3_key = `frames/${geohash}/${timestamp}.jpg`;
+            await s3.send(new client_s3_1.PutObjectCommand({
+                Bucket: process.env.FRAMES_BUCKET_NAME,
+                Key: s3_key,
+                Body: Buffer.from(frame_base64, 'base64'),
+                ContentType: 'image/jpeg',
+            }));
         }
-        // Compute geohash
-        const geohash = ngeohash_1.default.encode(payload.lat, payload.lon, 7);
-        console.log(`[Validator] Writing hazard: ${geohash}#${payload.timestamp}`);
-        // Write to DynamoDB
+        // Write PENDING — Orchestrator handles all AI
         await dynamodb.send(new lib_dynamodb_1.PutCommand({
             TableName: process.env.HAZARDS_TABLE_NAME,
             Item: {
-                geohash,
-                timestamp: payload.timestamp,
-                hazardType: payload.hazardType,
-                lat: payload.lat,
-                lon: payload.lon,
-                confidence: payload.confidence,
-                signature: payload.signature,
-                status: 'UNVERIFIED', // Changed from 'pending' to match UI expectations
-                ttl: Math.floor(Date.now() / 1000) + 86400 * 30, // 30 days
+                geohash, timestamp, hazardType, lat, lon, confidence, signature,
+                driverWalletAddress: recoveredAddress,
+                status: 'PENDING',
+                s3_key,
+                ttl: Math.floor(Date.now() / 1000) + 86400 * 30,
             },
         }));
-        console.log(`[Validator] Successfully wrote hazard: ${geohash}#${payload.timestamp}`);
-        return {
-            statusCode: 200,
-            headers: corsHeaders,
-            body: JSON.stringify({ success: true }),
-        };
+        // 202 Accepted — zero AI ran here
+        return { statusCode: 202, headers: CORS, body: JSON.stringify({ hazardId, status: 'PENDING' }) };
     }
     catch (error) {
-        console.error('Validator error:', error);
-        return {
-            statusCode: 500,
-            headers: corsHeaders,
-            body: JSON.stringify({ error: 'INTERNAL_ERROR' }),
-        };
+        console.error('[Validator] Error:', error);
+        return { statusCode: 500, headers: CORS, body: JSON.stringify({ error: 'INTERNAL_ERROR' }) };
     }
 };
 exports.handler = handler;

@@ -2,7 +2,7 @@
 
 import { useEffect, useState, useRef } from 'react';
 import { useAgentTraceStore } from '@/stores/agentTraceStore';
-import type { ReActStep, ReActTrace } from '@/types/shared';
+import type { ReActStep, ReActTrace, V2Trace } from '@/types/shared';
 
 const MONO = 'var(--v-font-mono)';
 const SANS = 'var(--v-font-ui)';
@@ -131,7 +131,7 @@ function ThinkingBanner({ trace }: { trace: ThinkingState }) {
             ))}
           </div>
         ) : (
-          <span style={{ fontSize: '0.7rem', color: 'var(--c-green)' }}>✓</span>
+          <span style={{ fontSize: '0.7rem', color: 'var(--c-green)' }}>Done</span>
         )}
         <div style={{ flex: 1 }}>
           <div style={{ fontSize: '0.7rem', fontWeight: 600, color: 'var(--c-text)', fontFamily: SANS }}>
@@ -232,15 +232,25 @@ function TraceCard({ trace, index }: { trace: ReActTrace; index: number }) {
 
 // ── Main component ───────────────────────────────────────────
 export function AgentTracesTab() {
-  const { traces, filter, isStreaming, setFilter, connectSSE, disconnectSSE } = useAgentTraceStore();
+  const { traces, filter, isStreaming, setFilter, connectSSE, disconnectSSE, activeHazardId, setActiveHazardId } = useAgentTraceStore();
   const [autoScroll, setAutoScroll] = useState(true);
   const [thinkingTrace, setThinkingTrace] = useState<ThinkingState | null>(null);
+  const [activeTrace, setActiveTrace] = useState<V2Trace | null>(null);
   const scrollRef = useRef<HTMLDivElement>(null);
 
   useEffect(() => {
     connectSSE('/agent-traces/stream');
     return () => disconnectSSE();
   }, [connectSSE, disconnectSSE]);
+
+  // Fetch V2 trace when a hazard is selected via "View Reasoning"
+  useEffect(() => {
+    if (!activeHazardId) { setActiveTrace(null); return; }
+    fetch(`/api/traces/${encodeURIComponent(activeHazardId)}`)
+      .then(r => r.json())
+      .then(({ trace }) => setActiveTrace(trace ?? null))
+      .catch(() => setActiveTrace(null));
+  }, [activeHazardId]);
 
   useEffect(() => {
     const onStart = (e: Event) => {
@@ -341,6 +351,71 @@ export function AgentTracesTab() {
 
       {/* Scroll area */}
       <div ref={scrollRef} style={{ flex: 1, overflowY: 'auto', paddingTop: 4 }}>
+      {/* V2 VLM Reasoning Card */}
+        {activeTrace && (
+          <div style={{ margin: '10px 10px 4px', background: 'var(--c-panel)', border: '1px solid var(--v-border-default)', borderLeft: `3px solid ${activeTrace.verdict === 'VERIFIED' ? 'var(--c-green)' : activeTrace.verdict === 'UNVERIFIED_VLM_FAILED' ? 'var(--c-yellow)' : 'var(--c-red)'}`, borderRadius: 4, padding: '10px 12px' }}>
+            {/* Header */}
+            <div style={{ display: 'flex', alignItems: 'center', justifyContent: 'space-between', marginBottom: 8 }}>
+              <span style={{ fontSize: '0.65rem', fontFamily: MONO, fontWeight: 700, color: 'var(--c-text-2)', textTransform: 'uppercase', letterSpacing: '0.05em' }}>Agent Verification</span>
+              <div style={{ display: 'flex', gap: 6, alignItems: 'center' }}>
+                {activeTrace.verdict === 'VERIFIED' && <span style={{ fontSize: '0.6rem', fontFamily: MONO, color: 'var(--c-green)', fontWeight: 700 }}>VERIFIED</span>}
+                {activeTrace.verdict === 'REJECTED' && <span style={{ fontSize: '0.6rem', fontFamily: MONO, color: 'var(--c-red)', fontWeight: 700 }}>REJECTED</span>}
+                {activeTrace.verdict === 'UNVERIFIED_VLM_FAILED' && <span style={{ fontSize: '0.6rem', fontFamily: MONO, color: 'var(--c-yellow)', fontWeight: 700 }}>PENDING REVIEW</span>}
+                <button onClick={() => setActiveHazardId(null)} style={{ background: 'none', border: 'none', cursor: 'pointer', color: 'var(--c-text-3)', fontSize: '0.7rem' }}>Close</button>
+              </div>
+            </div>
+
+            {/* VLM image analysis */}
+            <div style={{ marginBottom: 10, padding: '6px 8px', background: 'var(--c-elevated)', borderRadius: 3 }}>
+              <div style={{ fontSize: '0.55rem', color: 'var(--c-text-3)', fontFamily: MONO, textTransform: 'uppercase', letterSpacing: '0.04em', marginBottom: 3 }}>Vision Model (Nova Lite)</div>
+              <div style={{ fontSize: '0.67rem', fontFamily: SANS, color: 'var(--c-text)', lineHeight: 1.5, fontStyle: 'italic' }}>"{activeTrace.vlm_reasoning}"</div>
+              {activeTrace.vlm_confidence != null && (
+                <div style={{ fontSize: '0.6rem', color: 'var(--c-text-3)', fontFamily: MONO, marginTop: 4 }}>
+                  Confidence: <span style={{ color: 'var(--c-text-2)', fontWeight: 600 }}>{(activeTrace.vlm_confidence * 100).toFixed(0)}%</span>
+                </div>
+              )}
+            </div>
+
+            {/* Agent ReAct steps */}
+            {activeTrace.react_steps && activeTrace.react_steps.length > 0 && (
+              <div style={{ marginBottom: 10 }}>
+                <div style={{ fontSize: '0.55rem', color: 'var(--c-text-3)', fontFamily: MONO, textTransform: 'uppercase', letterSpacing: '0.04em', marginBottom: 6 }}>Agent ReAct Trace</div>
+                {activeTrace.react_steps.map((step, i) => (
+                  <StepBlock key={i} step={step as ReActStep} index={i} />
+                ))}
+              </div>
+            )}
+
+            {/* Agent final answer */}
+            {activeTrace.agent_final_answer && (
+              <FinalAnswerLine text={activeTrace.agent_final_answer} />
+            )}
+
+            {/* Score breakdown */}
+            {activeTrace.total_score != null && (
+              <div style={{ display: 'grid', gridTemplateColumns: '1fr 1fr', gap: 6, marginTop: 8 }}>
+                {[
+                  ['Total Score', `${activeTrace.total_score} / 100`],
+                  ['Verdict', activeTrace.verdict],
+                ].map(([label, value]) => (
+                  <div key={label} style={{ background: 'var(--c-elevated)', borderRadius: 3, padding: '5px 8px' }}>
+                    <div style={{ fontSize: '0.55rem', color: 'var(--c-text-3)', fontFamily: MONO, textTransform: 'uppercase', letterSpacing: '0.04em', marginBottom: 2 }}>{label}</div>
+                    <div style={{ fontSize: '0.72rem', color: 'var(--c-text)', fontFamily: MONO, fontWeight: 700 }}>{value}</div>
+                  </div>
+                ))}
+              </div>
+            )}
+
+            {/* Reward skipped banner */}
+            {activeTrace.reward_skipped_reason && (
+              <div style={{ marginTop: 8, padding: '6px 10px', background: 'var(--c-yellow-dim)', border: '1px solid var(--c-yellow)', borderRadius: 3 }}>
+                <div style={{ fontSize: '0.6rem', color: 'var(--c-yellow)', fontFamily: MONO, fontWeight: 700, marginBottom: 2 }}>REWARD NOT CREDITED</div>
+                <div style={{ fontSize: '0.65rem', color: 'var(--c-text-2)', fontFamily: SANS }}>{activeTrace.reward_skipped_reason}</div>
+              </div>
+            )}
+          </div>
+        )}
+
         {thinkingTrace && <ThinkingBanner trace={thinkingTrace} />}
 
         {filteredTraces.length > 0 ? (

@@ -46,8 +46,7 @@ const client = new DynamoDBClient({ region });
 const docClient = DynamoDBDocumentClient.from(client);
 
 const HAZARDS_TABLE =
-  process.env.HAZARDS_TABLE_NAME ||
-  'VigiaStack-IngestionHazardsTable05BAEAEE-1B0GEE1NV7PU5';
+  process.env.HAZARDS_TABLE_NAME;
 
 function calculateDistance(lat1: number, lon1: number, lat2: number, lon2: number): number {
   const R = 6371000; // Earth radius in meters

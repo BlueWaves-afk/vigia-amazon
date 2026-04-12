@@ -6,13 +6,13 @@ import { useMapFileStore } from '@/stores/mapFileStore';
 import type { MapFile } from '@/types/shared';
 
 const C = {
-  bg: '#FFFFFF',
-  panel: '#F5F5F5',
-  hover: '#E5E7EB',
-  border: '#CBD5E1',
-  text: '#000000',
-  textSec: '#6B7280',
-  textMut: '#9CA3AF',
+  bg: 'var(--c-bg)',
+  panel: 'var(--c-panel)',
+  hover: 'var(--c-hover)',
+  border: 'var(--c-border)',
+  text: 'var(--c-text)',
+  textSec: 'var(--c-text-dim)',
+  textMut: 'var(--c-text-muted)',
 };
 
 export function MapFileExplorerHierarchical() {
@@ -113,7 +113,7 @@ export function MapFileExplorerHierarchical() {
                             <File size={14} />
                             <span style={{ flex: 1 }}>{file.displayName}</span>
                             <span style={{ fontSize: '0.7rem', color: C.textMut }}>
-                              {file.temporal.status === 'collecting' ? '●' : '✓'}
+                              {file.temporal.status === 'collecting' ? 'LIVE' : 'OK'}
                             </span>
                           </div>
                         );

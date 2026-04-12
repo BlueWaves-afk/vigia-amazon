@@ -34,6 +34,19 @@ interface PinRoutingPanelProps {
   onRoutesCalculated?: (routes: RouteData) => void;
 }
 
+const getCssVar = (name: string, fallback: string) => {
+  if (typeof window === 'undefined') return fallback;
+  const value = getComputedStyle(document.documentElement).getPropertyValue(name).trim();
+  return value || fallback;
+};
+
+const getPinColors = () => ({
+  pinA: getCssVar('--c-red', '#EF4444'),
+  pinB: getCssVar('--c-accent-2', '#3B82F6'),
+  fastest: getCssVar('--c-accent-2', '#3B82F6'),
+  safest: getCssVar('--c-green', '#22C55E'),
+});
+
 export function PinRoutingPanel({ map, maplibregl, onRoutesCalculated }: PinRoutingPanelProps) {
   const [pins, setPins] = useState<Pin[]>([]);
   const [pinMode, setPinMode] = useState(false);
@@ -80,23 +93,24 @@ export function PinRoutingPanel({ map, maplibregl, onRoutesCalculated }: PinRout
     
     // Add marker to map
     if (map && maplibregl) {
+      const colors = getPinColors();
       const el = document.createElement('div');
       el.className = 'pin-marker';
       el.innerHTML = `
         <div style="
           width: 32px;
           height: 32px;
-          background: ${label === 'A' ? '#EF4444' : '#3B82F6'};
-          border: 3px solid white;
+          background: ${label === 'A' ? colors.pinA : colors.pinB};
+          border: 3px solid var(--c-bg);
           border-radius: 50% 50% 50% 0;
           transform: rotate(-45deg);
           display: flex;
           align-items: center;
           justify-content: center;
-          box-shadow: 0 2px 8px rgba(0,0,0,0.3);
+          box-shadow: 0 2px 8px color-mix(in srgb, var(--c-text) 30%, transparent);
         ">
           <span style="
-            color: white;
+            color: var(--c-text);
             font-weight: bold;
             font-size: 14px;
             transform: rotate(45deg);
@@ -169,6 +183,7 @@ export function PinRoutingPanel({ map, maplibregl, onRoutesCalculated }: PinRout
     });
     
     // Add fastest route (blue dashed)
+    const colors = getPinColors();
     map.addSource('fastest-route', {
       type: 'geojson',
       data: {
@@ -185,7 +200,7 @@ export function PinRoutingPanel({ map, maplibregl, onRoutesCalculated }: PinRout
       type: 'line',
       source: 'fastest-route',
       paint: {
-        'line-color': '#3B82F6',
+        'line-color': colors.fastest,
         'line-width': 4,
         'line-dasharray': [2, 2],
       },
@@ -208,7 +223,7 @@ export function PinRoutingPanel({ map, maplibregl, onRoutesCalculated }: PinRout
       type: 'line',
       source: 'safest-route',
       paint: {
-        'line-color': '#22C55E',
+        'line-color': colors.safest,
         'line-width': 4,
       },
     });
@@ -231,13 +246,13 @@ export function PinRoutingPanel({ map, maplibregl, onRoutesCalculated }: PinRout
       position: 'absolute',
       top: 16,
       right: 16,
-      background: 'var(--c-bg-surface)',
+      background: 'var(--c-panel)',
       border: '1px solid var(--c-border)',
       borderRadius: 8,
       padding: 16,
       minWidth: 280,
       maxWidth: 320,
-      boxShadow: '0 4px 12px rgba(0,0,0,0.15)',
+      boxShadow: 'var(--v-shadow-sm)',
       zIndex: 10,
     }}>
       <div style={{ display: 'flex', alignItems: 'center', justifyContent: 'space-between', marginBottom: 12 }}>
@@ -252,7 +267,7 @@ export function PinRoutingPanel({ map, maplibregl, onRoutesCalculated }: PinRout
               border: 'none',
               cursor: 'pointer',
               padding: 4,
-              color: 'var(--c-text-secondary)',
+              color: 'var(--c-text-2)',
             }}
             title="Clear pins"
           >
@@ -267,8 +282,8 @@ export function PinRoutingPanel({ map, maplibregl, onRoutesCalculated }: PinRout
           disabled={pins.length >= 2}
           style={{
             padding: '8px 12px',
-            background: pinMode ? 'var(--c-accent)' : 'var(--c-bg-elevated)',
-            color: pinMode ? 'white' : 'var(--c-text)',
+            background: pinMode ? 'var(--c-accent)' : 'var(--c-elevated)',
+            color: pinMode ? 'var(--c-text)' : 'var(--c-text)',
             border: '1px solid var(--c-border)',
             borderRadius: 6,
             cursor: pins.length >= 2 ? 'not-allowed' : 'pointer',
@@ -291,7 +306,7 @@ export function PinRoutingPanel({ map, maplibregl, onRoutesCalculated }: PinRout
             style={{
               padding: '8px 12px',
               background: 'var(--c-accent)',
-              color: 'white',
+              color: 'var(--c-text)',
               border: 'none',
               borderRadius: 6,
               cursor: loading ? 'wait' : 'pointer',
@@ -309,23 +324,23 @@ export function PinRoutingPanel({ map, maplibregl, onRoutesCalculated }: PinRout
         )}
 
         {routes && (
-          <div style={{ marginTop: 8, fontSize: 12, color: 'var(--c-text-secondary)' }}>
+          <div style={{ marginTop: 8, fontSize: 12, color: 'var(--c-text-2)' }}>
             <div style={{ marginBottom: 12, padding: 8, background: 'var(--c-bg)', borderRadius: 4 }}>
-              <div style={{ fontWeight: 600, color: '#3B82F6', marginBottom: 4 }}>Fastest Route</div>
+              <div style={{ fontWeight: 600, color: 'var(--c-accent-2)', marginBottom: 4 }}>Fastest Route</div>
               <div>Distance: {routes.fastest.distance_km} km</div>
               <div>Time: {routes.fastest.duration_minutes} min</div>
               <div>Hazards: {routes.fastest.hazards_count}</div>
             </div>
 
             <div style={{ marginBottom: 12, padding: 8, background: 'var(--c-bg)', borderRadius: 4 }}>
-              <div style={{ fontWeight: 600, color: '#22C55E', marginBottom: 4 }}>Safest Route</div>
+              <div style={{ fontWeight: 600, color: 'var(--c-green)', marginBottom: 4 }}>Safest Route</div>
               <div>Distance: {routes.safest.distance_km} km (+{routes.safest.detour_percent}%)</div>
               <div>Time: {routes.safest.duration_minutes} min</div>
               <div>Hazards: {routes.safest.hazards_count}</div>
-              <div style={{ color: '#22C55E', fontWeight: 500 }}>Avoided: {routes.safest.hazards_avoided} hazards</div>
+              <div style={{ color: 'var(--c-green)', fontWeight: 500 }}>Avoided: {routes.safest.hazards_avoided} hazards</div>
             </div>
 
-            <div style={{ padding: 8, background: 'var(--c-accent-muted)', borderRadius: 4, fontSize: 11 }}>
+            <div style={{ padding: 8, background: 'var(--c-accent-glow)', borderRadius: 4, fontSize: 11 }}>
               <strong>Recommendation:</strong> {routes.recommendation}
             </div>
           </div>

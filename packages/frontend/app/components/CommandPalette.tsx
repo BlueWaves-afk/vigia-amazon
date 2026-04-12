@@ -3,7 +3,7 @@
 import { useState, useEffect, useRef, useCallback } from 'react';
 import {
   Search, MapPin, Video, Settings, Layers, Database,
-  Zap, GitBranch, Moon, Sun, Monitor, Map, Activity,
+  Zap, GitBranch, Sun, Map, Activity,
   ChevronRight, Command,
 } from 'lucide-react';
 import { useSettings } from './SettingsContext';
@@ -72,7 +72,7 @@ interface CommandPaletteProps {
 }
 
 export function CommandPalette({ open, onClose, onNavigate, onSettingsOpen }: CommandPaletteProps) {
-  const { update, settings } = useSettings();
+  const { update } = useSettings();
   const [query,    setQuery]    = useState('');
   const [selected, setSelected] = useState(0);
   const [loading,  setLoading]  = useState(true);
@@ -117,22 +117,6 @@ export function CommandPalette({ open, onClose, onNavigate, onSettingsOpen }: Co
       action: () => { onSettingsOpen?.(); onClose(); },
     },
 
-    // Theme
-    {
-      id: 'theme-dark', label: 'Theme: Dark',
-      category: 'Settings', icon: <Moon size={14} />,
-      action: () => { update({ theme: 'dark' }); onClose(); },
-    },
-    {
-      id: 'theme-darker', label: 'Theme: Darker',
-      category: 'Settings', icon: <Monitor size={14} />,
-      action: () => { update({ theme: 'darker' }); onClose(); },
-    },
-    {
-      id: 'theme-hc', label: 'Theme: High Contrast',
-      category: 'Settings', icon: <Sun size={14} />,
-      action: () => { update({ theme: 'high-contrast' }); onClose(); },
-    },
     {
       id: 'theme-light', label: 'Theme: Light',
       category: 'Settings', icon: <Sun size={14} />,

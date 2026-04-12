@@ -47,17 +47,13 @@ const docClient = DynamoDBDocumentClient.from(client);
 
 const TABLES = {
   hazards:
-    process.env.HAZARDS_TABLE_NAME ||
-    'VigiaStack-IngestionHazardsTable05BAEAEE-1B0GEE1NV7PU5',
+    process.env.HAZARDS_TABLE_NAME,
   ledger:
-    process.env.LEDGER_TABLE_NAME ||
-    'VigiaStack-TrustLedgerTableD0EF6ED1-FSHKRP1596UJ',
+    process.env.LEDGER_TABLE_NAME,
   traces:
-    process.env.TRACES_TABLE_NAME ||
-    'VigiaStack-IntelligenceAgentTracesTable32827651-PSFGJ97QU5O5',
+    process.env.TRACES_TABLE_NAME,
   maintenance:
-    process.env.MAINTENANCE_TABLE_NAME ||
-    'VigiaStack-InnovationMaintenanceQueueTableEA1566B4-1BWECBIME4HMR',
+    process.env.MAINTENANCE_TABLE_NAME,
 };
 
 export async function GET() {

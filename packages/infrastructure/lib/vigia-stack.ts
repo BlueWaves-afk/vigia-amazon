@@ -9,6 +9,7 @@ import { TrustStack } from './stacks/trust-stack';
 import { VisualizationStack } from './stacks/visualization-stack';
 import { SessionStack } from './stacks/session-stack';
 import { InnovationStack } from './stacks/innovation-stack';
+import { EnterpriseStack } from './stacks/enterprise-stack';
 
 export class VigiaStack extends cdk.Stack {
   constructor(scope: Construct, id: string, props?: cdk.StackProps) {
@@ -50,6 +51,8 @@ export class VigiaStack extends cdk.Stack {
       ledgerTable: trustStack.ledgerTable,
       maintenanceQueueTable: innovationStack.maintenanceQueueTable,
       economicMetricsTable: innovationStack.economicMetricsTable,
+      deviceRegistryTable: ingestionStack.deviceRegistryTable,
+      framesBucket: ingestionStack.framesbucket,
     });
 
     // Add verify-hazard-sync endpoint to ingestion API
@@ -63,8 +66,34 @@ export class VigiaStack extends cdk.Stack {
         },
       });
       verifySync.addMethod('POST', new apigateway.LambdaIntegration(intelligenceWithHazardsStack.verifyHazardSyncFn, {
-        timeout: cdk.Duration.seconds(29), // Max API Gateway allows
+        timeout: cdk.Duration.seconds(29),
       }));
+    }
+
+    // Add claim-signature endpoint to innovation API (BME model)
+    if (intelligenceWithHazardsStack.claimSignatureFn) {
+      const claimSig = innovationStack.api.root.addResource('claim-signature', {
+        defaultCorsPreflightOptions: {
+          allowOrigins: apigateway.Cors.ALL_ORIGINS,
+          allowMethods: ['POST', 'OPTIONS'],
+          allowHeaders: ['Content-Type'],
+          maxAge: cdk.Duration.days(1),
+        },
+      });
+      claimSig.addMethod('POST', new apigateway.LambdaIntegration(intelligenceWithHazardsStack.claimSignatureFn));
+    }
+
+    // Add rewards-balance endpoint to innovation API (read-only balance check)
+    if (intelligenceWithHazardsStack.rewardsBalanceFn) {
+      const rewardsBal = innovationStack.api.root.addResource('rewards-balance', {
+        defaultCorsPreflightOptions: {
+          allowOrigins: apigateway.Cors.ALL_ORIGINS,
+          allowMethods: ['GET', 'OPTIONS'],
+          allowHeaders: ['Content-Type'],
+          maxAge: cdk.Duration.days(1),
+        },
+      });
+      rewardsBal.addMethod('GET', new apigateway.LambdaIntegration(intelligenceWithHazardsStack.rewardsBalanceFn));
     }
 
     // Update ingestion stack to use the new traces table with GSI
@@ -73,6 +102,11 @@ export class VigiaStack extends cdk.Stack {
       tracesByHazardFn.addEnvironment('TRACES_TABLE_NAME', intelligenceWithHazardsStack.tracesTable.tableName);
       intelligenceWithHazardsStack.tracesTable.grantReadData(tracesByHazardFn);
     }
+
+    // Enterprise Auth & DePIN Rewards
+    const enterpriseStack = new EnterpriseStack(this, 'Enterprise', {
+      hazardsTable: ingestionStack.hazardsTable,
+    });
 
     // Zone 5: Visualization Layer (Amazon Location Service)
     new VisualizationStack(this, 'Visualization', {
@@ -103,6 +137,11 @@ export class VigiaStack extends cdk.Stack {
     new cdk.CfnOutput(this, 'AgentRateLimitTableName', {
       value: agentRateLimitTable.tableName,
       description: 'DynamoDB table name for agent rate limiting (pk + ttl)',
+    });
+
+    new cdk.CfnOutput(this, 'EnterpriseApiEndpoint', {
+      value: enterpriseStack.api.url,
+      description: 'Enterprise Auth API endpoint',
     });
   }
 }

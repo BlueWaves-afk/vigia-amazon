@@ -94,9 +94,9 @@ function OnnxPill({ active }: { active: boolean }) {
       fontWeight: 600,
       letterSpacing: '0.02em',
       lineHeight: 1,
-      background: active ? 'rgba(74,222,128,0.13)' : 'rgba(107,114,128,0.15)',
-      color:      active ? 'var(--v-success)'       : 'var(--v-sb-text)',
-      border: `1px solid ${active ? 'rgba(74,222,128,0.28)' : 'rgba(107,114,128,0.20)'}`,
+      background: active ? 'var(--c-green-dim)' : 'var(--c-hover)',
+      color:      active ? 'var(--v-success)'   : 'var(--v-sb-text)',
+      border: `1px solid ${active ? 'var(--c-green)' : 'var(--c-border-md)'}`,
     }}>
       <span style={{
         width: 5, height: 5, borderRadius: '50%',
@@ -157,7 +157,7 @@ export function StatusBar() {
 
         {/* Accent pill: location / connectivity */}
         <Seg accent title="Current location">
-          <MapPin size={10} strokeWidth={2.2} style={{ color: 'rgba(255,255,255,0.75)', flexShrink: 0 }} />
+          <MapPin size={10} strokeWidth={2.2} style={{ color: 'var(--v-sb-accent-text)', flexShrink: 0 }} />
           <span style={{ ...TEXT, color: 'var(--v-sb-accent-text)', fontWeight: 600 }}>
             Rourkela · India · Online
           </span>

@@ -3,7 +3,48 @@
 import { useEconomicStore } from '@/stores/economicStore';
 import { useEffect, useState } from 'react';
 import { AgentChatPanel } from './AgentChatPanel';
+import { Skeleton } from './Skeleton';
 import type { MaintenanceReport } from '@/types/shared';
+
+function MaintenanceSkeleton() {
+  const cardStyle = {
+    background: 'var(--v-hover)',
+    border: '1px solid var(--v-border-default)',
+    borderRadius: 8,
+    padding: 12,
+  };
+
+  return (
+    <div style={{
+      height: '100%',
+      display: 'flex',
+      flexDirection: 'column',
+      gap: 12,
+      padding: 12,
+    }}>
+      <div style={{ height: 38, display: 'flex', alignItems: 'center' }}>
+        <Skeleton width={120} height={12} />
+      </div>
+      <div style={cardStyle}>
+        <Skeleton width="40%" height={10} />
+        <Skeleton width="70%" height={12} style={{ marginTop: 8 }} />
+        <Skeleton width="55%" height={12} />
+      </div>
+      <div style={cardStyle}>
+        <Skeleton width="35%" height={10} />
+        <Skeleton variant="rectangular" height={90} style={{ borderRadius: 6, marginTop: 8 }} />
+      </div>
+      <div style={{ ...cardStyle, flex: 1 }}>
+        <Skeleton width="30%" height={10} />
+        <div style={{ marginTop: 8, display: 'flex', flexDirection: 'column', gap: 8 }}>
+          {[90, 70, 80, 60].map((w, i) => (
+            <Skeleton key={i} width={`${w}%`} height={12} />
+          ))}
+        </div>
+      </div>
+    </div>
+  );
+}
 
 export function MaintenancePanel() {
   const { maintenanceQueue, isLoading, submitMaintenanceReport, fetchMaintenanceQueue, updateMaintenanceReportStatus } = useEconomicStore();
@@ -79,9 +120,15 @@ export function MaintenancePanel() {
     hover: 'var(--c-accent-glow)',
   };
 
+  const showSkeleton = queueLoading;
+
   return (
     <div style={{ display: 'flex', flexDirection: 'row', height: '100%' }}>
       <div style={{ display: 'flex', flexDirection: 'column', flex: 1, background: C.bg, overflow: 'hidden' }}>
+      {showSkeleton ? (
+        <MaintenanceSkeleton />
+      ) : (
+      <>
       {/* Header */}
       <div className="vigia-panel-header" style={{
         padding: '0 12px',
@@ -161,7 +208,7 @@ export function MaintenancePanel() {
                 <div style={{ opacity: selectedHazard?.id === h.id ? 1 : 0.9 }}>
                   {h.type || h.hazardType || 'HAZARD'}
                 </div>
-                <div style={{ color: selectedHazard?.id === h.id ? 'rgba(255,255,255,0.85)' : C.textMut }}>
+                <div style={{ color: selectedHazard?.id === h.id ? 'var(--c-text)' : C.textMut }}>
                   {h.geohash || ''}
                 </div>
               </button>
@@ -325,8 +372,8 @@ export function MaintenancePanel() {
                 display: 'inline-block',
                 marginTop: 4,
                 padding: '2px 6px',
-                background: report.status === 'COMPLETED' ? 'rgba(34,197,94,0.15)' : 'rgba(96,165,250,0.15)',
-                color: report.status === 'COMPLETED' ? '#22C55E' : '#60A5FA',
+                background: report.status === 'COMPLETED' ? 'var(--c-green-dim)' : 'var(--c-accent-glow)',
+                color: report.status === 'COMPLETED' ? 'var(--c-green)' : 'var(--c-accent-2)',
                 borderRadius: 2,
                 fontSize: '0.6rem',
               }}>
@@ -336,6 +383,8 @@ export function MaintenancePanel() {
           ))}
         </div>
       </div>
+      </>
+      )}
 
       {/* Expose method to set hazard from outside */}
       <div ref={(el) => {

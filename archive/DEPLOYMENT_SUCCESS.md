@@ -9,7 +9,7 @@
 ## 📊 Deployment Details
 
 ### API Gateway
-- **Endpoint**: <YOUR_API_GATEWAY_URL>
+- **Endpoint**: <REDACTED>
 - **Status**: ✅ Active
 - **Test Result**: Signature verification working correctly
 
@@ -20,7 +20,7 @@
 
 ### CloudFormation Stack
 - **Stack Name**: VigiaStack
-- **ARN**: arn:aws:cloudformation:us-east-1:<YOUR_ACCOUNT_ID>:stack/VigiaStack/...
+- **ARN**: arn:aws:cloudformation:us-east-1:<REDACTED>:stack/VigiaStack/...
 - **Status**: ✅ CREATE_COMPLETE
 
 ---
@@ -29,7 +29,7 @@
 
 ### Test 1: API Gateway Reachability
 ```bash
-curl <YOUR_API_GATEWAY_URL>/telemetry
+curl <REDACTED>/telemetry
 ```
 ✅ **Result**: API responding
 
@@ -99,7 +99,7 @@ Navigate to: http://localhost:3000
 
 ### 3. Upload Private Key
 - Click "Upload Private Key"
-- Select: `/Users/tommathew/Documents/Github Repositories/vigia-amazon/private-key.pem`
+- Select: `<REDACTED_PATH> Repositories/vigia-amazon/private-key.pem`
 - Wait for "✓ Key loaded"
 
 ### 4. Upload Video
@@ -130,7 +130,7 @@ aws dynamodb scan \
 
 | Component | Status | Details |
 |-----------|--------|---------|
-| API Gateway | ✅ Live | <YOUR_API_GATEWAY_URL> |
+| API Gateway | ✅ Live | <REDACTED> |
 | Lambda Validator | ✅ Active | Signature verification working |
 | Lambda Orchestrator | ✅ Deployed | Waiting for Bedrock Agent |
 | DynamoDB Hazards | ✅ Active | Storing records with TTL |

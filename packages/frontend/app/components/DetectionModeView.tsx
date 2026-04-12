@@ -4,23 +4,71 @@ import { useState, useEffect, useRef } from 'react';
 import { VideoUploader } from './VideoUploader';
 import { LiveMap } from './LiveMap';
 import { HazardVerificationPanel } from './HazardVerificationPanel';
+import { RewardsWidget } from './RewardsWidget';
+import { useDeviceWallet } from '../hooks/useDeviceWallet';
+import { Skeleton } from './Skeleton';
 
 // JetBrains IDE color palette
 const C = {
-  bg:      'var(--c-bg)',
-  panel:   'var(--c-panel)',
-  border:  'var(--c-border)',
+  bg:      '#fff',
+  panel:   'var(--v-hover)',
+  border:  'var(--v-border-default)',
   accent:  'var(--c-accent-2)',
   text:    'var(--c-text)',
   textMut: 'var(--c-text-3)',
 };
 
+function DetectionModeSkeleton() {
+  const panelStyle = {
+    background: C.panel,
+    border: `1px solid ${C.border}`,
+    borderRadius: 8,
+    overflow: 'hidden',
+  };
+
+  return (
+    <div style={{
+      display: 'flex',
+      height: '100%',
+      width: '100%',
+      background: C.bg,
+      padding: 8,
+      gap: 8,
+    }}>
+      {/* Left */}
+      <div style={{ width: '20%', height: '100%', display: 'flex', flexDirection: 'column', gap: 8, padding: 8, ...panelStyle }}>
+        <Skeleton variant="rectangular" height="70%" style={{ borderRadius: 6 }} />
+        <Skeleton variant="rectangular" height="30%" style={{ borderRadius: 6 }} />
+      </div>
+
+      {/* Center */}
+      <div style={{ width: '45%', height: '100%', display: 'flex', flexDirection: 'column', gap: 8, padding: 8, ...panelStyle }}>
+        <Skeleton variant="rectangular" height={28} style={{ borderRadius: 6, flexShrink: 0 }} />
+        <Skeleton variant="rectangular" height="100%" style={{ borderRadius: 6 }} />
+      </div>
+
+      {/* Right */}
+      <div style={{ flex: 1, height: '100%', display: 'flex', flexDirection: 'column', gap: 8, padding: 8, ...panelStyle }}>
+        <Skeleton variant="rectangular" height={28} style={{ borderRadius: 6, flexShrink: 0 }} />
+        <Skeleton variant="rectangular" height="100%" style={{ borderRadius: 6 }} />
+      </div>
+    </div>
+  );
+}
+
 export function DetectionModeView() {
+  const device = useDeviceWallet();
   const [leftWidth, setLeftWidth] = useState(20); // percentage for verification panel
   const [centerWidth, setCenterWidth] = useState(45); // percentage for detection node
   const containerRef = useRef<HTMLDivElement>(null);
   const isDraggingLeft = useRef(false);
   const isDraggingRight = useRef(false);
+  const [loading, setLoading] = useState(true);
+
+  useEffect(() => {
+    const timer = setTimeout(() => setLoading(false), 500); // Simulate loading
+    return () => clearTimeout(timer);
+  }, []);
 
   const handleLeftMouseDown = (e: React.MouseEvent) => {
     e.preventDefault();
@@ -68,6 +116,10 @@ export function DetectionModeView() {
     };
   }, [leftWidth]);
 
+  if (loading) {
+    return <DetectionModeSkeleton />;
+  }
+
   return (
     <div 
       ref={containerRef}
@@ -78,15 +130,24 @@ export function DetectionModeView() {
         background: C.bg,
       }}
     >
-      {/* Left: Hazard Verification Panel */}
+      {/* Left: Hazard Verification Panel + Rewards Widget */}
       <div style={{ 
         width: `${leftWidth}%`, 
         height: '100%', 
         display: 'flex',
         flexDirection: 'column',
         overflow: 'hidden',
+        background: C.panel,
+        borderRadius: 8,
+        border: `1px solid ${C.border}`,
+        margin: 8,
       }}>
-        <HazardVerificationPanel />
+        <div style={{ flex: 1, overflow: 'hidden', borderBottom: `1px solid ${C.border}` }}>
+          <HazardVerificationPanel deviceAddress={device.address} signPayload={device.signPayload} />
+        </div>
+        <div style={{ padding: '8px', flexShrink: 0 }}>
+          <RewardsWidget walletAddress={device.address} />
+        </div>
       </div>
 
       {/* Left Resize Handle */}
@@ -109,7 +170,7 @@ export function DetectionModeView() {
           width: 2, 
           height: 32, 
           borderRadius: 1, 
-          background: 'rgba(154,106,170,0.3)',
+          background: 'var(--c-border-md)',
         }} />
       </div>
 
@@ -119,17 +180,20 @@ export function DetectionModeView() {
         height: '100%', 
         display: 'flex',
         flexDirection: 'column',
-        borderRight: `1px solid rgba(154,106,170,0.2)`,
         overflow: 'hidden',
+        background: C.panel,
+        borderRadius: 8,
+        border: `1px solid ${C.border}`,
+        margin: '8px 0',
       }}>
         {/* Panel Header */}
         <div style={{
           display: 'flex',
           alignItems: 'center',
-          height: 28,
+          height: 38,
           padding: '0 12px',
-          background: C.panel,
-          borderBottom: `1px solid rgba(154,106,170,0.18)`,
+          background: 'transparent',
+          borderBottom: `1px solid ${C.border}`,
           flexShrink: 0,
         }}>
           <span style={{ 
@@ -150,6 +214,20 @@ export function DetectionModeView() {
           }}>
             ONNX v26 · 5 FPS
           </span>
+          {/* Edge Node Authentication Badge */}
+          <span style={{
+            marginLeft: 'auto',
+            fontSize: '0.6rem',
+            fontFamily: "var(--v-font-mono)",
+            color: device.status === 'ready' ? 'var(--c-green)' : device.status === 'error' ? 'var(--c-red)' : C.textMut,
+            display: 'flex',
+            alignItems: 'center',
+            gap: 4,
+          }}>
+            {device.status === 'ready'  && <>Edge Node Authenticated &nbsp;<strong>{device.address.slice(0, 6)}...</strong></>}
+            {device.status === 'loading' && <>Registering node...</>}
+            {device.status === 'error'   && <>Node offline</>}
+          </span>
         </div>
         
         {/* VideoUploader */}
@@ -158,7 +236,7 @@ export function DetectionModeView() {
           overflow: 'auto',
           padding: 16,
         }}>
-          <VideoUploader />
+          <VideoUploader deviceAddress={device.address} signPayload={device.signPayload} />
         </div>
       </div>
 
@@ -182,7 +260,7 @@ export function DetectionModeView() {
           width: 2, 
           height: 32, 
           borderRadius: 1, 
-          background: 'rgba(154,106,170,0.3)',
+          background: 'var(--c-border-md)',
         }} />
       </div>
 
@@ -193,15 +271,19 @@ export function DetectionModeView() {
         display: 'flex',
         flexDirection: 'column',
         overflow: 'hidden',
+        background: C.panel,
+        borderRadius: 8,
+        border: `1px solid ${C.border}`,
+        margin: 8,
       }}>
         {/* Panel Header */}
         <div style={{
           display: 'flex',
           alignItems: 'center',
-          height: 28,
+          height: 38,
           padding: '0 12px',
-          background: C.panel,
-          borderBottom: `1px solid rgba(154,106,170,0.18)`,
+          background: 'transparent',
+          borderBottom: `1px solid ${C.border}`,
           flexShrink: 0,
         }}>
           <span style={{ 

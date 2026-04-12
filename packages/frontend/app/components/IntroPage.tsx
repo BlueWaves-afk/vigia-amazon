@@ -38,8 +38,8 @@ const slides: Slide[] = [
       'Decentralized DePIN ledger for verified reports',
       'Privacy-preserving federated analytics',
     ],
-    accentFrom: '#6366f1',
-    accentTo: '#a78bfa',
+    accentFrom: 'var(--c-accent-2)',
+    accentTo: 'var(--c-rose-2)',
     screenshotLabel: 'VIGIA Dashboard Overview',
     screenshot: '/intro/output.gif',
   },
@@ -55,8 +55,8 @@ const slides: Slide[] = [
       'Session-based browsing with tree explorer',
       'Geohash region filtering and search',
     ],
-    accentFrom: '#3b82f6',
-    accentTo: '#06b6d4',
+    accentFrom: 'var(--c-accent-2)',
+    accentTo: 'var(--c-rose)',
     screenshotLabel: 'Geo Explorer — Interactive Map View',
     screenshot: '/intro/output1.gif',
   },
@@ -72,8 +72,8 @@ const slides: Slide[] = [
       'Bounding-box overlay on detected hazards',
       'Confidence scores and severity classification',
     ],
-    accentFrom: '#8b5cf6',
-    accentTo: '#d946ef',
+    accentFrom: 'var(--c-rose)',
+    accentTo: 'var(--c-rose-2)',
     screenshotLabel: 'Detection Mode — AI Analysis',
     screenshot: '/intro/output2.gif',
   },
@@ -89,8 +89,8 @@ const slides: Slide[] = [
       'Community-driven validation consensus',
       'Transparent audit trail and compliance',
     ],
-    accentFrom: '#10b981',
-    accentTo: '#34d399',
+    accentFrom: 'var(--c-green)',
+    accentTo: 'var(--c-green)',
     screenshotLabel: 'Ledger — Verified Hazard Records',
     screenshot: '/intro/screenshot-ledger.png',
   },
@@ -106,8 +106,8 @@ const slides: Slide[] = [
       'AI-prioritized maintenance work orders',
       'Fleet-wide analytics and KPI tracking',
     ],
-    accentFrom: '#f59e0b',
-    accentTo: '#f97316',
+    accentFrom: 'var(--c-yellow)',
+    accentTo: 'var(--c-yellow)',
     screenshotLabel: 'Network Dashboard — Swarm View',
     screenshot: '/intro/screenshot-network.png',
   },
@@ -133,7 +133,10 @@ export function IntroPage({ onComplete }: { onComplete: () => void }) {
   const [mounted, setMounted] = useState(false);
   const total = slides.length;
 
-  useEffect(() => { setMounted(true); }, []);
+  useEffect(() => {
+    setMounted(true);
+    try { localStorage.setItem(STORAGE_KEY, '1'); } catch {}
+  }, []);
 
   const go = useCallback(
     (idx: number) => {
@@ -195,11 +198,11 @@ export function IntroPage({ onComplete }: { onComplete: () => void }) {
       <div className="intro-bg">
         <div
           className="intro-bg__orb intro-bg__orb--1"
-          style={{ background: `radial-gradient(circle, ${slide.accentFrom}22 0%, transparent 70%)` }}
+          style={{ background: `radial-gradient(circle, color-mix(in srgb, ${slide.accentFrom} 22%, transparent) 0%, transparent 70%)` }}
         />
         <div
           className="intro-bg__orb intro-bg__orb--2"
-          style={{ background: `radial-gradient(circle, ${slide.accentTo}18 0%, transparent 70%)` }}
+          style={{ background: `radial-gradient(circle, color-mix(in srgb, ${slide.accentTo} 18%, transparent) 0%, transparent 70%)` }}
         />
         <div className="intro-bg__grid" />
       </div>
@@ -289,15 +292,15 @@ export function IntroPage({ onComplete }: { onComplete: () => void }) {
                 <div
                   className="intro-screenshot"
                   style={{
-                    borderColor: `${slide.accentFrom}25`,
-                    boxShadow: `0 0 90px ${slide.accentFrom}12, 0 24px 60px rgba(0,0,0,0.45)`,
+                    borderColor: `color-mix(in srgb, ${slide.accentFrom} 25%, transparent)`,
+                    boxShadow: `0 0 90px color-mix(in srgb, ${slide.accentFrom} 12%, transparent), var(--v-shadow-md)`,
                   }}
                 >
                   <div className="intro-screenshot__titlebar">
                     <span className="intro-screenshot__dots">
-                      <span style={{ background: '#ff5f57' }} />
-                      <span style={{ background: '#febc2e' }} />
-                      <span style={{ background: '#28c840' }} />
+                      <span style={{ background: 'var(--c-red)' }} />
+                      <span style={{ background: 'var(--c-yellow)' }} />
+                      <span style={{ background: 'var(--c-green)' }} />
                     </span>
                     <span className="intro-screenshot__url">vigia.app/{slide.tag.toLowerCase()}</span>
                   </div>
@@ -484,6 +487,9 @@ export function useIntroComplete(): [boolean, () => void] {
       setDone(false);
     }
   }, []);
-  const complete = useCallback(() => setDone(true), []);
+  const complete = useCallback(() => {
+    try { localStorage.setItem(STORAGE_KEY, '1'); } catch {}
+    setDone(true);
+  }, []);
   return [done, complete];
 }

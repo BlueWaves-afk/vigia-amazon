@@ -65,8 +65,8 @@
 ### 2.5 **IMPORTANT: Save Your Keys**
 You'll see:
 ```
-Access key ID: <YOUR_ACCESS_KEY_ID>
-Secret access key: <YOUR_SECRET_ACCESS_KEY>
+Access key ID: <REDACTED>
+Secret access key: <REDACTED>
 ```
 
 **⚠️ SAVE THESE NOW! You can't see the secret key again!**
@@ -114,8 +114,8 @@ aws configure
 
 ### 4.2 Enter Your Credentials
 ```
-AWS Access Key ID [None]: <YOUR_ACCESS_KEY_ID>  # Paste your access key
-AWS Secret Access Key [None]: <YOUR_SECRET_ACCESS_KEY>  # Paste your secret key
+AWS Access Key ID [None]: <REDACTED>  # Paste your access key
+AWS Secret Access Key [None]: <REDACTED>  # Paste your secret key
 Default region name [None]: us-east-1            # Or your preferred region
 Default output format [None]: json               # Press Enter
 ```
@@ -185,7 +185,7 @@ cdk --version
 
 ### 6.3 Bootstrap CDK in Your AWS Account
 ```bash
-cd /Users/tommathew/Documents/Github\ Repositories/vigia-amazon/packages/infrastructure
+cd <REDACTED_PATH> Repositories/vigia-amazon/packages/infrastructure
 
 cdk bootstrap
 ```
@@ -204,7 +204,7 @@ This creates a CloudFormation stack called `CDKToolkit` in your AWS account.
 
 ### 7.1 Synthesize CloudFormation Template (Test)
 ```bash
-cd /Users/tommathew/Documents/Github\ Repositories/vigia-amazon/packages/infrastructure
+cd <REDACTED_PATH> Repositories/vigia-amazon/packages/infrastructure
 
 cdk synth
 ```
@@ -252,7 +252,7 @@ https://abc123xyz.execute-api.us-east-1.amazonaws.com/prod
 
 ### 8.1 Create Environment File
 ```bash
-cd /Users/tommathew/Documents/Github\ Repositories/vigia-amazon/packages/frontend
+cd <REDACTED_PATH> Repositories/vigia-amazon/packages/frontend
 
 cp .env.local.example .env.local
 ```
@@ -277,7 +277,7 @@ Save and close (Ctrl+X, then Y, then Enter if using nano).
 
 ### 9.1 Start Frontend
 ```bash
-cd /Users/tommathew/Documents/Github\ Repositories/vigia-amazon/packages/frontend
+cd <REDACTED_PATH> Repositories/vigia-amazon/packages/frontend
 
 npm run dev
 ```
@@ -286,7 +286,7 @@ Open http://localhost:3000
 
 ### 9.2 Upload Private Key
 1. Click "Upload Private Key"
-2. Navigate to: `/Users/tommathew/Documents/Github Repositories/vigia-amazon/`
+2. Navigate to: `<REDACTED_PATH> Repositories/vigia-amazon/`
 3. Select `private-key.pem`
 4. Wait for "✓ Key loaded"
 

@@ -132,7 +132,7 @@ aws logs tail /aws/lambda/VigiaStack-IngestionValidatorFunction --follow --regio
 
 ```bash
 # Send test telemetry
-curl -X POST <YOUR_API_GATEWAY_URL>/telemetry \
+curl -X POST <REDACTED>/telemetry \
   -H "Content-Type: application/json" \
   -d '{
     "hazardType": "POTHOLE",

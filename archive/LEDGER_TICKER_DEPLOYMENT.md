@@ -37,7 +37,7 @@
 
 ### Step 1: Navigate to Infrastructure
 ```bash
-cd /Users/tommathew/Documents/Github\ Repositories/vigia-amazon/packages/infrastructure
+cd <REDACTED_PATH> Repositories/vigia-amazon/packages/infrastructure
 ```
 
 ### Step 2: Synthesize (Test)
@@ -65,7 +65,7 @@ npx cdk deploy --require-approval never
 
 ### Test 1: API Endpoint
 ```bash
-curl <YOUR_API_GATEWAY_URL>/ledger
+curl <REDACTED>/ledger
 ```
 
 **Expected Response** (if ledger has entries):
@@ -114,7 +114,7 @@ aws logs tail /aws/lambda/VigiaStack-IngestionLedgerGetterFunction --follow --re
 
 ### Step 1: Start Dev Server
 ```bash
-cd /Users/tommathew/Documents/Github\ Repositories/vigia-amazon/packages/frontend
+cd <REDACTED_PATH> Repositories/vigia-amazon/packages/frontend
 npm run dev
 ```
 
@@ -175,12 +175,12 @@ VigiaStack: creating CloudFormation changeset...
  ✅  VigiaStack
 
 Outputs:
-VigiaStack.ApiEndpoint = <YOUR_API_GATEWAY_URL>
+VigiaStack.ApiEndpoint = <REDACTED>
 VigiaStack.HazardsTableName = VigiaStack-IngestionHazardsTable...
-VigiaStack.IngestionVigiaAPIEndpoint... = <YOUR_API_GATEWAY_URL>
+VigiaStack.IngestionVigiaAPIEndpoint... = <REDACTED>
 
 Stack ARN:
-arn:aws:cloudformation:us-east-1:<YOUR_ACCOUNT_ID>:stack/VigiaStack/...
+arn:aws:cloudformation:us-east-1:<REDACTED>:stack/VigiaStack/...
 
 ✨  Total time: 180s
 ```

@@ -49,7 +49,7 @@ export async function POST(req: NextRequest) {
     };
 
     const command = new InvokeCommand({
-      FunctionName: 'VigiaStack-IntelligenceWithHazardsUrbanPlannerFunc-spESG0Jxisgr',
+      FunctionName: process.env.URBAN_PLANNER_FUNCTION_NAME!,
       Payload: JSON.stringify(payload),
     });
 

@@ -6,7 +6,7 @@ import {
   Settings, Search, AlertTriangle,
   Navigation, ChevronRight, ChevronDown,
   Folder, FolderOpen, FileText, Video,
-  Clock, MapPin, Activity, Wrench, Map, User, Lock,
+  Clock, MapPin, Activity, Wrench, Map, User, Lock, Flame,
 } from 'lucide-react';
 import { VFSManager } from '../lib/vfs-manager';
 import { useMapFileStore } from '../../stores/mapFileStore';
@@ -21,8 +21,9 @@ interface SidebarProps {
   onSessionsDeleted?:  (sessionIds: string[]) => void;
   onNewSessionClick?:  () => void;
   onRefreshSessions?:  () => void;
-  onActivityChange?:   (activity: 'explorer' | 'detection' | 'network' | 'maintenance') => void;
-  activity?:           'explorer' | 'detection' | 'network' | 'maintenance';
+  onActivityChange?:   (activity: 'explorer' | 'detection' | 'network' | 'maintenance' | 'enterprise') => void;
+  activity?:           'explorer' | 'detection' | 'network' | 'maintenance' | 'enterprise';
+  hideExplorerPanel?:  boolean;
 }
 
 // ─────────────────────────────────────────────
@@ -271,7 +272,7 @@ export function Sidebar({ onSentinelEyeClick, isSentinelEyeActive, onSettingsOpe
   const [searchResults, setSearchResults] = useState<any[]>([]);
   const [selectedLocation, setSelectedLocation] = useState<{ lat: number; lon: number; name: string; city?: string; region?: string; country?: string } | null>(null);
   const [isSearching, setIsSearching] = useState(false);
-  const [activeActivity, setActiveActivity] = useState<'explorer' | 'detection' | 'network' | 'maintenance'>(activityProp ?? 'explorer');
+  const [activeActivity, setActiveActivity] = useState<'explorer' | 'detection' | 'network' | 'maintenance' | 'enterprise'>(activityProp ?? 'explorer');
 
   // Sync from parent when restored activity changes (e.g. after hydration from sessionStorage).
   useEffect(() => {
@@ -881,6 +882,7 @@ export function Sidebar({ onSentinelEyeClick, isSentinelEyeActive, onSettingsOpe
           <ActivityBtn icon={<Activity size={20} />} active={activeActivity === 'detection'}   label="Detection"     onClick={() => { setActiveActivity('detection');   onActivityChange?.('detection');   }} />
           <ActivityBtn icon={<Radio size={20} />}    active={activeActivity === 'network'}     label="Network"       onClick={() => { setActiveActivity('network');     onActivityChange?.('network');     }} />
           <ActivityBtn icon={<Wrench size={20} />}   active={activeActivity === 'maintenance'} label="Maintenance"   onClick={() => { setActiveActivity('maintenance'); onActivityChange?.('maintenance'); }} />
+          <ActivityBtn icon={<Flame size={20} />}      active={activeActivity === 'enterprise'}  label="Enterprise"    onClick={() => { setActiveActivity('enterprise');  onActivityChange?.('enterprise');  }} />
         </div>
         {/* Bottom: settings + user avatar */}
         <div style={{ display: 'flex', flexDirection: 'column', paddingBottom: 6 }}>

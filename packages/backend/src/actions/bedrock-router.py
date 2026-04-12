@@ -146,10 +146,7 @@ def scan_all_hazards(event):
 def query_hazards(event):
     print(f"[Router] query_hazards called with event: {json.dumps(event)}")
     
-    # Extract geohash from Bedrock Agent format
     geohash = event.get('geohash')
-    
-    # Bedrock Agent passes parameters as array
     if not geohash and 'parameters' in event:
         for param in event['parameters']:
             if param.get('name') == 'geohash':
@@ -161,58 +158,79 @@ def query_hazards(event):
     
     print(f"[Router] Extracted geohash: {geohash} (type: {type(geohash)})")
     
-    radius_meters = event.get('radiusMeters', 500)
-    hours_back = event.get('hoursBack', 24)
-    
-    # Ensure geohash is a string
     if not isinstance(geohash, str):
-        error_msg = f'Invalid geohash type: {type(geohash)}'
-        print(f"[Router] ERROR: {error_msg}")
-        return {
-            'statusCode': 400,
-            'body': {'error': error_msg}
-        }
+        return {'statusCode': 400, 'body': {'error': f'Invalid geohash type: {type(geohash)}'}}
     
     response = table.query(
         KeyConditionExpression='geohash = :gh',
         ExpressionAttributeValues={':gh': geohash}
     )
-    
     hazards = response.get('Items', [])
-    
+
+    # Compute verification score inline so the agent always gets a meaningful result
+    # without needing a separate calculate_score call.
+    computed_score = 0
+    if hazards:
+        count_score = min(len(hazards) * 20, 40)
+        avg_conf = sum(float(h.get('confidence', 0)) for h in hazards) / len(hazards)
+        confidence_score = avg_conf * 30
+        temporal_score = 30
+        computed_score = round(count_score + confidence_score + temporal_score, 2)
+
+    print(f"[Router] query_hazards: found {len(hazards)} hazards, computed score: {computed_score}")
+
     return {
         'statusCode': 200,
         'body': {
             'hazards': hazards,
-            'count': len(hazards)
+            'count': len(hazards),
+            'computedVerificationScore': computed_score,
         }
     }
 
 def calculate_score(event):
     similar_hazards = event.get('similarHazards', [])
-    
+
+    # Bedrock Agent passes parameters as array of {name, value} objects
+    if not similar_hazards and 'parameters' in event:
+        for param in event['parameters']:
+            if param.get('name') == 'similarHazards':
+                val = param.get('value', '[]')
+                try:
+                    similar_hazards = json.loads(val) if isinstance(val, str) else val
+                except Exception:
+                    similar_hazards = []
+                break
+
+    # Also check requestBody (alternate Bedrock format)
+    if not similar_hazards:
+        try:
+            props = event.get('requestBody', {}).get('content', {}).get('application/json', {}).get('properties', [])
+            for p in props:
+                if p.get('name') == 'similarHazards':
+                    similar_hazards = json.loads(p.get('value', '[]'))
+                    break
+        except Exception:
+            pass
+
     if not similar_hazards:
         return {
             'statusCode': 200,
             'body': {
                 'verificationScore': 0,
-                'breakdown': {
-                    'countScore': 0,
-                    'confidenceScore': 0,
-                    'temporalScore': 0
-                }
+                'breakdown': {'countScore': 0, 'confidenceScore': 0, 'temporalScore': 0}
             }
         }
-    
+
     count_score = min(len(similar_hazards) * 20, 40)
-    
+    # float() handles both plain floats and DynamoDB Decimal types
     avg_confidence = sum(float(h.get('confidence', 0)) for h in similar_hazards) / len(similar_hazards)
     confidence_score = avg_confidence * 30
-    
     temporal_score = 30
-    
     total_score = count_score + confidence_score + temporal_score
-    
+
+    print(f"[Router] calculate_score: {len(similar_hazards)} hazards, avg_conf={avg_confidence:.3f}, score={total_score:.2f}")
+
     return {
         'statusCode': 200,
         'body': {
@@ -233,12 +251,12 @@ def lambda_handler(event, context):
     
     if api_path == '/query_hazards':
         result = query_hazards(event)
-    elif api_path == '/calculate_score':
-        result = calculate_score(event)
     elif api_path == '/coordinates_to_geohash':
         result = coordinates_to_geohash(event)
     elif api_path == '/scan_all_hazards':
         result = scan_all_hazards(event)
+    elif api_path == '/calculate_score':
+        result = calculate_score(event)
     else:
         result = {
             'statusCode': 404,

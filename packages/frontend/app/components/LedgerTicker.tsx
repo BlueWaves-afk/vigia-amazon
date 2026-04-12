@@ -1,18 +1,14 @@
 'use client';
 
 import { useEffect, useState } from 'react';
-import { RefreshCw } from 'lucide-react';
-
-// ─────────────────────────────────────────────
-// LedgerTicker — DePIN Ledger Console
-// Matches Agent Trace Console style
-// ─────────────────────────────────────────────
+import { RefreshCw, ExternalLink } from 'lucide-react';
 
 type LedgerEntry = {
   contributorId: string;
   credits: number;
   hazardId: string;
   timestamp: string;
+  txHash?: string;
 };
 
 export function LedgerTicker() {
@@ -57,7 +53,6 @@ export function LedgerTicker() {
 
   return (
     <div className="font-data w-full h-full flex flex-col" style={{ fontSize: '0.78rem' }}>
-      {/* Ledger Table */}
       <div style={{ flex: 1, overflow: 'auto' }}>
         <table className="w-full border-collapse">
           <thead>
@@ -78,49 +73,79 @@ export function LedgerTicker() {
               ))}
             </tr>
           </thead>
-        <tbody>
-          {entries.map((entry, index) => (
-            <tr
-              key={`${entry.contributorId}-${entry.timestamp}-${index}`}
-              className="transition-colors group"
-              style={{ borderBottom: '1px solid rgba(255,255,255,0.04)' }}
-              onMouseEnter={(e) => (e.currentTarget as HTMLElement).style.background = 'rgba(255,255,255,0.03)'}
-              onMouseLeave={(e) => (e.currentTarget as HTMLElement).style.background = ''}
-            >
-              <td className="py-2 px-3" style={{ color: 'var(--c-text-2)' }}>
-                {new Date(entry.timestamp).toLocaleTimeString()}
-              </td>
-              <td className="py-2 px-3" style={{ color: 'var(--c-text-2)', fontFamily: "var(--v-font-mono)" }}>
-                {entry.contributorId.substring(0, 8)}
-                <span style={{ color: 'var(--c-text-3)' }}>…</span>
-              </td>
-              <td className="py-2 px-3">
-                <span
-                  className="px-2 py-1 rounded"
-                  style={{
-                    background: 'var(--c-red-dim)',
-                    color: 'var(--c-red)',
-                    fontSize: '0.70rem',
-                    fontWeight: 600,
-                    fontFamily: "var(--v-font-mono)",
-                  }}
-                >
-                  POTHOLE
-                </span>
-              </td>
-              <td className="py-2 px-3" style={{ color: 'var(--c-text-2)', fontFamily: "var(--v-font-mono)" }}>
-                {entry.hazardId.substring(0, 7)}
-              </td>
-              <td className="py-2 px-3 text-right">
-                <span style={{ color: 'var(--c-green)', fontWeight: 600, fontFamily: "var(--v-font-mono)" }}>
-                  {entry.credits}
-                </span>
-                <span style={{ color: 'var(--c-text-3)', fontFamily: "var(--v-font-mono)" }}> $VIGIA</span>
-              </td>
-            </tr>
-          ))}
-        </tbody>
-      </table>
+          <tbody>
+            {entries.map((entry, index) => (
+              <tr
+                key={`${entry.contributorId}-${entry.timestamp}-${index}`}
+                className="transition-colors group"
+                style={{ borderBottom: '1px solid var(--c-border)' }}
+                onMouseEnter={(e) => (e.currentTarget as HTMLElement).style.background = 'var(--c-hover)'}
+                onMouseLeave={(e) => (e.currentTarget as HTMLElement).style.background = ''}
+              >
+                <td className="py-2 px-3" style={{ color: 'var(--c-text-2)' }}>
+                  {new Date(entry.timestamp).toLocaleTimeString()}
+                </td>
+                <td className="py-2 px-3" style={{ color: 'var(--c-text-2)', fontFamily: 'var(--v-font-mono)' }}>
+                  {entry.contributorId.substring(0, 8)}
+                  <span style={{ color: 'var(--c-text-3)' }}>…</span>
+                </td>
+                <td className="py-2 px-3">
+                  <span
+                    className="px-2 py-1 rounded"
+                    style={{
+                      background: 'var(--c-red-dim)',
+                      color: 'var(--c-red)',
+                      fontSize: '0.70rem',
+                      fontWeight: 600,
+                      fontFamily: 'var(--v-font-mono)',
+                    }}
+                  >
+                    POTHOLE
+                  </span>
+                </td>
+                <td className="py-2 px-3" style={{ color: 'var(--c-text-2)', fontFamily: 'var(--v-font-mono)' }}>
+                  {entry.hazardId.substring(0, 7)}
+                </td>
+                <td className="py-2 px-3 text-right">
+                  {entry.txHash ? (
+                    <a
+                      href={`https://amoy.polygonscan.com/tx/${entry.txHash}`}
+                      target="_blank"
+                      rel="noopener noreferrer"
+                      style={{
+                        display: 'inline-flex',
+                        alignItems: 'center',
+                        gap: 4,
+                        color: 'var(--c-green)',
+                        fontWeight: 600,
+                        fontFamily: 'var(--v-font-mono)',
+                        textDecoration: 'none',
+                      }}
+                      title={`View on PolygonScan: ${entry.txHash}`}
+                    >
+                      <span>{entry.credits} $VIGIA</span>
+                      <ExternalLink size={10} />
+                    </a>
+                  ) : (
+                    <span style={{ display: 'inline-flex', alignItems: 'center', gap: 6 }}>
+                      <span style={{ color: 'var(--c-text-3)', fontFamily: 'var(--v-font-mono)' }}>
+                        {entry.credits} $VIGIA
+                      </span>
+                      <span style={{
+                        fontSize: '0.58rem', padding: '1px 5px', borderRadius: 2,
+                        background: 'var(--c-elevated)', color: 'var(--c-text-3)',
+                        border: '1px solid var(--c-border)', fontFamily: 'var(--v-font-mono)',
+                        letterSpacing: '0.04em', textTransform: 'uppercase',
+                      }}>
+                        Pending Sync
+                      </span>
+                    </span>
+                  )}
+                </td>
+              </tr>
+            ))}
+          </tbody>
+        </table>
       </div>
     </div>
   );

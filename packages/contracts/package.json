@@ -1,0 +1,19 @@
+{
+  "name": "@vigia/contracts",
+  "version": "1.0.0",
+  "private": true,
+  "scripts": {
+    "build": "npm run compile",
+    "compile": "hardhat compile",
+    "deploy": "hardhat run scripts/deploy.ts --network amoy",
+    "verify-claim": "hardhat run scripts/verify-claim.ts --network amoy"
+  },
+  "devDependencies": {
+    "@nomicfoundation/hardhat-toolbox": "^5.0.0",
+    "hardhat": "^2.22.0"
+  },
+  "dependencies": {
+    "@openzeppelin/contracts": "^5.0.0",
+    "ethers": "^6.0.0"
+  }
+}

@@ -82,7 +82,7 @@ Once the Bedrock Agent is fixed and actually processing hazards, we can verify t
 
 ```bash
 # 1. Submit test hazard
-curl -X POST <YOUR_API_GATEWAY_URL>/telemetry \
+curl -X POST <REDACTED>/telemetry \
   -H "Content-Type: application/json" \
   -d '{"lat":22.2900,"lon":84.8800,"hazardType":"POTHOLE","confidence":0.95,"timestamp":"2026-03-01T09:30:00.000Z","signature":"TEST_MODE_SIGNATURE"}'
 

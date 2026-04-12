@@ -148,3 +148,19 @@ export interface ReActTrace {
   contributorId: string;
   steps: ReActStep[];
 }
+
+/** V2 trace written by OrchestratorLambda (VLM pipeline) */
+export interface V2Trace {
+  traceId: string;
+  hazardId: string;
+  vlm_reasoning: string;
+  vlm_confidence: number | null;
+  onnx_confidence: number;
+  discovery_bonus: number | null;
+  total_score: number | null;
+  verdict: 'VERIFIED' | 'REJECTED' | 'UNVERIFIED_VLM_FAILED';
+  createdAt: string;
+  reward_skipped_reason?: string;
+  agent_final_answer?: string;
+  react_steps?: Array<{ thought?: string; action?: string; actionInput?: Record<string, unknown>; observation?: string }>;
+}

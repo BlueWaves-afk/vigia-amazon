@@ -129,7 +129,7 @@ aws dynamodb scan \
 {
   "traceId": "trace-1772834347973-35",
   "hazardId": "drt2yzr#2026-02-23T15:49:35.375Z",
-  "agentId": "<YOUR_AGENT_ID>",
+  "agentId": "<REDACTED>",
   "stepsCount": 2,
   "finalAnswer": "This ACCIDENT is verified with a score of 72/100. Found 15 similar reports in the area, indicating..."
 }

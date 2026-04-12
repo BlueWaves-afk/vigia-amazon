@@ -57,7 +57,7 @@ export function FolderItem({
           background: isActive ? 'var(--c-accent-glow)' : undefined,
         }}
         onMouseEnter={(e) => {
-          if (!isActive) (e.currentTarget as HTMLElement).style.background = 'rgba(255,255,255,0.04)';
+          if (!isActive) (e.currentTarget as HTMLElement).style.background = 'var(--c-hover)';
         }}
         onMouseLeave={(e) => {
           if (!isActive) (e.currentTarget as HTMLElement).style.background = '';

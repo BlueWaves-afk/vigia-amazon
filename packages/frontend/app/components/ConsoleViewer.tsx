@@ -15,7 +15,7 @@ export function ConsoleViewer() {
       { timestamp: new Date().toISOString(), type: 'success', message: 'Bedrock Agent: Connected' },
       { timestamp: new Date().toISOString(), type: 'success', message: 'DynamoDB: Polling active' },
       { timestamp: new Date().toISOString(), type: 'info', message: 'Edge swarm: 48 nodes online' },
-      { timestamp: new Date().toISOString(), type: 'success', message: 'Ledger integrity: ✓ verified' },
+      { timestamp: new Date().toISOString(), type: 'success', message: 'Ledger integrity: verified' },
     ]);
   }, []);
 

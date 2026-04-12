@@ -3,19 +3,21 @@ import * as dynamodb from 'aws-cdk-lib/aws-dynamodb';
 import * as apigateway from 'aws-cdk-lib/aws-apigateway';
 import * as lambda from 'aws-cdk-lib/aws-lambda';
 import * as lambdaNodejs from 'aws-cdk-lib/aws-lambda-nodejs';
-import * as secretsmanager from 'aws-cdk-lib/aws-secretsmanager';
+import * as s3 from 'aws-cdk-lib/aws-s3';
 import { Construct } from 'constructs';
 import * as path from 'path';
 
 export interface IngestionStackProps {
   ledgerTable: dynamodb.Table;
   tracesTable: dynamodb.Table;
+  deviceRegistryTable?: dynamodb.Table;
 }
 
 export class IngestionStack extends Construct {
   public readonly hazardsTable: dynamodb.Table;
+  public readonly deviceRegistryTable: dynamodb.Table;
+  public readonly framesbucket: s3.Bucket;
   public readonly api: apigateway.RestApi;
-  public readonly publicKeySecret: secretsmanager.Secret;
 
   constructor(scope: Construct, id: string, props: IngestionStackProps) {
     super(scope, id);
@@ -38,17 +40,41 @@ export class IngestionStack extends Construct {
       projectionType: dynamodb.ProjectionType.ALL,
     });
 
-    // Secrets Manager for public key
-    const publicKeyPem = `-----BEGIN PUBLIC KEY-----
-MFkwEwYHKoZIzj0CAQYIKoZIzj0DAQcDQgAEMIUfzeReTNy7Y6Vk0PZi9mxidpEe
-N0xK7gprg8zInHZ7odGma+CeBbpavlw7C4X1AWFRR31XVgRszSmzFeBs/w==
------END PUBLIC KEY-----`;
-
-    this.publicKeySecret = new secretsmanager.Secret(this, 'PublicKeySecret', {
-      secretName: 'vigia-public-key',
-      description: 'ECDSA P-256 public key for telemetry signature verification',
-      secretStringValue: cdk.SecretValue.unsafePlainText(publicKeyPem),
+    // GSI for H3-based geospatial deduplication: query by h3_index + hazardType within a time window
+    this.hazardsTable.addGlobalSecondaryIndex({
+      indexName: 'h3-hazardtype-index',
+      partitionKey: { name: 'h3_index', type: dynamodb.AttributeType.STRING },
+      sortKey: { name: 'hazardType', type: dynamodb.AttributeType.STRING },
+      projectionType: dynamodb.ProjectionType.INCLUDE,
+      nonKeyAttributes: ['timestamp', 'status'],
     });
+
+    // VigiaDeviceRegistry — one record per edge node, keyed by Ethereum address
+    this.deviceRegistryTable = new dynamodb.Table(this, 'DeviceRegistryTable', {
+      tableName: 'VigiaDeviceRegistry',
+      partitionKey: { name: 'device_address', type: dynamodb.AttributeType.STRING },
+      billingMode: dynamodb.BillingMode.PAY_PER_REQUEST,
+      removalPolicy: cdk.RemovalPolicy.DESTROY,
+    });
+
+    // S3 bucket for hazard frames (S3 Pointer Pattern)
+    this.framesbucket = new s3.Bucket(this, 'HazardFramesBucket', {
+      blockPublicAccess: s3.BlockPublicAccess.BLOCK_ALL,
+      removalPolicy: cdk.RemovalPolicy.DESTROY,
+      autoDeleteObjects: true,
+      lifecycleRules: [{ expiration: cdk.Duration.days(30) }],
+    });
+
+    // register-device Lambda
+    const registerDeviceFn = new lambdaNodejs.NodejsFunction(this, 'RegisterDeviceFunction', {
+      entry: path.join(__dirname, '../../../backend/functions/register-device/index.ts'),
+      handler: 'handler',
+      runtime: lambda.Runtime.NODEJS_20_X,
+      timeout: cdk.Duration.seconds(10),
+      bundling: { externalModules: ['@aws-sdk/*'] },
+      environment: { DEVICE_REGISTRY_TABLE_NAME: this.deviceRegistryTable.tableName },
+    });
+    this.deviceRegistryTable.grantWriteData(registerDeviceFn);
 
     // Lambda Validator Function
     const validatorFn = new lambdaNodejs.NodejsFunction(this, 'ValidatorFunction', {
@@ -56,19 +82,18 @@ N0xK7gprg8zInHZ7odGma+CeBbpavlw7C4X1AWFRR31XVgRszSmzFeBs/w==
       handler: 'handler',
       runtime: lambda.Runtime.NODEJS_20_X,
       timeout: cdk.Duration.seconds(10),
-      bundling: {
-        externalModules: ['@aws-sdk/*'], // Use AWS SDK from Lambda runtime
-      },
+      bundling: { externalModules: ['@aws-sdk/*'] },
       environment: {
         HAZARDS_TABLE_NAME: this.hazardsTable.tableName,
-        PUBLIC_KEY_SECRET_ARN: this.publicKeySecret.secretArn,
-        TEST_MODE: process.env.TEST_MODE || 'true', // Enable test mode by default
+        DEVICE_REGISTRY_TABLE_NAME: this.deviceRegistryTable.tableName,
+        FRAMES_BUCKET_NAME: this.framesbucket.bucketName,
       },
     });
 
     // Grant permissions
     this.hazardsTable.grantWriteData(validatorFn);
-    this.publicKeySecret.grantRead(validatorFn);
+    this.deviceRegistryTable.grantReadData(validatorFn);
+    this.framesbucket.grantPut(validatorFn);
 
     // API Gateway
     this.api = new apigateway.RestApi(this, 'VigiaAPI', {
@@ -101,6 +126,7 @@ N0xK7gprg8zInHZ7odGma+CeBbpavlw7C4X1AWFRR31XVgRszSmzFeBs/w==
           timestamp: { type: apigateway.JsonSchemaType.STRING, format: 'date-time' },
           confidence: { type: apigateway.JsonSchemaType.NUMBER, minimum: 0, maximum: 1 },
           signature: { type: apigateway.JsonSchemaType.STRING },
+          driverWalletAddress: { type: apigateway.JsonSchemaType.STRING },
         },
       },
     });
@@ -204,7 +230,24 @@ N0xK7gprg8zInHZ7odGma+CeBbpavlw7C4X1AWFRR31XVgRszSmzFeBs/w==
     this.hazardsTable.grantReadData(hazardsGetterFn);
 
     // GET /hazards endpoint
-    const hazards = this.api.root.addResource('hazards');
-    hazards.addMethod('GET', new apigateway.LambdaIntegration(hazardsGetterFn));
+    const hazards = this.api.root.addResource('hazards', {
+      defaultCorsPreflightOptions: {
+        allowOrigins: apigateway.Cors.ALL_ORIGINS,
+        allowMethods: ['GET', 'OPTIONS'],
+        allowHeaders: ['Content-Type', 'Authorization'],
+      },
+    });
+    hazards.addMethod('GET', new apigateway.LambdaIntegration(hazardsGetterFn), {
+      methodResponses: [{
+        statusCode: '200',
+        responseParameters: {
+          'method.response.header.Access-Control-Allow-Origin': true,
+        },
+      }],
+    });
+
+    // POST /register-device endpoint
+    const registerDevice = this.api.root.addResource('register-device');
+    registerDevice.addMethod('POST', new apigateway.LambdaIntegration(registerDeviceFn));
   }
 }

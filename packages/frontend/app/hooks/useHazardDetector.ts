@@ -9,7 +9,8 @@ type HazardDetectorWorker = {
   processFrame(
     frameBuffer: ArrayBuffer,
     size: { width: number; height: number },
-    gpsCoords: { lat: number; lon: number }
+    gpsCoords: { lat: number; lon: number },
+    driverWalletAddress?: string
   ): Promise<any | null>;
 };
 
@@ -48,7 +49,8 @@ export function useHazardDetector() {
     frameBuffer: ArrayBuffer,
     width: number,
     height: number,
-    gpsCoords: { lat: number; lon: number }
+    gpsCoords: { lat: number; lon: number },
+    driverWalletAddress?: string
   ) => {
     if (!apiRef.current) return null;
 
@@ -59,8 +61,9 @@ export function useHazardDetector() {
 
     return apiRef.current.processFrame(
       frameBuffer,
-      { width, height }, // ✅ REQUIRED FIX
-      gpsCoords
+      { width, height },
+      gpsCoords,
+      driverWalletAddress
     );
   };
 

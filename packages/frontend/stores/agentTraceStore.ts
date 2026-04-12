@@ -9,12 +9,14 @@ interface AgentTraceStore {
   filter: string;
   isStreaming: boolean;
   eventSource: EventSource | null;
+  activeHazardId: string | null;
 
   connectSSE: (endpoint: string) => void;
   disconnectSSE: () => void;
   appendTrace: (trace: ReActTrace) => void;
   setFilter: (query: string) => void;
   clearTraces: () => void;
+  setActiveHazardId: (id: string | null) => void;
 }
 
 export const useAgentTraceStore = create<AgentTraceStore>((set, get) => ({
@@ -22,6 +24,7 @@ export const useAgentTraceStore = create<AgentTraceStore>((set, get) => ({
   filter: '',
   isStreaming: false,
   eventSource: null,
+  activeHazardId: null,
 
   connectSSE: (endpoint) => {
     // These are intentionally kept outside Zustand state to avoid rerenders.
@@ -177,6 +180,6 @@ export const useAgentTraceStore = create<AgentTraceStore>((set, get) => ({
   },
 
   setFilter: (query) => set({ filter: query }),
-
   clearTraces: () => set({ traces: [] }),
+  setActiveHazardId: (id) => set({ activeHazardId: id }),
 }));

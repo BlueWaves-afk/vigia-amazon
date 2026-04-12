@@ -1,11 +1,11 @@
 'use client';
 
 import { useState, useRef, useCallback, useEffect } from 'react';
-import { X, MapPin, Video, Terminal as TerminalIcon, Database, Radio } from 'lucide-react';
+import { X, MapPin, Video, Terminal as TerminalIcon, Database, Radio, KeyRound, Sparkles } from 'lucide-react';
 import { VideoUploader }        from './components/VideoUploader';
 import { LiveMap }              from './components/LiveMap';
 import { LedgerTicker }         from './components/LedgerTicker';
-import { ReasoningTraceViewer } from './components/ReasoningTraceViewer';
+import { AgentTracesTab }      from './components/AgentTracesTab';
 import { ConsoleViewer }        from './components/ConsoleViewer';
 import { Sidebar }              from './components/Sidebar';
 import { Breadcrumb }           from './components/Breadcrumb';
@@ -18,8 +18,11 @@ import { useSettings }          from './components/SettingsContext';
 import { NewSessionView }       from './components/NewSessionView';
 import { DiffView }             from './components/DiffView';
 import { DetectionModeView }    from './components/DetectionModeView';
+import { DetectionOnboarding } from './components/DetectionOnboarding';
+import { ActivityOnboarding }  from './components/ActivityOnboarding';
 import { NetworkMapView }       from './components/NetworkMapView';
 import { MaintenancePanel }     from './components/MaintenancePanelIntegrated';
+import { EnterpriseDashboard }  from './components/EnterpriseDashboard';
 import { AgentChatPanel }       from './components/AgentChatPanel';
 import { NetworkHealthPanel }   from './components/NetworkHealthPanel';
 import { UrbanPlannerModal }    from './components/UrbanPlannerModal';
@@ -61,14 +64,30 @@ export default function Dashboard() {
   const [detectionTabs,      setDetectionTabs]      = useState<Array<{id: string; label: string; session?: any; isNewSession?: boolean; isDirty?: boolean; diffMap?: any}>>([]);
   const [explorerActiveTab,  setExplorerActiveTab]  = useState<MainTab | null>(null);
   const [detectionActiveTab, setDetectionActiveTab] = useState<MainTab | null>(null);
-  const [activeConsoleTab,   setActiveConsoleTab]   = useState<ConsoleTab>('traces');
+  const [activeConsoleTab,   setActiveConsoleTab]   = useState<ConsoleTab>('ledger');
   const [consoleHeight,      setConsoleHeight]      = useState(220);
   const [settingsOpen,       setSettingsOpen]       = useState(false);
   const [cmdOpen,            setCmdOpen]            = useState(false);
   const [selectedSession,    setSelectedSession]    = useState<any>(null);
-  const [sidebarActivity,    setSidebarActivity]    = useState<'explorer' | 'detection' | 'network' | 'maintenance'>('explorer');
+  const [sidebarActivity,    setSidebarActivity]    = useState<'explorer' | 'detection' | 'network' | 'maintenance' | 'enterprise'>('explorer');
   const [showUrbanPlanner,   setShowUrbanPlanner]   = useState(false);
   const [splitView,          setSplitView]          = useState<{ left: any; right: any } | null>(null);
+  const [detectionOnboarded, setDetectionOnboarded] = useState(() => {
+    if (typeof window === 'undefined') return false;
+    try { return localStorage.getItem('vigia:detection:onboarded') === 'true'; } catch { return false; }
+  });
+  const [explorerOnboarded,  setExplorerOnboarded]  = useState(() => {
+    if (typeof window === 'undefined') return false;
+    try { return localStorage.getItem('vigia:explorer:onboarded') === 'true'; } catch { return false; }
+  });
+  const [enterpriseOnboarded, setEnterpriseOnboarded] = useState(() => {
+    if (typeof window === 'undefined') return false;
+    try { return localStorage.getItem('vigia:enterprise:onboarded') === 'true'; } catch { return false; }
+  });
+  const [networkOnboarded,   setNetworkOnboarded]   = useState(() => {
+    if (typeof window === 'undefined') return false;
+    try { return localStorage.getItem('vigia:network:onboarded') === 'true'; } catch { return false; }
+  });
   // Track which content tab is showing for crossfade key
   const [mainTabKey,         setMainTabKey]         = useState(0);
   const [consoleTabKey,      setConsoleTabKey]      = useState(0);
@@ -76,6 +95,20 @@ export default function Dashboard() {
   // Persist tabs to sessionStorage (clears on browser close, persists on reload)
   const hasHydratedTabs = useRef(false);
   const TAB_STORAGE_KEY = 'vigia:tabs:v2';
+  const DETECTION_ONBOARDING_KEY = 'vigia:detection:onboarded';
+  const EXPLORER_ONBOARDING_KEY = 'vigia:explorer:onboarded';
+  const ENTERPRISE_ONBOARDING_KEY = 'vigia:enterprise:onboarded';
+  const NETWORK_ONBOARDING_KEY = 'vigia:network:onboarded';
+
+
+
+
+  // Switch console to Agent Traces tab when "View Reasoning" is clicked
+  useEffect(() => {
+    const handler = () => setActiveConsoleTab('traces');
+    window.addEventListener('open-agent-traces', handler);
+    return () => window.removeEventListener('open-agent-traces', handler);
+  }, []);
 
   type PersistedTab = {
     id: string;
@@ -86,7 +119,7 @@ export default function Dashboard() {
 
   type PersistedTabsStateV2 = {
     version: 2;
-    sidebarActivity: 'explorer' | 'detection' | 'network' | 'maintenance';
+    sidebarActivity: 'explorer' | 'detection' | 'network' | 'maintenance' | 'enterprise';
     explorerTabs: PersistedTab[];
     detectionTabs: PersistedTab[];
     activeMainTab: MainTab | null;
@@ -131,7 +164,7 @@ export default function Dashboard() {
       const restoredExplorerTabs = safeTabs(data.explorerTabs);
       const restoredDetectionTabs = safeTabs(data.detectionTabs);
 
-      const restoredActivity = (data.sidebarActivity === 'explorer' || data.sidebarActivity === 'detection' || data.sidebarActivity === 'network' || data.sidebarActivity === 'maintenance')
+      const restoredActivity = (data.sidebarActivity === 'explorer' || data.sidebarActivity === 'detection' || data.sidebarActivity === 'network' || data.sidebarActivity === 'maintenance' || data.sidebarActivity === 'enterprise')
         ? data.sidebarActivity
         : 'explorer';
 
@@ -367,6 +400,9 @@ export default function Dashboard() {
 
   const openTabs   = sidebarActivity === 'explorer' ? explorerTabs : sidebarActivity === 'detection' ? detectionTabs : [];
   const setOpenTabs = sidebarActivity === 'explorer' ? setExplorerTabs : sidebarActivity === 'detection' ? setDetectionTabs : () => {};
+  const isDetectionOnboardingActive = sidebarActivity === 'detection' && activeMainTab === 'detection-onboarding';
+  const isExplorerOnboardingActive = sidebarActivity === 'explorer' && activeMainTab === 'explorer-onboarding';
+  const isOnboardingActive = isDetectionOnboardingActive || isExplorerOnboardingActive;
 
   // ── Save active session to VFSManager ────
   const saveActiveSession = async () => {
@@ -449,26 +485,80 @@ export default function Dashboard() {
   }, [consoleHeight]);
 
   // ── Tab switching with crossfade key ──────
-  const switchMainTab = useCallback((id: MainTab) => {
+  const forceSwitchMainTab = useCallback((id: MainTab) => {
     setActiveMainTab(id);
     setMainTabKey(k => k + 1);
   }, []);
+
+  const switchMainTab = useCallback((id: MainTab) => {
+    if (id === 'sentinel' && !detectionOnboarded) {
+      setActiveMainTab('detection-onboarding');
+      setMainTabKey(k => k + 1);
+      return;
+    }
+    if (sidebarActivity === 'explorer' && !explorerOnboarded && id !== 'explorer-onboarding') {
+      setActiveMainTab('explorer-onboarding');
+      setMainTabKey(k => k + 1);
+      return;
+    }
+    forceSwitchMainTab(id);
+  }, [detectionOnboarded, explorerOnboarded, forceSwitchMainTab, sidebarActivity]);
+
+  useEffect(() => {
+    if (!detectionOnboarded) {
+      setDetectionTabs(prev => {
+        const withoutSentinel = prev.filter(t => t.id !== 'sentinel');
+        if (withoutSentinel.some(t => t.id === 'detection-onboarding')) return withoutSentinel;
+        return [...withoutSentinel, { id: 'detection-onboarding', label: 'Onboarding' }];
+      });
+      if (sidebarActivity === 'detection') {
+        switchMainTab('detection-onboarding');
+      }
+    } else {
+      setDetectionTabs(prev => {
+        const next = prev.filter(t => t.id !== 'detection-onboarding');
+        if (next.some(t => t.id === 'sentinel')) return next;
+        return [...next, { id: 'sentinel', label: 'Detection Node' }];
+      });
+    }
+  }, [detectionOnboarded, sidebarActivity, switchMainTab]);
+
+  useEffect(() => {
+    if (!explorerOnboarded) {
+      setExplorerTabs(prev => {
+        if (prev.some(t => t.id === 'explorer-onboarding')) return prev;
+        return [...prev, { id: 'explorer-onboarding', label: 'Onboarding' }];
+      });
+      if (sidebarActivity === 'explorer') {
+        switchMainTab('explorer-onboarding');
+      }
+    } else {
+      setExplorerTabs(prev => prev.filter(t => t.id !== 'explorer-onboarding'));
+    }
+  }, [explorerOnboarded, sidebarActivity, switchMainTab]);
 
   const switchConsoleTab = useCallback((id: ConsoleTab) => {
     setActiveConsoleTab(id);
     setConsoleTabKey(k => k + 1);
   }, []);
 
-  const handleActivityChange = useCallback((activity: 'explorer' | 'detection' | 'network' | 'maintenance') => {
+  const handleActivityChange = useCallback((activity: 'explorer' | 'detection' | 'network' | 'maintenance' | 'enterprise') => {
     if (sidebarActivity === 'explorer') setExplorerActiveTab(activeMainTab);
     else setDetectionActiveTab(activeMainTab);
 
     setSidebarActivity(activity);
 
     if (activity === 'detection') {
-      if (!detectionTabs.find(t => t.id === 'sentinel'))
-        setDetectionTabs(prev => [...prev, { id: 'sentinel', label: 'Detection Node' }]);
-      switchMainTab('sentinel');
+      if (!detectionOnboarded) {
+        if (!detectionTabs.find(t => t.id === 'detection-onboarding')) {
+          setDetectionTabs(prev => [...prev.filter(t => t.id !== 'sentinel'), { id: 'detection-onboarding', label: 'Onboarding' }]);
+        }
+        switchMainTab('detection-onboarding');
+      } else {
+        if (!detectionTabs.find(t => t.id === 'sentinel'))
+          setDetectionTabs(prev => [...prev, { id: 'sentinel', label: 'Detection Node' }]);
+        switchMainTab('sentinel');
+      }
       setSelectedSession(null);
       return;
     }
@@ -619,6 +709,20 @@ export default function Dashboard() {
     transition: 'background 120ms ease, color 120ms ease',
   });
 
+  // ── Detection tab button style (match network group) ─────────────
+  const detectionTabBtn = (active: boolean): React.CSSProperties => ({
+    position: 'relative', display: 'flex', alignItems: 'center', gap: 6,
+    height: '100%', padding: '0 14px', flexShrink: 0,
+    cursor: 'pointer', border: 'none', outline: 'none',
+    background: 'transparent',
+    borderBottom: active ? '2px solid var(--c-accent-2)' : '2px solid transparent',
+    color: active ? 'var(--c-accent-2)' : 'var(--c-text-3)',
+    fontSize: '0.62rem', fontWeight: active ? 700 : 400,
+    fontFamily: 'var(--v-font-mono)',
+    letterSpacing: '0.05em', textTransform: 'uppercase',
+    transition: 'color 120ms ease, border-color 120ms ease',
+  });
+
   // ── Console tab button style ──────────────
   const consoleTabBtn = (active: boolean): React.CSSProperties => ({
     position: 'relative', display: 'flex', alignItems: 'center', gap: 5,
@@ -631,6 +735,23 @@ export default function Dashboard() {
     letterSpacing: '0.07em', textTransform: 'uppercase',
     transition: 'color 120ms ease',
   });
+
+  const explorerPanelStyle: React.CSSProperties = {
+    flex: 1,
+    height: '100%',
+    margin: 8,
+    background: 'var(--v-hover)',
+    border: '1px solid var(--v-border-default)',
+    borderRadius: 8,
+    overflow: 'hidden',
+    position: 'relative',
+  };
+
+  const wrapExplorerPanel = (child: React.ReactNode) => (
+    sidebarActivity === 'explorer'
+      ? <div style={explorerPanelStyle}>{child}</div>
+      : child
+  );
 
   /* ── Intro gate ───────────────────────────── */
   if (!introComplete) {
@@ -674,10 +795,17 @@ export default function Dashboard() {
       <div style={{ display: 'flex', flex: 1, overflow: 'hidden', minHeight: 0, position: 'relative' }}>
         <Sidebar
           activity={sidebarActivity}
+          hideExplorerPanel={isExplorerOnboardingActive}
           onSentinelEyeClick={() => {
-            if (!detectionTabs.find(t => t.id === 'sentinel'))
-              setDetectionTabs(prev => [...prev, { id: 'sentinel', label: 'Detection Node' }]);
-            switchMainTab('sentinel');
+            if (!detectionOnboarded) {
+              if (!detectionTabs.find(t => t.id === 'detection-onboarding'))
+                setDetectionTabs(prev => [...prev.filter(t => t.id !== 'sentinel'), { id: 'detection-onboarding', label: 'Onboarding' }]);
+              switchMainTab('detection-onboarding');
+            } else {
+              if (!detectionTabs.find(t => t.id === 'sentinel'))
+                setDetectionTabs(prev => [...prev, { id: 'sentinel', label: 'Detection Node' }]);
+              switchMainTab('sentinel');
+            }
           }}
           isSentinelEyeActive={activeMainTab === 'sentinel'}
           onSettingsOpen={() => setSettingsOpen(true)}
@@ -697,27 +825,71 @@ export default function Dashboard() {
           }}
         />
 
-        <div style={{ display: 'flex', flexDirection: 'column', flex: 1, overflow: 'hidden', minWidth: 0 }}>
+        <div style={{
+          display: 'flex',
+          flexDirection: 'column',
+          flex: 1,
+          overflow: 'hidden',
+          minWidth: 0,
+          background: (sidebarActivity === 'detection' || sidebarActivity === 'explorer') ? '#fff' : 'transparent',
+        }}>
 
           {/* ── Main Tab Bar ─────────────── */}
-          {sidebarActivity !== 'network' && sidebarActivity !== 'maintenance' && (
-          <div className="tab-bar" style={{
-            display: 'flex', alignItems: 'stretch', height: 36, flexShrink: 0,
+          {sidebarActivity !== 'network' && sidebarActivity !== 'maintenance' && sidebarActivity !== 'enterprise' && (
+          <div className={(sidebarActivity === 'detection' || sidebarActivity === 'explorer') ? undefined : 'tab-bar'} style={{
+            display: 'flex', alignItems: 'stretch', height: 38, flexShrink: 0,
             overflowX: 'auto', overflowY: 'hidden',
+            ...((sidebarActivity === 'detection' || sidebarActivity === 'explorer') ? {
+              background: 'var(--v-hover)',
+              border: '1px solid var(--v-border-default)',
+              borderRadius: 8,
+              margin: '8px 8px 0',
+              padding: '0 16px',
+            } : {}),
           }}>
-            {openTabs.map((tab) => {
+            {openTabs.length === 0 ? (
+              <div style={{
+                display: 'flex',
+                alignItems: 'center',
+                justifyContent: 'center',
+                width: '100%',
+                height: '100%',
+                fontStyle: 'italic',
+                color: 'var(--c-text-3)',
+                fontSize: '0.8rem',
+              }}>
+                no tab open
+              </div>
+            ) : openTabs.map((tab) => {
               const active = activeMainTab === tab.id;
-              const closeable = tab.id !== 'map' && tab.id !== 'sentinel';
+              const closeable = tab.id !== 'map' && tab.id !== 'sentinel' && tab.id !== 'detection-onboarding' && tab.id !== 'explorer-onboarding' && !isOnboardingActive;
               return (
                 <button key={tab.id}
-                  onClick={() => { switchMainTab(tab.id); if (tab.session) setSelectedSession(tab.session); else setSelectedSession(null); }}
-                  className="tab-sep"
-                  style={tabBtn(active)}
-                  onMouseEnter={(e) => { if (!active) { (e.currentTarget as HTMLElement).style.background = 'var(--v-hover)'; (e.currentTarget as HTMLElement).style.color = 'var(--v-text-primary)'; }}}
-                  onMouseLeave={(e) => { if (!active) { (e.currentTarget as HTMLElement).style.background = 'transparent'; (e.currentTarget as HTMLElement).style.color = 'var(--v-text-muted)'; }}}
+                  onClick={() => {
+                    if (isOnboardingActive && tab.id !== activeMainTab) return;
+                    switchMainTab(tab.id);
+                    if (tab.session) setSelectedSession(tab.session); else setSelectedSession(null);
+                  }}
+                  title={isOnboardingActive && tab.id !== activeMainTab ? 'Complete onboarding to unlock other tabs' : undefined}
+                  className={(sidebarActivity === 'detection' || sidebarActivity === 'explorer') ? undefined : 'tab-sep'}
+                  style={(sidebarActivity === 'detection' || sidebarActivity === 'explorer') ? detectionTabBtn(active) : tabBtn(active)}
+                  onMouseEnter={(e) => {
+                    if (!active) {
+                      (e.currentTarget as HTMLElement).style.background = (sidebarActivity === 'detection' || sidebarActivity === 'explorer') ? 'transparent' : 'var(--v-hover)';
+                      (e.currentTarget as HTMLElement).style.color = (sidebarActivity === 'detection' || sidebarActivity === 'explorer') ? 'var(--c-accent-2)' : 'var(--v-text-primary)';
+                    }
+                  }}
+                  onMouseLeave={(e) => {
+                    if (!active) {
+                      (e.currentTarget as HTMLElement).style.background = 'transparent';
+                      (e.currentTarget as HTMLElement).style.color = (sidebarActivity === 'detection' || sidebarActivity === 'explorer') ? 'var(--c-text-3)' : 'var(--v-text-muted)';
+                    }
+                  }}
                 >
                   {tab.id === 'map'      && <span style={{ color: active ? 'var(--v-accent)' : 'var(--v-text-muted)', display: 'flex' }}><MapPin size={11} /></span>}
                   {tab.id === 'sentinel' && <span style={{ color: active ? 'var(--v-accent)' : 'var(--v-text-muted)', display: 'flex' }}><Video  size={11} /></span>}
+                  {tab.id === 'detection-onboarding' && <span style={{ color: active ? 'var(--v-accent)' : 'var(--v-text-muted)', display: 'flex' }}><KeyRound size={11} /></span>}
+                  {tab.id === 'explorer-onboarding' && <span style={{ color: active ? 'var(--v-accent)' : 'var(--v-text-muted)', display: 'flex' }}><Sparkles size={11} /></span>}
                   {tab.isDirty && <span style={{ width: 5, height: 5, borderRadius: '50%', background: 'var(--v-warning)', flexShrink: 0, marginLeft: -2 }} />}
                   <span style={{ overflow: 'hidden', textOverflow: 'ellipsis', whiteSpace: 'nowrap', maxWidth: 120 }}>{tab.label}</span>
                   {closeable && (
@@ -733,7 +905,7 @@ export default function Dashboard() {
                       <X size={9} />
                     </span>
                   )}
-                  {active && <span className="tab-line" />}
+                  {active && sidebarActivity !== 'detection' && sidebarActivity !== 'explorer' && <span className="tab-line" />}
                 </button>
               );
             })}
@@ -753,20 +925,102 @@ export default function Dashboard() {
           <div key={mainTabKey} className="panel-fade" style={{ flex: 1, overflow: 'hidden', minHeight: 0 }}>
             {sidebarActivity === 'maintenance' ? (
               <MaintenancePanel />
+            ) : sidebarActivity === 'enterprise' && !enterpriseOnboarded ? (
+              <ActivityOnboarding
+                badge="Enterprise Operations"
+                title="Enterprise Command Suite"
+                subtitle="Portfolio-level oversight, anomaly detection, and stakeholder reporting."
+                slides={[
+                  {
+                    id: 'executive',
+                    title: 'Executive Briefings',
+                    subtitle: 'Auto-generated summaries tuned for leadership review.',
+                    gif: '/intro/screenshot-ledger.png',
+                    bullets: ['Risk posture snapshots', 'Capital allocation signals', 'Regulatory audit context'],
+                  },
+                  {
+                    id: 'ops',
+                    title: 'Ops Health Dashboards',
+                    subtitle: 'Live metrics for detection throughput and verification.',
+                    gif: '/intro/screenshot-network.png',
+                    bullets: ['Throughput by region', 'Latency and SLA tracking', 'Reward issuance health'],
+                  },
+                  {
+                    id: 'insights',
+                    title: 'Strategic Insights',
+                    subtitle: 'Identify systemic issues before they escalate.',
+                    gif: '/intro/screenshot-explorer.png',
+                    bullets: ['Hotspot clustering', 'Maintenance backlog trends', 'Budget impact modeling'],
+                  },
+                ]}
+                highlights={[
+                  { title: 'Executive-ready outputs', detail: 'Exportable narratives and KPI summaries for stakeholder decks.' },
+                  { title: 'Policy compliance', detail: 'Audit trails and SLA visibility embedded in every view.' },
+                  { title: 'Fleet-wide visibility', detail: 'Aggregate detection activity across regions and vendors.' },
+                ]}
+                ctaLabel="Enter Enterprise"
+                onComplete={() => {
+                  localStorage.setItem(ENTERPRISE_ONBOARDING_KEY, 'true');
+                  setEnterpriseOnboarded(true);
+                }}
+              />
+            ) : sidebarActivity === 'enterprise' ? (
+              <EnterpriseDashboard />
             ) : sidebarActivity === 'network' ? (
-              <NetworkMapView />
+              networkOnboarded ? (
+                <NetworkMapView />
+              ) : (
+                <ActivityOnboarding
+                  badge="Geo Explorer"
+                  title="Network Coverage Intelligence"
+                  subtitle="Visualize fleet density, coverage gaps, and live hazard signals."
+                  slides={[
+                    {
+                      id: 'coverage',
+                      title: 'Coverage Heatmaps',
+                      subtitle: 'Identify blind spots and over-saturated routes.',
+                      gif: '/intro/screenshot-network.png',
+                      bullets: ['Coverage by geohash', 'Signal drop-off alerts', 'Route completeness'],
+                    },
+                    {
+                      id: 'routing',
+                      title: 'Routing Intelligence',
+                      subtitle: 'Pin routing for maintenance teams and planners.',
+                      gif: '/intro/screenshot-network.png',
+                      bullets: ['Priority path planning', 'Live incident context', 'Coordinated dispatch'],
+                    },
+                    {
+                      id: 'verification',
+                      title: 'Verification Lens',
+                      subtitle: 'See verification status at a glance.',
+                      gif: '/intro/screenshot-detection.png',
+                      bullets: ['Pending queues', 'Verified vs rejected', 'Fraud signal overlays'],
+                    },
+                  ]}
+                  highlights={[
+                    { title: 'Geo-aware dashboards', detail: 'Layered intelligence across coverage, hazards, and maintenance.' },
+                    { title: 'Rapid triage', detail: 'Pinpoint hotspots before field teams are deployed.' },
+                    { title: 'Operational alignment', detail: 'Shareable views for planners and partners.' },
+                  ]}
+                  ctaLabel="Enter Geo Explorer"
+                  onComplete={() => {
+                    localStorage.setItem(NETWORK_ONBOARDING_KEY, 'true');
+                    setNetworkOnboarded(true);
+                  }}
+                />
+              )
             ) : !activeMainTab ? (
               <div style={{
                 display: 'flex', alignItems: 'center', justifyContent: 'center',
                 height: '100%', flexDirection: 'column', gap: 12,
-                background: 'var(--c-bg)',
+                background: 'white',
                 userSelect: 'none',
               }}>
                 {/* Geometric icon mark — Kiro-style minimal */}
                 <div style={{
                   width: 48, height: 48, borderRadius: 12,
                   background: 'var(--c-sidebar)',
-                  border: '1px solid rgba(154,106,170,0.25)',
+                  border: '1px solid var(--c-border-md)',
                   display: 'flex', alignItems: 'center', justifyContent: 'center',
                   boxShadow: 'none',
                 }}>
@@ -794,7 +1048,7 @@ export default function Dashboard() {
                 <div style={{
                   display: 'flex', alignItems: 'center', gap: 6, marginTop: 4,
                   padding: '5px 10px', borderRadius: 4,
-                  background: 'var(--c-sidebar)', border: '1px solid rgba(154,106,170,0.2)',
+                  background: 'var(--c-sidebar)', border: '1px solid var(--c-border)',
                 }}>
                   <span style={{ fontSize: '0.65rem', color: 'var(--c-text-3)', fontFamily: 'var(--v-font-ui)' }}>
                     Press
@@ -802,7 +1056,7 @@ export default function Dashboard() {
                   <kbd style={{
                     fontSize: '0.60rem', fontFamily: 'var(--v-font-mono)',
                     color: 'var(--c-text-2)', background: 'var(--c-elevated)',
-                    border: '1px solid rgba(92,143,248,0.2)', borderRadius: 3,
+                    border: '1px solid var(--c-border-md)', borderRadius: 3,
                     padding: '1px 6px',
                   }}>⌘K</kbd>
                   <span style={{ fontSize: '0.65rem', color: 'var(--c-text-3)', fontFamily: 'var(--v-font-ui)' }}>
@@ -811,29 +1065,33 @@ export default function Dashboard() {
                 </div>
               </div>
             ) : openTabs.find(t => t.id === activeMainTab)?.diffMap ? (
-              <DiffView diffMap={openTabs.find(t => t.id === activeMainTab)!.diffMap} />
+              wrapExplorerPanel(
+                <DiffView diffMap={openTabs.find(t => t.id === activeMainTab)!.diffMap} />
+              )
             ) : openTabs.find(t => t.id === activeMainTab)?.isNewSession ? (
-              <NewSessionView
-                onRefreshSessions={() => { if ((window as any).__refreshSessions) (window as any).__refreshSessions(); }}
-                onSessionCreated={async (session) => {
-                  const newTabs = explorerTabs.map(t =>
-                    t.id === activeMainTab
-                      ? { id: session.sessionId, label: session.displayName, session, isDirty: true }
-                      : t
-                  );
-                  setExplorerTabs(newTabs);
-                  switchMainTab(session.sessionId);
-                  setSelectedSession(session);
-                  toast.success('Session created', `${session.displayName} (unsaved)`);
-                  
-                  // Trigger both refresh mechanisms
-                  if ((window as any).__refreshSessions) (window as any).__refreshSessions();
-                  
-                  // Also refresh mapFileStore
-                  const { useMapFileStore } = await import('@/stores/mapFileStore');
-                  await useMapFileStore.getState().loadFiles();
-                }}
-              />
+              wrapExplorerPanel(
+                <NewSessionView
+                  onRefreshSessions={() => { if ((window as any).__refreshSessions) (window as any).__refreshSessions(); }}
+                  onSessionCreated={async (session) => {
+                    const newTabs = explorerTabs.map(t =>
+                      t.id === activeMainTab
+                        ? { id: session.sessionId, label: session.displayName, session, isDirty: true }
+                        : t
+                    );
+                    setExplorerTabs(newTabs);
+                    switchMainTab(session.sessionId);
+                    setSelectedSession(session);
+                    toast.success('Session created', `${session.displayName} (unsaved)`);
+                    
+                    // Trigger both refresh mechanisms
+                    if ((window as any).__refreshSessions) (window as any).__refreshSessions();
+                    
+                    // Also refresh mapFileStore
+                    const { useMapFileStore } = await import('@/stores/mapFileStore');
+                    await useMapFileStore.getState().loadFiles();
+                  }}
+                />
+              )
             ) : selectedSession?.status === 'creating' ? (
               <div style={{
                 display: 'flex', alignItems: 'center', justifyContent: 'center',
@@ -849,16 +1107,85 @@ export default function Dashboard() {
                   Creating session at {selectedSession.location?.name}...
                 </div>
               </div>
+            ) : activeMainTab === 'detection-onboarding' ? (
+              <DetectionOnboarding
+                onComplete={() => {
+                  localStorage.setItem(DETECTION_ONBOARDING_KEY, 'true');
+                  setDetectionOnboarded(true);
+                  setDetectionTabs(prev => {
+                    const next = prev.filter(t => t.id !== 'detection-onboarding');
+                    if (next.some(t => t.id === 'sentinel')) return next;
+                    return [...next, { id: 'sentinel', label: 'Detection Node' }];
+                  });
+                  forceSwitchMainTab('sentinel');
+                }}
+              />
+            ) : activeMainTab === 'explorer-onboarding' ? (
+              <ActivityOnboarding
+                badge="Geo Explorer"
+                title="Geo Explorer Workspace"
+                subtitle="Curate sessions, compare timelines, and surface infrastructure insights."
+                slides={[
+                  {
+                    id: 'sessions',
+                    title: 'Session Intelligence',
+                    subtitle: 'Open, annotate, and compare recorded hazard sessions.',
+                    gif: '/intro/screenshot-explorer.png',
+                    bullets: ['Structured session folders', 'Change detection over time', 'Collaborative context notes'],
+                  },
+                  {
+                    id: 'diff',
+                    title: 'Diff Analytics',
+                    subtitle: 'Quantify infrastructure change between time windows.',
+                    gif: '/intro/screenshot-detection.png',
+                    bullets: ['New vs fixed hazards', 'Degradation scoring', 'Auto-generated recommendations'],
+                  },
+                  {
+                    id: 'insight',
+                    title: 'Insight Narratives',
+                    subtitle: 'Generate briefs for planners and stakeholders.',
+                    gif: '/intro/screenshot-ledger.png',
+                    bullets: ['Evidence-backed summaries', 'Exportable briefs', 'Audit-ready traceability'],
+                  },
+                ]}
+                highlights={[
+                  { title: 'Spatial context', detail: 'Navigate sessions by city, region, and coverage geometry.' },
+                  { title: 'Decision support', detail: 'Diffs and analytics tailored for maintenance planning.' },
+                  { title: 'Audit trail', detail: 'Structured notes and traceability baked into every session.' },
+                ]}
+                ctaLabel="Enter Geo Explorer"
+                onComplete={() => {
+                  localStorage.setItem(EXPLORER_ONBOARDING_KEY, 'true');
+                  setExplorerOnboarded(true);
+                  setExplorerTabs(prev => prev.filter(t => t.id !== 'explorer-onboarding'));
+                  forceSwitchMainTab('map');
+                }}
+              />
             ) : activeMainTab === 'sentinel' ? (
               <DetectionModeView />
             ) : splitView ? (
-              <div style={{ display: 'flex', height: '100%', gap: 1, background: 'var(--c-border)' }}>
+              <div style={{
+                display: 'flex',
+                height: '100%',
+                gap: sidebarActivity === 'explorer' ? 8 : 1,
+                background: sidebarActivity === 'explorer' ? '#fff' : 'var(--c-border)',
+                padding: sidebarActivity === 'explorer' ? 8 : 0,
+              }}>
                 {[splitView.left, splitView.right].map((s, i) => (
-                  <div key={i} style={{ flex: 1, overflow: 'hidden', position: 'relative' }}>
+                  <div key={i} style={{
+                    flex: 1,
+                    overflow: 'hidden',
+                    position: 'relative',
+                    ...(sidebarActivity === 'explorer' ? {
+                      background: 'var(--v-hover)',
+                      border: '1px solid var(--v-border-default)',
+                      borderRadius: 8,
+                    } : {}),
+                  }}>
                     <div style={{
                       position: 'absolute', top: 8, left: 8, zIndex: 10,
-                      background: 'rgba(0,0,0,0.8)', padding: '4px 8px', borderRadius: 3,
-                      fontSize: '0.68rem', color: '#fff', fontFamily: 'var(--v-font-ui)',
+                      background: 'var(--c-overlay)', padding: '4px 8px', borderRadius: 3,
+                      fontSize: '0.68rem', color: 'var(--c-text)', fontFamily: 'var(--v-font-ui)',
                       border: '1px solid var(--c-rose-border)',
                     }}>
                       {s.location?.city || 'Session'} — {new Date(s.timestamp).toLocaleDateString()}
@@ -876,12 +1203,14 @@ export default function Dashboard() {
                 </button>
               </div>
             ) : selectedSession ? (
-              <LiveMap key={selectedSession?.sessionId || 'default'} selectedSession={selectedSession} />
+              wrapExplorerPanel(
+                <LiveMap key={selectedSession?.sessionId || 'default'} selectedSession={selectedSession} />
+              )
             ) : null}
           </div>
 
           {/* ── Console ──────────────────── */}
-          {sidebarActivity !== 'network' && sidebarActivity !== 'maintenance' && (
+          {sidebarActivity !== 'network' && sidebarActivity !== 'maintenance' && sidebarActivity !== 'enterprise' && activeMainTab !== 'detection-onboarding' && activeMainTab !== 'explorer-onboarding' && (
           <div style={{ display: 'flex', flexDirection: 'column', flexShrink: 0, height: consoleHeight, position: 'relative' }}>
 
             {/* Resize handle — 4px strip, hover → indigo */}
@@ -914,7 +1243,7 @@ export default function Dashboard() {
 
             {/* Console content — crossfade + scanline texture */}
             <div key={consoleTabKey} className="panel-fade console-content" style={{ flex: 1, padding: '10px 14px' }}>
-              {activeConsoleTab === 'traces'  && <ReasoningTraceViewer />}
+              {activeConsoleTab === 'traces'  && <AgentTracesTab />}
               {activeConsoleTab === 'ledger'  && <LedgerTicker />}
               {activeConsoleTab === 'console' && <ConsoleViewer />}
             </div>
@@ -922,7 +1251,7 @@ export default function Dashboard() {
           )}
         </div>
 
-        {sidebarActivity === 'explorer' && (
+        {sidebarActivity === 'explorer' && !isExplorerOnboardingActive && (
           <AgentChatPanel
             contextType="livemap"
             context={{ 

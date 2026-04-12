@@ -33,6 +33,30 @@ const MAP_FILTERS: Record<MapStyle, string> = {
   'minimal':   'brightness(0.60) saturate(0.20) contrast(1.10)',
 };
 
+const getCssVar = (name: string, fallback: string) => {
+  if (typeof window === 'undefined') return fallback;
+  const value = getComputedStyle(document.documentElement).getPropertyValue(name).trim();
+  return value || fallback;
+};
+
+const toRgba = (color: string, alpha: number) => {
+  const c = color.trim();
+  if (c.startsWith('#')) {
+    const hex = c.slice(1);
+    const full = hex.length === 3 ? hex.split('').map(ch => ch + ch).join('') : hex;
+    const num = parseInt(full, 16);
+    const r = (num >> 16) & 255;
+    const g = (num >> 8) & 255;
+    const b = num & 255;
+    return `rgba(${r}, ${g}, ${b}, ${alpha})`;
+  }
+  const rgbMatch = c.match(/^rgb\((\d+),\s*(\d+),\s*(\d+)\)$/i);
+  if (rgbMatch) return `rgba(${rgbMatch[1]}, ${rgbMatch[2]}, ${rgbMatch[3]}, ${alpha})`;
+  const rgbaMatch = c.match(/^rgba\((\d+),\s*(\d+),\s*(\d+),\s*([0-9.]+)\)$/i);
+  if (rgbaMatch) return `rgba(${rgbaMatch[1]}, ${rgbaMatch[2]}, ${rgbaMatch[3]}, ${alpha})`;
+  return c;
+};
+
 // ─────────────────────────────────────────────
 // getMapStyle — returns AWS style URL
 // Satellite and terrain use dedicated AWS maps
@@ -60,7 +84,7 @@ function getMapStyle(style: MapStyle): string {
       },
     },
     layers: [
-      { id: 'background', type: 'background', paint: { 'background-color': '#0A0E15' } },
+      { id: 'background', type: 'background', paint: { 'background-color': getCssVar('--c-bg', '#0A0E15') } },
       { id: 'osm-tiles',  type: 'raster', source: 'osm', paint: { 'raster-opacity': 1 } },
     ],
   };
@@ -113,10 +137,13 @@ export function LiveMap({ selectedSession }: { selectedSession?: any }) {
   const currentStyle   = useRef<MapStyle>(settings.mapStyle);
 
   const [hazards,        setHazards]        = useState<Hazard[]>([]);
+  const hazardsRef = useRef<Hazard[]>([]);
   const [hazardsHydrated, setHazardsHydrated] = useState(false);
   const hazardsHydratedRef = useRef(false);
   const [showUnverified, setShowUnverified]  = useState(true);
+  const showUnverifiedRef = useRef(true);
   const [mapReady,       setMapReady]        = useState(false);
+  const [hazardsRendered, setHazardsRendered] = useState(false);
   const [selectionMode,  setSelectionMode]   = useState(false);
   const [selectedHazards, setSelectedHazards] = useState<Set<string>>(new Set());
   const selectionModeRef = useRef(false);
@@ -179,6 +206,8 @@ export function LiveMap({ selectedSession }: { selectedSession?: any }) {
   }, [setDropPinMode]);
 
   const makePinElement = useCallback((label: 'A' | 'B') => {
+    const pinA = getCssVar('--c-red', '#EF4444');
+    const pinB = getCssVar('--c-accent-2', '#3B82F6');
     const el = document.createElement('div');
     el.className = 'pin-marker';
     el.style.pointerEvents = 'none';
@@ -186,17 +215,17 @@ export function LiveMap({ selectedSession }: { selectedSession?: any }) {
       <div style="
         width: 32px;
         height: 32px;
-        background: ${label === 'A' ? '#EF4444' : '#3B82F6'};
-        border: 3px solid white;
+        background: ${label === 'A' ? pinA : pinB};
+        border: 3px solid var(--c-bg);
         border-radius: 50% 50% 50% 0;
         transform: rotate(-45deg);
         display: flex;
         align-items: center;
         justify-content: center;
-        box-shadow: 0 2px 8px rgba(0,0,0,0.3);
+        box-shadow: 0 2px 8px color-mix(in srgb, var(--c-text) 30%, transparent);
       ">
         <span style="
-          color: white;
+          color: var(--c-text);
           font-weight: bold;
           font-size: 14px;
           transform: rotate(45deg);
@@ -269,7 +298,7 @@ export function LiveMap({ selectedSession }: { selectedSession?: any }) {
       type: 'line',
       source: ROUTE_FASTEST_ID,
       paint: {
-        'line-color': '#3B82F6',
+        'line-color': getCssVar('--c-accent-2', '#3B82F6'),
         'line-width': 4,
         'line-dasharray': [2, 2],
       },
@@ -292,7 +321,7 @@ export function LiveMap({ selectedSession }: { selectedSession?: any }) {
       type: 'line',
       source: ROUTE_SAFEST_ID,
       paint: {
-        'line-color': '#22C55E',
+        'line-color': getCssVar('--c-green', '#22C55E'),
         'line-width': 4,
       },
     } as any);
@@ -409,6 +438,10 @@ export function LiveMap({ selectedSession }: { selectedSession?: any }) {
     });
   }, []);
 
+  // Keep refs in sync so map callbacks always have latest values
+  useEffect(() => { hazardsRef.current = hazards; }, [hazards]);
+  useEffect(() => { showUnverifiedRef.current = showUnverified; }, [showUnverified]);
+
   const ensureHazardsLayer = useCallback(() => {
     if (!map.current) return;
     const m = map.current;
@@ -427,6 +460,11 @@ export function LiveMap({ selectedSession }: { selectedSession?: any }) {
     }
 
     if (!hasLayer) {
+      const verified = getCssVar('--c-accent-2', '#4278F5');
+      const danger = getCssVar('--c-red', '#D94F5C');
+      const verifiedFill = toRgba(verified, 0.35);
+      const dangerFill = toRgba(danger, 0.35);
+
       m.addLayer({
         id: HAZARDS_LAYER_ID,
         type: 'circle',
@@ -441,14 +479,14 @@ export function LiveMap({ selectedSession }: { selectedSession?: any }) {
           'circle-color': [
             'case',
             ['==', ['get', 'status'], 'verified'],
-            'rgba(66,120,245,0.35)',
-            'rgba(217,79,92,0.35)',
+            verifiedFill,
+            dangerFill,
           ],
           'circle-stroke-color': [
             'case',
             ['boolean', ['feature-state', 'selected'], false],
-            '#D94F5C',
-            ['case', ['==', ['get', 'status'], 'verified'], '#4278F5', '#D94F5C'],
+            danger,
+            ['case', ['==', ['get', 'status'], 'verified'], verified, danger],
           ],
           'circle-stroke-width': [
             'case',
@@ -501,6 +539,7 @@ export function LiveMap({ selectedSession }: { selectedSession?: any }) {
     const source = map.current.getSource(HAZARDS_SOURCE_ID) as any;
     if (source?.setData) {
       source.setData(buildHazardsGeoJson());
+      setHazardsRendered(true);
     }
   }, [mapReady, hazardsHydrated, ensureHazardsLayer, buildHazardsGeoJson, settings.mapStyle]);
 
@@ -520,7 +559,82 @@ export function LiveMap({ selectedSession }: { selectedSession?: any }) {
     });
   }, [selectedHazards, hazards, showUnverified, mapReady, hazardsHydrated, ensureHazardsLayer, settings.mapStyle]);
 
-  // ── Map viewport trigger for agent ──────────────────────────────────────────
+  // ── Agent highlight: pulse urgent hazards & fly to top ──────────────────────
+  useEffect(() => {
+    const URGENT_LAYER = 'hazards-urgent-pulse';
+    let pulseFrame: number;
+    let pulseStart: number | null = null;
+
+    const handler = (e: Event) => {
+      const { hazardIds, top } = (e as CustomEvent).detail as { hazardIds: string[]; top?: { lat: number; lon: number } };
+      const m = map.current;
+      if (!m || !mapReady) return;
+
+      // Ensure the hazards source exists before adding a layer on top of it
+      ensureHazardsLayer();
+
+      // Set feature-state urgent on matching hazards
+      hazards.forEach(h => {
+        try {
+          m.setFeatureState(
+            { source: HAZARDS_SOURCE_ID, id: h.hazardId as any },
+            { urgent: hazardIds.includes(h.hazardId) }
+          );
+        } catch { /* ignore */ }
+      });
+
+      // Add pulsing red ring layer above hazards if not present
+      if (!m.getLayer(URGENT_LAYER)) {
+        m.addLayer({
+          id: URGENT_LAYER,
+          type: 'circle',
+          source: HAZARDS_SOURCE_ID,
+          // feature-state can't be used in filter — use paint opacity instead
+          paint: {
+            'circle-radius': 14,
+            'circle-color': 'transparent',
+            'circle-stroke-color': '#ff2d55',
+            'circle-stroke-width': 2.5,
+            'circle-opacity': ['case', ['boolean', ['feature-state', 'urgent'], false], 1, 0],
+            'circle-stroke-opacity': ['case', ['boolean', ['feature-state', 'urgent'], false], 1, 0],
+          },
+        } as any);
+      }
+
+      // Animate pulse via rAF
+      cancelAnimationFrame(pulseFrame);
+      pulseStart = null;
+      const animate = (ts: number) => {
+        if (!m.getLayer(URGENT_LAYER)) return;
+        if (pulseStart === null) pulseStart = ts;
+        const t = ((ts - pulseStart) % 1200) / 1200;
+        const radius = 10 + Math.sin(t * Math.PI * 2) * 6;
+        try {
+          m.setPaintProperty(URGENT_LAYER, 'circle-radius', radius);
+          m.setPaintProperty(URGENT_LAYER, 'circle-stroke-width', 2 + Math.sin(t * Math.PI * 2) * 1.5);
+        } catch { return; }
+        pulseFrame = requestAnimationFrame(animate);
+      };
+      pulseFrame = requestAnimationFrame(animate);
+
+      // Fly to top hazard — fall back to looking up coords from loaded hazards
+      const resolvedTop = top ?? (() => {
+        const match = hazards.find(h => hazardIds.includes(h.hazardId));
+        return match ? { lat: match.lat, lon: match.lon } : undefined;
+      })();
+      if (resolvedTop) {
+        m.flyTo({ center: [resolvedTop.lon, resolvedTop.lat], zoom: 15, duration: 1400 });
+      }
+    };
+
+    window.addEventListener('vigia-agent-highlight', handler);
+    return () => {
+      window.removeEventListener('vigia-agent-highlight', handler);
+      cancelAnimationFrame(pulseFrame);
+    };
+  }, [mapReady, hazards, ensureHazardsLayer, HAZARDS_SOURCE_ID]);
+
+
   useEffect(() => {
     (window as any).__mapViewportTrigger = () => {
       const viewport = (window as any).__mapViewport;
@@ -595,13 +709,15 @@ export function LiveMap({ selectedSession }: { selectedSession?: any }) {
           el.style.height = '60px';
           el.style.position = 'relative';
           el.style.pointerEvents = 'none';
+
+          const sparkle = getCssVar('--c-rose', '#D94F5C');
           
           // Inner glow
           const inner = document.createElement('div');
           inner.style.position = 'absolute';
           inner.style.inset = '0';
           inner.style.borderRadius = '50%';
-          inner.style.background = 'radial-gradient(circle, rgba(217,79,92,1) 0%, rgba(217,79,92,0.6) 40%, rgba(217,79,92,0) 70%)';
+          inner.style.background = `radial-gradient(circle, ${sparkle} 0%, ${toRgba(sparkle, 0.6)} 40%, ${toRgba(sparkle, 0)} 70%)`;
           inner.style.animation = 'sparkle 2s ease-out';
           el.appendChild(inner);
           
@@ -610,7 +726,7 @@ export function LiveMap({ selectedSession }: { selectedSession?: any }) {
           outer.style.position = 'absolute';
           outer.style.inset = '0';
           outer.style.borderRadius = '50%';
-          outer.style.border = '2px solid rgba(217,79,92,0.8)';
+          outer.style.border = `2px solid ${toRgba(sparkle, 0.8)}`;
           outer.style.animation = 'sparkle-ring 2s ease-out';
           el.appendChild(outer);
           
@@ -630,6 +746,12 @@ export function LiveMap({ selectedSession }: { selectedSession?: any }) {
 
   // ── Load session hazards ────────────────────
   useEffect(() => {
+    // Reset so skeleton shows while new session loads
+    hazardsHydratedRef.current = false;
+    setHazardsHydrated(false);
+    setMapReady(false);
+    setHazardsRendered(false);
+
     if (selectedSession?.hazards) {
       const sessionHazards = selectedSession.hazards
         .map((h: any) => {
@@ -652,6 +774,7 @@ export function LiveMap({ selectedSession }: { selectedSession?: any }) {
         })
         .filter(Boolean) as Hazard[];
       setHazards(sessionHazards);
+      hazardsRef.current = sessionHazards;
       markHazardsHydrated();
       
       // Center map on session coverage
@@ -682,6 +805,7 @@ export function LiveMap({ selectedSession }: { selectedSession?: any }) {
       const raw = Array.isArray(data?.hazards) ? data.hazards : [];
       const normalized = raw.map(normalizeHazard).filter(Boolean) as Hazard[];
       setHazards(normalized);
+      hazardsRef.current = normalized;
     } catch (_) {
       // Best-effort: don't block UI forever if hazards fetch fails
     } finally {
@@ -691,6 +815,7 @@ export function LiveMap({ selectedSession }: { selectedSession?: any }) {
 
   // ── Map init ────────────────────────────────
   useEffect(() => {
+    if (!hazardsHydrated) return;
     if (!mapContainer.current || map.current) return;
 
     const styleSpec = getMapStyle(settings.mapStyle);
@@ -711,12 +836,30 @@ export function LiveMap({ selectedSession }: { selectedSession?: any }) {
 
     map.current.on('load', () => {
       map.current?.resize();
-      setMapReady(true);
       // Apply filter immediately on load
       applyMapFilter(mapContainer.current, settings.mapStyle);
 
-      // Ensure hazards layer exists (will be populated by effect)
+      // Ensure hazards layer exists and populate with already-fetched data
+      // BEFORE setting mapReady, so the map is never shown without hazards
       ensureHazardsLayer();
+
+      const source = map.current?.getSource(HAZARDS_SOURCE_ID) as any;
+      if (source?.setData) {
+        const visible = hazardsRef.current.filter(h => h.status === 'verified' || showUnverifiedRef.current);
+        source.setData({
+          type: 'FeatureCollection',
+          features: visible.map(h => ({
+            type: 'Feature',
+            id: h.hazardId,
+            properties: { hazardId: h.hazardId, status: h.status, hazardType: h.hazardType, type: h.hazardType, confidence: h.confidence, geohash: h.geohash, timestamp: h.timestamp },
+            geometry: { type: 'Point', coordinates: [h.lon, h.lat] },
+          })),
+        });
+        setHazardsRendered(true);
+      }
+
+      // Now reveal the map — hazards are already in the source
+      setMapReady(true);
 
       // Rehydrate pins/routes
       upsertPinMarker('A', pinA);
@@ -838,12 +981,7 @@ export function LiveMap({ selectedSession }: { selectedSession?: any }) {
         map.current?.addImage(e.id, ctx.getImageData(0, 0, 1, 1));
     });
 
-    fetchHazards();
-    // Poll every 5 seconds for real-time updates
-    const interval = setInterval(fetchHazards, 5000);
-
     return () => {
-      clearInterval(interval);
       ro.disconnect();
       pinMarkersRef.current.A?.remove();
       pinMarkersRef.current.B?.remove();
@@ -851,8 +989,16 @@ export function LiveMap({ selectedSession }: { selectedSession?: any }) {
       map.current?.remove();
       map.current = null;
       setMapReady(false);
+      setHazardsRendered(false);
     };
-  }, []); // eslint-disable-line
+  }, [hazardsHydrated]);
+
+  // Poll every 5 seconds for real-time updates (after initial hydration)
+  useEffect(() => {
+    if (!hazardsHydrated) return;
+    const interval = setInterval(fetchHazards, 5000);
+    return () => clearInterval(interval);
+  }, [hazardsHydrated]);
 
   // ── React to mapStyle changes ───────────────
   useEffect(() => {
@@ -903,11 +1049,13 @@ export function LiveMap({ selectedSession }: { selectedSession?: any }) {
     <div style={{ width: '100%', height: '100%', position: 'relative', background: 'var(--c-bg)' }}>
 
       {/* Map container — vigia-map-dark class triggers CSS overrides */}
-      <div
-        ref={mapContainer}
-        className="vigia-map-dark"
-        style={{ position: 'absolute', inset: 0 }}
-      />
+      {hazardsHydrated && (
+        <div
+          ref={mapContainer}
+          className="vigia-map-dark"
+          style={{ position: 'absolute', inset: 0 }}
+        />
+      )}
 
       {/* Grid overlay — rose tinted, only when enabled */}
       {mapReady && hazardsHydrated && settings.showGrid && (
@@ -915,20 +1063,31 @@ export function LiveMap({ selectedSession }: { selectedSession?: any }) {
       )}
 
       {/* Loading */}
-      {!(mapReady && hazardsHydrated) && (
+      {!(mapReady && hazardsRendered) && (
         <div style={{
-          position: 'absolute', inset: 0, display: 'flex',
-          alignItems: 'center', justifyContent: 'center',
-          background: 'var(--c-bg)', zIndex: 10,
+          position: 'absolute',
+          inset: 0,
+          zIndex: 10,
+          display: 'flex',
+          alignItems: 'center',
+          justifyContent: 'center',
+          background: 'var(--c-bg)',
         }}>
           <div style={{ display: 'flex', flexDirection: 'column', alignItems: 'center', gap: 14 }}>
             <div style={{
-              width: 28, height: 28, borderRadius: '50%',
+              width: 28,
+              height: 28,
+              borderRadius: '50%',
               border: '2px solid var(--c-border)',
               borderTopColor: 'var(--c-rose)',
               animation: 'spin 0.85s linear infinite',
             }} />
-            <span style={{ fontSize: '0.66rem', color: 'var(--c-text-3)', fontFamily: "var(--v-font-mono)", letterSpacing: '0.06em' }}>
+            <span style={{
+              fontSize: '0.66rem',
+              color: 'var(--c-text-3)',
+              fontFamily: 'var(--v-font-mono)',
+              letterSpacing: '0.06em',
+            }}>
               LOADING MAP
             </span>
           </div>
@@ -1310,25 +1469,25 @@ export function LiveMap({ selectedSession }: { selectedSession?: any }) {
           zIndex: 20,
           padding: '8px 16px',
           borderRadius: 4,
-          background: 'rgba(217,79,92,0.95)',
-          border: '1px solid rgba(217,79,92,1)',
+          background: toRgba(getCssVar('--c-rose', '#D94F5C'), 0.95),
+          border: `1px solid ${getCssVar('--c-rose', '#D94F5C')}`,
           backdropFilter: 'blur(8px)',
-          boxShadow: '0 4px 12px rgba(217,79,92,0.4)',
+          boxShadow: `0 4px 12px ${toRgba(getCssVar('--c-rose', '#D94F5C'), 0.4)}`,
           animation: 'slideDown 0.3s ease-out',
         }}>
           <div style={{ display: 'flex', alignItems: 'center', gap: 8 }}>
             <span style={{ 
               fontSize: '0.7rem', 
-              color: '#fff', 
+              color: 'var(--c-text)', 
               fontFamily: "var(--v-font-mono)",
               fontWeight: 600,
             }}>
-              🎯 NEW HAZARD DETECTED
+              NEW HAZARD DETECTED
             </span>
           </div>
           <div style={{ 
             fontSize: '0.62rem', 
-            color: 'rgba(255,255,255,0.9)', 
+            color: 'var(--c-text-2)', 
             fontFamily: "var(--v-font-mono)",
             marginTop: 2,
           }}>

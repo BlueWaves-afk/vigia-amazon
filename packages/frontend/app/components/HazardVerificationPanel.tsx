@@ -1,7 +1,8 @@
 'use client';
 
 import { useEffect, useState, useRef } from 'react';
-import { AlertTriangle, CheckCircle, XCircle, Clock, Loader2, ChevronDown, ChevronRight, Search } from 'lucide-react';
+import { AlertTriangle, CheckCircle, XCircle, Clock, Loader2, ChevronDown, ChevronRight, Eye } from 'lucide-react';
+import { useAgentTraceStore } from '../../stores/agentTraceStore';
 
 const C = {
   bg:       'var(--c-bg)',
@@ -59,7 +60,7 @@ function encodeGeohash(lat: number, lon: number, precision: number = 7): string 
   return geohash;
 }
 
-type HazardStatus = 'pending' | 'unverified' | 'verifying' | 'verified' | 'rejected';
+type HazardStatus = 'pending' | 'processing' | 'verified' | 'verified_no_reward' | 'rejected' | 'vlm_failed';
 
 interface Hazard {
   id: string;
@@ -76,160 +77,107 @@ interface Hazard {
 
 interface HazardVerificationPanelProps {
   onHazardDetected?: (hazard: Omit<Hazard, 'id' | 'status'>) => void;
+  deviceAddress?: string;
+  signPayload?: (s: string) => Promise<string>;
 }
 
-export function HazardVerificationPanel({ onHazardDetected }: HazardVerificationPanelProps) {
+export function HazardVerificationPanel({ onHazardDetected, deviceAddress, signPayload }: HazardVerificationPanelProps) {
   const [hazards, setHazards] = useState<Hazard[]>(() => {
-    // Load from sessionStorage on mount
     if (typeof window !== 'undefined') {
       const saved = sessionStorage.getItem('vigia-detected-hazards');
-      if (saved) {
-        try {
-          return JSON.parse(saved);
-        } catch (e) {
-          return [];
-        }
-      }
+      if (saved) { try { return JSON.parse(saved); } catch { return []; } }
     }
     return [];
   });
   const [expandedHazard, setExpandedHazard] = useState<string | null>(null);
-  const [currentlyVerifying, setCurrentlyVerifying] = useState<string | null>(null);
   const [contextMenu, setContextMenu] = useState<{ x: number; y: number; hazardId: string } | null>(null);
-  const processingQueue = useRef<string[]>([]);
-  const lastProcessedTime = useRef<number>(0);
-  const panelRef = useRef<HTMLDivElement>(null);
+  const pollTimers = useRef<Record<string, ReturnType<typeof setInterval>>>({});
+  const { setActiveHazardId } = useAgentTraceStore();
 
-  // Save to sessionStorage whenever hazards change
   useEffect(() => {
     if (typeof window !== 'undefined') {
       sessionStorage.setItem('vigia-detected-hazards', JSON.stringify(hazards));
     }
   }, [hazards]);
 
-  // Listen for new hazard detections from VideoUploader
-  useEffect(() => {
-    const handleHazardDetection = (event: CustomEvent) => {
-      const { type, lat, lon, confidence, timestamp } = event.detail;
-      
-      // Calculate geohash to match backend format (geohash#timestamp)
-      const geohash = encodeGeohash(lat, lon, 7);
-      const hazardId = `${geohash}#${timestamp}`;
-      
-      // Check if hazard already exists
-      setHazards(prev => {
-        if (prev.some(h => h.id === hazardId)) {
-          return prev; // Skip duplicate
-        }
-        
-        const newHazard: Hazard = {
-          id: hazardId,
-          type,
-          lat,
-          lon,
-          confidence,
-          timestamp,
-          status: 'pending',
-        };
-        
-        return [newHazard, ...prev];
-      });
-      
-      // Emit trace event
-      window.dispatchEvent(new CustomEvent('vigia-trace', {
-        detail: { 
-          type: 'detection', 
-          message: `Hazard detected: ${type} at ${lat.toFixed(4)}, ${lon.toFixed(4)} (confidence: ${(confidence * 100).toFixed(1)}%)` 
-        }
-      }));
-    };
-
-    window.addEventListener('hazard-detected', handleHazardDetection as EventListener);
-    return () => window.removeEventListener('hazard-detected', handleHazardDetection as EventListener);
-  }, []);
-
-  // Manual verification handler
-  const handleVerifyHazard = async (hazardId: string) => {
-    const currentHazard = hazards.find(h => h.id === hazardId);
-    if (!currentHazard || currentHazard.status !== 'pending') return;
-
-    // Mark as verifying
-    setHazards(prev => prev.map(h => 
-      h.id === hazardId ? { ...h, status: 'verifying' as HazardStatus } : h
-    ));
-
-    // Emit verification start event
-    window.dispatchEvent(new CustomEvent('verification-start', {
-      detail: { hazardId }
-    }));
-
-    try {
-      const apiUrl = process.env.NEXT_PUBLIC_TELEMETRY_API_URL || process.env.NEXT_PUBLIC_API_URL || 'https://sq2ri2n51g.execute-api.us-east-1.amazonaws.com/prod';
-      
-      const response = await fetch(`${apiUrl}/verify-hazard-sync`, {
-        method: 'POST',
-        headers: { 'Content-Type': 'application/json' },
-        body: JSON.stringify({
-          hazardId,
-          hazardType: currentHazard.type,
-          lat: currentHazard.lat,
-          lon: currentHazard.lon,
-          confidence: currentHazard.confidence,
-          timestamp: currentHazard.timestamp,
-          geohash: hazardId.split('#')[0],
-        }),
-      });
-
-      if (!response.ok) throw new Error(`Verification failed: ${response.status}`);
-
-      const result = await response.json();
-      const { traceId, steps, verificationScore, reasoning } = result;
-
-      // Emit steps one by one with delays to simulate streaming
-      for (let i = 0; i < steps.length; i++) {
-        await new Promise(resolve => setTimeout(resolve, i === 0 ? 0 : 800)); // 800ms between steps
-        window.dispatchEvent(new CustomEvent('verification-step', { 
-          detail: { step: steps[i] } 
-        }));
+  // Poll until terminal state — checks trace first, falls back to hazard status
+  const startPolling = (hazardId: string) => {
+    if (pollTimers.current[hazardId]) return;
+    let elapsed = 0;
+    pollTimers.current[hazardId] = setInterval(async () => {
+      elapsed += 3;
+      if (elapsed > 120) {
+        // Timeout — mark as vlm_failed so it doesn't spin forever
+        setHazards(prev => prev.map(h => h.id === hazardId && h.status === 'processing'
+          ? { ...h, status: 'vlm_failed', reasoning: 'Verification timed out.' } : h));
+        clearInterval(pollTimers.current[hazardId]); delete pollTimers.current[hazardId]; return;
       }
-
-      // Wait a bit then emit complete with reasoning
-      await new Promise(resolve => setTimeout(resolve, 500));
-      
-      const finalStatus = verificationScore >= 70 ? 'VERIFIED' : 'UNVERIFIED';
-      const reasoningText = reasoning || (verificationScore >= 70 
-        ? 'Hazard meets verification criteria' 
-        : 'Hazard does not meet verification criteria');
-      
-      window.dispatchEvent(new CustomEvent('verification-complete', {
-        detail: { traceId, steps, verificationScore }
-      }));
-      
-      // Emit final reasoning trace
-      window.dispatchEvent(new CustomEvent('vigia-trace', {
-        detail: { 
-          type: 'verification', 
-          message: `${finalStatus}: ${currentHazard.type} (score: ${verificationScore}/100)\nReasoning: ${reasoningText}` 
+      try {
+        // Primary: check trace (has VLM reasoning + score)
+        const res = await fetch(`/api/traces/${encodeURIComponent(hazardId)}`);
+        const { trace } = await res.json();
+        if (trace?.verdict) {
+          const verdict: string = trace.verdict;
+          if (verdict === 'VERIFIED') {
+            const status = trace.reward_skipped_reason ? 'verified_no_reward' : 'verified';
+            setHazards(prev => prev.map(h => h.id === hazardId ? { ...h, status, verificationScore: trace.total_score, reasoning: trace.vlm_reasoning } : h));
+          } else if (verdict === 'REJECTED') {
+            setHazards(prev => prev.map(h => h.id === hazardId ? { ...h, status: 'rejected', verificationScore: trace.total_score, reasoning: trace.vlm_reasoning } : h));
+          } else if (verdict === 'UNVERIFIED_VLM_FAILED') {
+            setHazards(prev => prev.map(h => h.id === hazardId ? { ...h, status: 'vlm_failed', reasoning: trace.vlm_reasoning } : h));
+          } else { return; }
+          clearInterval(pollTimers.current[hazardId]); delete pollTimers.current[hazardId]; return;
         }
-      }));
-
-      const newStatus: HazardStatus = verificationScore >= 70 ? 'verified' : 'rejected';
-      setHazards(prev => prev.map(h => 
-        h.id === hazardId ? { ...h, status: newStatus, traceId, reasoning, verificationScore } : h
-      ));
-
-      // Don't auto-remove - let user see the results
-
-    } catch (error) {
-      console.error('[HazardVerificationPanel] Verification error:', error);
-      setHazards(prev => prev.map(h => 
-        h.id === hazardId ? { ...h, status: 'rejected' as HazardStatus, reasoning: 'Verification failed' } : h
-      ));
-      // Don't auto-remove on error either
-    }
+        // Fallback: check hazard status directly (handles cooldown-skipped hazards)
+        const statusRes = await fetch(`/api/hazard-status/${encodeURIComponent(hazardId)}`);
+        const { status } = await statusRes.json();
+        if (status === 'VERIFIED') {
+          setHazards(prev => prev.map(h => h.id === hazardId ? { ...h, status: 'verified' } : h));
+          clearInterval(pollTimers.current[hazardId]); delete pollTimers.current[hazardId];
+        } else if (status === 'REJECTED') {
+          setHazards(prev => prev.map(h => h.id === hazardId ? { ...h, status: 'rejected' } : h));
+          clearInterval(pollTimers.current[hazardId]); delete pollTimers.current[hazardId];
+        } else if (status === 'UNVERIFIED_VLM_FAILED') {
+          setHazards(prev => prev.map(h => h.id === hazardId ? { ...h, status: 'vlm_failed' } : h));
+          clearInterval(pollTimers.current[hazardId]); delete pollTimers.current[hazardId];
+        }
+      } catch { /* ignore poll errors */ }
+    }, 3000);
   };
 
-  // Remove auto-queue logic - verification is now manual only
+  // Listen for new hazard detections
+  useEffect(() => {
+    const handleDetection = (e: CustomEvent) => {
+      const { type, lat, lon, confidence, timestamp } = e.detail;
+      const geohash = encodeGeohash(lat, lon, 7);
+      const hazardId = `${geohash}#${timestamp}`;
+      setHazards(prev => {
+        if (prev.some(h => h.id === hazardId)) return prev;
+        return [{ id: hazardId, type, lat, lon, confidence, timestamp, status: 'pending' }, ...prev];
+      });
+    };
+    // 202 accepted — switch to processing and start poll
+    const handleAccepted = (e: CustomEvent) => {
+      const { hazardId } = e.detail;
+      setHazards(prev => prev.map(h => h.id === hazardId ? { ...h, status: 'processing' } : h));
+      startPolling(hazardId);
+    };
+    window.addEventListener('hazard-detected', handleDetection as EventListener);
+    window.addEventListener('hazard-accepted', handleAccepted as EventListener);
+    return () => {
+      window.removeEventListener('hazard-detected', handleDetection as EventListener);
+      window.removeEventListener('hazard-accepted', handleAccepted as EventListener);
+    };
+  }, []);
+
+  // Cleanup poll timers on unmount
+  useEffect(() => () => { Object.values(pollTimers.current).forEach(clearInterval); }, []);
+
+  const handleViewReasoning = (hazardId: string) => {
+    setActiveHazardId(hazardId);
+    // Signal parent to switch to Agent Traces tab
+    window.dispatchEvent(new CustomEvent('open-agent-traces', { detail: { hazardId } }));
+  };
 
   // Close context menu on click outside
   useEffect(() => {
@@ -240,16 +188,12 @@ export function HazardVerificationPanel({ onHazardDetected }: HazardVerification
 
   const getStatusConfig = (status: HazardStatus) => {
     switch (status) {
-      case 'pending':
-        return { icon: <Clock size={12} />, color: C.yellow, label: 'PENDING' };
-      case 'unverified':
-        return { icon: <AlertTriangle size={12} />, color: C.yellow, label: 'UNVERIFIED' };
-      case 'verifying':
-        return { icon: <Loader2 size={12} className="animate-spin" />, color: C.accent, label: 'VERIFYING' };
-      case 'verified':
-        return { icon: <CheckCircle size={12} />, color: C.green, label: 'VERIFIED' };
-      case 'rejected':
-        return { icon: <XCircle size={12} />, color: C.red, label: 'REJECTED' };
+      case 'pending':          return { icon: <Clock size={12} />,                             color: C.yellow, label: 'PENDING' };
+      case 'processing':       return { icon: <Loader2 size={12} className="animate-spin" />,  color: C.accent, label: 'PROCESSING' };
+      case 'verified':         return { icon: <CheckCircle size={12} />,                       color: C.green,  label: 'VERIFIED' };
+      case 'verified_no_reward': return { icon: <CheckCircle size={12} />,                     color: C.yellow, label: 'VERIFIED · NO REWARD' };
+      case 'rejected':         return { icon: <XCircle size={12} />,                           color: C.red,    label: 'REJECTED' };
+      case 'vlm_failed':       return { icon: <AlertTriangle size={12} />,                     color: C.yellow, label: 'PENDING REVIEW' };
     }
   };
 
@@ -335,7 +279,7 @@ export function HazardVerificationPanel({ onHazardDetected }: HazardVerification
                   key={hazard.id}
                   style={{
                     background: C.panel,
-                    border: `1px solid ${currentlyVerifying === hazard.id ? 'var(--c-accent-2)' : C.border}`,
+                    border: `1px solid ${hazard.status === 'processing' ? 'var(--c-accent-2)' : C.border}`,
                     borderRadius: 4,
                     overflow: 'hidden',
                     transition: 'border-color 0.3s ease',
@@ -458,7 +402,7 @@ export function HazardVerificationPanel({ onHazardDetected }: HazardVerification
                               textTransform: 'uppercase',
                               letterSpacing: '0.05em',
                             }}>
-                              Agent Reasoning:
+                              VLM Reasoning:
                             </div>
                             <div style={{
                               fontSize: '0.62rem',
@@ -471,6 +415,18 @@ export function HazardVerificationPanel({ onHazardDetected }: HazardVerification
                             </div>
                           </div>
                         )}
+                        <button
+                          onClick={() => handleViewReasoning(hazard.id)}
+                          style={{
+                            marginTop: 8, width: '100%',
+                            display: 'flex', alignItems: 'center', justifyContent: 'center', gap: 6,
+                            padding: '5px 0', borderRadius: 3, cursor: 'pointer',
+                            background: 'var(--c-elevated)', border: '1px solid var(--v-border-default)',
+                            fontSize: '0.65rem', color: 'var(--c-accent-2)', fontFamily: "var(--v-font-mono)",
+                          }}
+                        >
+                          <Eye size={11} /> View Reasoning
+                        </button>
                       </div>
                     </div>
                   )}
@@ -501,7 +457,7 @@ export function HazardVerificationPanel({ onHazardDetected }: HazardVerification
             color: C.yellow,
             fontFamily: "var(--v-font-mono)",
           }}>
-            {hazards.filter(h => h.status === 'pending' || h.status === 'unverified').length}
+            {hazards.filter(h => h.status === 'pending' || h.status === 'processing' || h.status === 'vlm_failed').length}
           </span>
           <span style={{
             fontSize: '0.58rem',
@@ -527,7 +483,7 @@ export function HazardVerificationPanel({ onHazardDetected }: HazardVerification
             color: C.accent,
             fontFamily: "var(--v-font-mono)",
           }}>
-            {hazards.filter(h => h.status === 'verifying').length}
+            {hazards.filter(h => h.status === 'processing').length}
           </span>
           <span style={{
             fontSize: '0.58rem',
@@ -552,7 +508,7 @@ export function HazardVerificationPanel({ onHazardDetected }: HazardVerification
             color: C.green,
             fontFamily: "var(--v-font-mono)",
           }}>
-            {hazards.filter(h => h.status === 'verified').length}
+            {hazards.filter(h => h.status === 'verified' || h.status === 'verified_no_reward').length}
           </span>
           <span style={{
             fontSize: '0.58rem',
@@ -576,7 +532,7 @@ export function HazardVerificationPanel({ onHazardDetected }: HazardVerification
             background: 'var(--c-elevated)',
             border: '1px solid var(--v-rose-border)',
             borderRadius: 5,
-            boxShadow: '0 2px 8px rgba(0,0,0,0.18), 0 0 0 1px rgba(154,106,170,0.12)',
+            boxShadow: 'var(--v-shadow-sm), 0 0 0 1px var(--c-rose-dim)',
             zIndex: 1000,
             minWidth: 172,
             padding: '3px 0',
@@ -600,7 +556,7 @@ export function HazardVerificationPanel({ onHazardDetected }: HazardVerification
 
           <button
             onClick={() => {
-              handleVerifyHazard(contextMenu.hazardId);
+              handleViewReasoning(contextMenu.hazardId);
               setContextMenu(null);
             }}
             style={{
@@ -628,8 +584,8 @@ export function HazardVerificationPanel({ onHazardDetected }: HazardVerification
               e.currentTarget.style.borderLeftColor = 'transparent';
             }}
           >
-            <Search size={12} style={{ color: 'var(--c-rose-2)', flexShrink: 0 }} />
-            Verify Hazard
+            <Eye size={12} style={{ color: 'var(--c-rose-2)', flexShrink: 0 }} />
+            View Reasoning
           </button>
         </div>
       )}

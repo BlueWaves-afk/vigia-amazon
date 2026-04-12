@@ -25,6 +25,12 @@ function applyMapFilter(el: HTMLDivElement | null, style: MapStyle) {
   }
 }
 
+const getCssVar = (name: string, fallback: string) => {
+  if (typeof window === 'undefined') return fallback;
+  const value = getComputedStyle(document.documentElement).getPropertyValue(name).trim();
+  return value || fallback;
+};
+
 function getMapStyle(style: MapStyle): string | maplibregl.StyleSpecification {
   const apiKey    = process.env.NEXT_PUBLIC_LOCATION_API_KEY || '';
   const styleMapNames: Partial<Record<MapStyle, string>> = {
@@ -43,7 +49,7 @@ function getMapStyle(style: MapStyle): string | maplibregl.StyleSpecification {
       },
     },
     layers: [
-      { id: 'background', type: 'background', paint: { 'background-color': '#0A0E15' } },
+      { id: 'background', type: 'background', paint: { 'background-color': getCssVar('--c-bg', '#0A0E15') } },
       { id: 'osm-tiles',  type: 'raster', source: 'osm', paint: { 'raster-opacity': 1 } },
     ],
   };

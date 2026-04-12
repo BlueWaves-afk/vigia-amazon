@@ -10,7 +10,8 @@ const INPUT_SIZE = 320;
 const CONF_THRESHOLD = 0.4;
 
 // Define your classes here
-const CLASSES = ['POTHOLE']; // extend if needed
+const CLASSES = ['POTHOLE', 'DEBRIS', 'ACCIDENT', 'ANIMAL'] as const;
+type HazardType = typeof CLASSES[number];
 
 class HazardDetectorWorker {
   private session: ort.InferenceSession | null = null;
@@ -60,7 +61,17 @@ class HazardDetectorWorker {
   async signTelemetry(payload: any): Promise<string> {
     if (!this.privateKey) return 'TEST_MODE_SIGNATURE';
 
-    const encoded = new TextEncoder().encode(JSON.stringify(payload));
+    // Sort keys for deterministic serialization
+    const toSign = {
+      hazardType: payload.hazardType,
+      lat: payload.lat,
+      lon: payload.lon,
+      timestamp: payload.timestamp,
+      confidence: payload.confidence,
+      driverWalletAddress: payload.driverWalletAddress ?? '',
+    };
+
+    const encoded = new TextEncoder().encode(JSON.stringify(toSign));
 
     const sig = await crypto.subtle.sign(
       { name: 'ECDSA', hash: 'SHA-256' },
@@ -139,7 +150,8 @@ class HazardDetectorWorker {
   async processFrame(
     frameBuffer: ArrayBuffer,
     size: any,
-    gpsCoords: { lat: number; lon: number }
+    gpsCoords: { lat: number; lon: number },
+    driverWalletAddress?: string
   ) {
     if (!this.session) return null;
 
@@ -198,11 +210,12 @@ class HazardDetectorWorker {
       const bh = boxH / prep.scale;
       
       const telemetry = {
-        hazardType: CLASSES[bestClassIdx] || 'UNKNOWN',
+        hazardType: (CLASSES[bestClassIdx] ?? 'POTHOLE') as HazardType,
         lat: gpsCoords.lat,
         lon: gpsCoords.lon,
         timestamp: new Date().toISOString(),
-        confidence: parseFloat(maxScore.toFixed(4))
+        confidence: parseFloat(maxScore.toFixed(4)),
+        driverWalletAddress: driverWalletAddress ?? '',
       };
 
       const signature = await this.signTelemetry(telemetry);

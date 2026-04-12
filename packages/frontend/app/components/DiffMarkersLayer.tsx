@@ -7,6 +7,13 @@ interface DiffMarkersLayerProps {
   map: any;
 }
 
+// Maplibre paint colors require raw color strings (resolved from CSS vars).
+const getCssVar = (name: string, fallback: string) => {
+  if (typeof window === 'undefined') return fallback;
+  const value = getComputedStyle(document.documentElement).getPropertyValue(name).trim();
+  return value || fallback;
+};
+
 export function DiffMarkersLayer({ map }: DiffMarkersLayerProps) {
   const { diffState } = useMapFileStore();
 
@@ -48,6 +55,12 @@ export function DiffMarkersLayer({ map }: DiffMarkersLayerProps) {
       features,
     });
 
+    const clrNew = getCssVar('--c-red', '#F0606C');
+    const clrFixed = getCssVar('--c-green', '#34D492');
+    const clrWorsened = getCssVar('--c-yellow', '#E0A040');
+    const clrStroke = getCssVar('--c-text', '#FFFFFF');
+    const clrFallback = getCssVar('--c-text-2', '#CBD5E1');
+
     // Add layer if not exists
     if (!map.getLayer('diff-markers-layer')) {
       map.addLayer({
@@ -59,13 +72,13 @@ export function DiffMarkersLayer({ map }: DiffMarkersLayerProps) {
           'circle-color': [
             'match',
             ['get', 'type'],
-            'new', '#EF4444',
-            'fixed', '#10B981',
-            'worsened', '#F59E0B',
-            '#CBD5E1',
+            'new', clrNew,
+            'fixed', clrFixed,
+            'worsened', clrWorsened,
+            clrFallback,
           ],
           'circle-stroke-width': 2,
-          'circle-stroke-color': '#FFFFFF',
+          'circle-stroke-color': clrStroke,
         },
       });
     }

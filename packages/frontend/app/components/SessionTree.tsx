@@ -245,7 +245,7 @@ export function SessionTree({ vfsManager, onFileOpen }: SessionTreeProps) {
           onMouseEnter={(e) => {
             if (!refreshing) {
               (e.currentTarget as HTMLElement).style.background = 'var(--v-hover)';
-              (e.currentTarget as HTMLElement).style.borderColor = 'rgba(154,106,170,0.4)';
+              (e.currentTarget as HTMLElement).style.borderColor = 'var(--c-rose-border)';
               (e.currentTarget as HTMLElement).style.color = 'var(--c-text)';
             }
           }}

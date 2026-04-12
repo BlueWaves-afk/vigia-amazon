@@ -1,11 +1,12 @@
 'use client';
 
-import { useRef, useState, useEffect } from 'react';
+import React, { useRef, useState, useEffect, FC } from 'react';
 import {
   agentFetch,
   AgentRateLimitedError,
   useAgentRateLimitLock,
 } from '../lib/client/agent-rate-limit-client';
+import { Skeleton } from './Skeleton';
 
 // ─── Constants ────────────────────────────────────────────────────────────────
 
@@ -43,21 +44,21 @@ const QUICK_PROMPTS: Record<string, string[]> = {
   ],
 };
 
-const STATIC_ATTACH_OPTIONS: Record<string, Array<{ label: string; key: string }>> = {
+const ATTACHMENT_OPTIONS: Record<string, Array<{ type: string; icon: any; label: string }>> = {
   livemap: [
-    { label: 'Current map area',     key: 'mapBounds'      },
-    { label: 'Visible hazards',      key: 'visibleHazards' },
-    { label: 'Current route',        key: 'activeRoute'    },
+    { type: 'mapBounds', icon: <svg />, label: 'Current map area' },
+    { type: 'visibleHazards', icon: <svg />, label: 'Visible hazards' },
+    { type: 'activeRoute', icon: <svg />, label: 'Current route' },
   ],
   network: [
-    { label: 'Selected node',        key: 'selectedNode'   },
-    { label: 'Network topology',     key: 'networkGraph'   },
-    { label: 'Coverage gaps',        key: 'coverageGaps'   },
+    { type: 'selectedNode', icon: <svg />, label: 'Selected node' },
+    { type: 'networkGraph', icon: <svg />, label: 'Network topology' },
+    { type: 'coverageGaps', icon: <svg />, label: 'Coverage gaps' },
   ],
   maintenance: [
-    { label: 'Active work orders',   key: 'workOrders'     },
-    { label: 'Priority queue',       key: 'priorityQueue'  },
-    { label: 'Resource availability',key: 'resources'      },
+    { type: 'workOrders', icon: <svg />, label: 'Active work orders' },
+    { type: 'priorityQueue', icon: <svg />, label: 'Priority queue' },
+    { type: 'resources', icon: <svg />, label: 'Resource availability' },
   ],
 };
 
@@ -92,12 +93,46 @@ function extractTraceText(raw: any): string {
   try { return JSON.stringify(t).slice(0, 160); } catch { return '…'; }
 }
 
+/** Parse hazard cards from agent response text. Looks for structured hazard blocks. */
+interface ParsedHazard { hazardId: string; lat: number; lon: number; hazardType: string; priority: number; geohash?: string; }
+function parseHazardsFromResponse(text: string): ParsedHazard[] {
+  const results: ParsedHazard[] = [];
+
+  // Match: "ACCIDENT at (42.36, -71.06) — priority: 85.5"
+  const parenRe = /\b(ACCIDENT|POTHOLE|DEBRIS|ANIMAL)\b.*?\((-?\d+\.\d+),\s*(-?\d+\.\d+)\).*?priority[:\s]+(\d+(?:\.\d+)?)/gi;
+  let m: RegExpExecArray | null;
+  while ((m = parenRe.exec(text)) !== null) {
+    results.push({ hazardId: `parsed-${results.length}`, hazardType: m[1].toUpperCase(), lat: parseFloat(m[2]), lon: parseFloat(m[3]), priority: parseFloat(m[4]) });
+  }
+
+  // Match: "latitude: 42.36" / "longitude: -71.06" near a hazard type
+  if (results.length === 0) {
+    const blockRe = /\b(ACCIDENT|POTHOLE|DEBRIS|ANIMAL)\b[\s\S]{0,300}?latitude[:\s]+(-?\d+\.\d+)[\s\S]{0,100}?longitude[:\s]+(-?\d+\.\d+)[\s\S]{0,100}?priority[:\s]+(\d+(?:\.\d+)?)/gi;
+    while ((m = blockRe.exec(text)) !== null) {
+      results.push({ hazardId: `parsed-${results.length}`, hazardType: m[1].toUpperCase(), lat: parseFloat(m[2]), lon: parseFloat(m[3]), priority: parseFloat(m[4]) });
+    }
+  }
+
+  // Fallback: geohash#timestamp IDs only (no coords)
+  if (results.length === 0) {
+    const idRe = /\b([0-9a-z]{7,9}#\d{4}-\d{2}-\d{2}T[^\s,)]+)/g;
+    [...text.matchAll(idRe)].slice(0, 10).forEach((x, i) =>
+      results.push({ hazardId: x[1], lat: 0, lon: 0, hazardType: 'HAZARD', priority: 100 - i * 5 })
+    );
+  }
+
+  return results;
+}
+
 // ─── Types ───────────────────────────────────────────────────────────────────
 
+export type AgentContextType = 'livemap' | 'network' | 'maintenance';
+
 export interface AgentChatPanelProps {
-  contextType: 'livemap' | 'network' | 'maintenance';
+  contextType: AgentContextType;
   context?: Record<string, any>;
   availableSessions?: Array<{ sessionId: string; label: string; geohash?: string }>;
+  onAttach?: (type: string) => void;
 }
 
 interface ThinkingTrace {
@@ -115,8 +150,8 @@ interface Message {
   thinkDuration?: number;
   hazards?: Array<{
     hazardId:   string;
-    latitude:   number;
-    longitude:  number;
+    lat:        number;
+    lon:        number;
     hazardType: string;
     priority:   number;
   }>;
@@ -128,7 +163,7 @@ interface ContextAttachment {
 }
 // ─── Component ───────────────────────────────────────────────────────────────
 
-export function AgentChatPanel({ contextType, context = {}, availableSessions = [] }: AgentChatPanelProps) {
+export const AgentChatPanel: FC<AgentChatPanelProps> = ({ contextType, context = {}, availableSessions = [], onAttach = () => {} }) => {
   const [messages, setMessages]           = useState<Message[]>([]);
   const [query, setQuery]                 = useState('');
   const [loading, setLoading]             = useState(false);
@@ -142,7 +177,7 @@ export function AgentChatPanel({ contextType, context = {}, availableSessions = 
 
   const messagesEndRef = useRef<HTMLDivElement>(null);
   const textareaRef    = useRef<HTMLTextAreaElement>(null);
-  const pinMenuRef     = useRef<HTMLDivElement>(null);
+  const pinMenuRef     = useRef<HTMLButtonElement>(null);
   const attachMenuRef  = useRef<HTMLDivElement>(null);
   const hasHydrated    = useRef(false);
   const isDragging     = useRef(false);
@@ -323,20 +358,6 @@ export function AgentChatPanel({ contextType, context = {}, availableSessions = 
     try { localStorage.removeItem(`vigia:chat:${contextType}`); } catch {}
   };
 
-  // Derive attach-menu options from static list + passed sessions
-  const attachOptions: ContextAttachment[] = [
-    ...(STATIC_ATTACH_OPTIONS[contextType] ?? []).map(o => ({
-      id:    `ctx-${o.key}`,
-      label: o.label,
-      data:  { [o.key]: context[o.key] ?? null },
-    })),
-    ...availableSessions.map(s => ({
-      id:    `sess-${s.sessionId}`,
-      label: s.label,
-      data:  { sessionId: s.sessionId, geohash: s.geohash, sessionLabel: s.label },
-    })),
-  ];
-
   // Simple markdown renderer (bold, remove emojis)
   const renderMarkdown = (text: string) => {
     // Remove emojis
@@ -375,6 +396,19 @@ export function AgentChatPanel({ contextType, context = {}, availableSessions = 
     const userMsg: Message = { id: mkId(), role: 'user', content: text, timestamp: Date.now() };
     setMessages(prev => [...prev, userMsg]);
     setLoading(true);
+    const assistantId = mkId();
+    setMessages(prev => [...prev, {
+      id: assistantId,
+      role: 'assistant',
+      content: '',
+      timestamp: Date.now(),
+      traces: [],
+      isThinking: true,
+    }]);
+
+    const updateAssistant = (partial: Partial<Message>) => {
+      setMessages(prev => prev.map(m => m.id === assistantId ? { ...m, ...partial } : m));
+    };
 
     try {
       // Detect query types
@@ -399,26 +433,16 @@ export function AgentChatPanel({ contextType, context = {}, availableSessions = 
           const retryAfter = retryAfterHeader > 0
             ? retryAfterHeader
             : Math.ceil(Number(data.retryAfter || 60000) / 1000);
-          setMessages(prev => [...prev, { 
-            id: mkId(), 
-            role: 'assistant', 
-            content: `${data.error}\n\nPlease wait ${retryAfter} seconds before trying again.`, 
-            timestamp: Date.now() 
-          }]);
+          updateAssistant({
+            content: `${data.error}\n\nPlease wait ${retryAfter} seconds before trying again.`,
+            isThinking: false,
+          });
           return;
         }
         
         const data = await res.json();
         const rawTraces: any[] = data.traces ?? [];
         const thinkStart = Date.now();
-
-        // Add assistant placeholder immediately so the thinking section appears
-        const assistantId = mkId();
-        setMessages(prev => [...prev, {
-          id: assistantId, role: 'assistant', content: '',
-          timestamp: Date.now(), traces: [],
-          isThinking: rawTraces.length > 0,
-        }]);
 
         // Auto-expand trace section while thinking is in progress
         if (rawTraces.length > 0) {
@@ -442,9 +466,7 @@ export function AgentChatPanel({ contextType, context = {}, availableSessions = 
         // After traces, show final content
         const content = data.analysis ?? data.message ?? JSON.stringify(data);
         await new Promise(r => setTimeout(r, 400));
-        setMessages(prev => prev.map(m =>
-          m.id === assistantId ? { ...m, content, isThinking: false } : m
-        ));
+        updateAssistant({ content, isThinking: false });
       } else if (contextType === 'livemap' && isUrbanPlanning) {
         // Use urban-planning API for path/route queries
         const attachCtx = attachments.reduce<Record<string, any>>((acc, a) => ({ ...acc, ...a.data }), {});
@@ -470,18 +492,16 @@ export function AgentChatPanel({ contextType, context = {}, availableSessions = 
             const retryAfter = retryAfterHeader > 0
               ? retryAfterHeader
               : Math.ceil(Number(data.retryAfter || 60000) / 1000);
-            setMessages(prev => [...prev, { 
-              id: mkId(), 
-              role: 'assistant', 
-              content: `${data.error}\n\nPlease wait ${retryAfter} seconds before trying again.`, 
-              timestamp: Date.now() 
-            }]);
+            updateAssistant({
+              content: `${data.error}\n\nPlease wait ${retryAfter} seconds before trying again.`,
+              isThinking: false,
+            });
             return;
           }
           
           const data = await res.json();
           const content = data.analysis ?? data.message ?? JSON.stringify(data);
-          setMessages(prev => [...prev, { id: mkId(), role: 'assistant', content, timestamp: Date.now() }]);
+          updateAssistant({ content, isThinking: false });
           return;
         }
         
@@ -502,23 +522,19 @@ export function AgentChatPanel({ contextType, context = {}, availableSessions = 
           const retryAfter = retryAfterHeader > 0
             ? retryAfterHeader
             : Math.ceil(Number(data.retryAfter || 60000) / 1000);
-          setMessages(prev => [...prev, { 
-            id: mkId(), 
-            role: 'assistant', 
-            content: `${data.error}\n\nPlease wait ${retryAfter} seconds before trying again.`, 
-            timestamp: Date.now() 
-          }]);
+          updateAssistant({
+            content: `${data.error}\n\nPlease wait ${retryAfter} seconds before trying again.`,
+            isThinking: false,
+          });
           return;
         }
         
         if (!res.ok) {
           const error = await res.json();
-          setMessages(prev => [...prev, { 
-            id: mkId(), 
-            role: 'assistant', 
-            content: `Error calculating route: ${error.error || 'Unknown error'}`, 
-            timestamp: Date.now() 
-          }]);
+          updateAssistant({
+            content: `Error calculating route: ${error.error || 'Unknown error'}`,
+            isThinking: false,
+          });
           return;
         }
         
@@ -534,8 +550,7 @@ export function AgentChatPanel({ contextType, context = {}, availableSessions = 
         // Ensure panel is visible
         setCollapsed(false);
         
-        setMessages(prev => [...prev, { id: mkId(), role: 'assistant', content, timestamp: Date.now() }]);
-        setMessages(prev => [...prev, { id: mkId(), role: 'assistant', content, timestamp: Date.now() }]);
+        updateAssistant({ content, isThinking: false });
       } else if (isMaintenance && context.type === 'maintenance') {
         // Use maintenance-priority API
         const hazardIds = context.hazardIds || [];
@@ -554,18 +569,16 @@ export function AgentChatPanel({ contextType, context = {}, availableSessions = 
           const retryAfter = retryAfterHeader > 0
             ? retryAfterHeader
             : Math.ceil(Number(data.retryAfter || 60000) / 1000);
-          setMessages(prev => [...prev, { 
-            id: mkId(), 
-            role: 'assistant', 
-            content: `${data.error}\n\nPlease wait ${retryAfter} seconds before trying again.`, 
-            timestamp: Date.now() 
-          }]);
+          updateAssistant({
+            content: `${data.error}\n\nPlease wait ${retryAfter} seconds before trying again.`,
+            isThinking: false,
+          });
           return;
         }
         
         const data = await res.json();
         const content = data.analysis ?? data.message ?? JSON.stringify(data);
-        setMessages(prev => [...prev, { id: mkId(), role: 'assistant', content, timestamp: Date.now() }]);
+        updateAssistant({ content, isThinking: false });
       } else {
         // Auto-attach current diff context if viewing a diff
         const attachCtx = attachments.reduce<Record<string, any>>((acc, a) => ({ ...acc, ...a.data }), {});
@@ -612,26 +625,16 @@ Use this context to answer questions about the infrastructure changes between th
           const retryAfter = retryAfterHeader > 0
             ? retryAfterHeader
             : Math.ceil(Number(data.retryAfter || 60000) / 1000);
-          setMessages(prev => [...prev, { 
-            id: mkId(), 
-            role: 'assistant', 
-            content: `${data.error}\n\nPlease wait ${retryAfter} seconds before trying again.`, 
-            timestamp: Date.now() 
-          }]);
+          updateAssistant({
+            content: `${data.error}\n\nPlease wait ${retryAfter} seconds before trying again.`,
+            isThinking: false,
+          });
           return;
         }
         
         const data = await res.json();
         const rawTraces: any[] = data.traces ?? data.thinking ?? [];
         const thinkStart = Date.now();
-
-        // Add assistant placeholder immediately so the thinking section appears
-        const assistantId = mkId();
-        setMessages(prev => [...prev, {
-          id: assistantId, role: 'assistant', content: '',
-          timestamp: Date.now(), traces: [],
-          isThinking: rawTraces.length > 0,
-        }]);
 
         // Auto-expand trace section while thinking is in progress
         if (rawTraces.length > 0) {
@@ -653,11 +656,21 @@ Use this context to answer questions about the infrastructure changes between th
 
         const content = data.content ?? data.message ?? JSON.stringify(data);
         const thinkDuration = Date.now() - thinkStart;
-        setMessages(prev => prev.map(m =>
-          m.id === assistantId
-            ? { ...m, content, isThinking: false, thinkDuration }
-            : m
-        ));
+
+        // Parse hazard cards from response and fire map highlight event
+        const parsedHazards = parseHazardsFromResponse(content);
+        const isUrgentQuery = /urgent|attention|priorit|critical/i.test(text);
+        if (parsedHazards.length > 0 && isUrgentQuery) {
+          const top = parsedHazards.find(h => h.lat !== 0 && h.lon !== 0);
+          window.dispatchEvent(new CustomEvent('vigia-agent-highlight', {
+            detail: {
+              hazardIds: parsedHazards.map(h => h.hazardId),
+              top: top ? { lat: top.lat, lon: top.lon } : undefined,
+            },
+          }));
+        }
+
+        updateAssistant({ content, isThinking: false, thinkDuration, hazards: parsedHazards.length > 0 && isUrgentQuery ? parsedHazards : undefined });
 
         // Auto-collapse traces ~1 s after answer lands
         if (rawTraces.length > 0) {
@@ -668,22 +681,26 @@ Use this context to answer questions about the infrastructure changes between th
       }
     } catch (err: any) {
       if (err instanceof AgentRateLimitedError) {
-        setMessages(prev => [...prev, {
-          id: mkId(),
-          role: 'assistant',
+        updateAssistant({
           content: err.message,
-          timestamp: Date.now(),
-        }]);
+          isThinking: false,
+        });
       } else {
-        setMessages(prev => [...prev, {
-          id: mkId(),
+        updateAssistant({
           role: 'error',
           content: 'Request failed — check your connection.',
-          timestamp: Date.now(),
-        }]);
+          isThinking: false,
+        });
       }
     } finally {
       setLoading(false);
+    }
+  };
+
+  const handleKeyDown = (e: React.KeyboardEvent<HTMLTextAreaElement>) => {
+    if (e.key === 'Enter' && !e.shiftKey) {
+      e.preventDefault();
+      sendQuery();
     }
   };
 
@@ -755,10 +772,11 @@ Use this context to answer questions about the infrastructure changes between th
       <div style={{
         width: panelWidth, flexShrink: 0,
         display: 'flex', flexDirection: 'column',
-        borderLeft: '1px solid var(--c-border)',
+        borderLeft: '1px solid var(--v-border-default)',
         background: 'var(--c-panel)',
         position: 'relative',
         overflow: 'hidden',
+        padding: 8,
       }}>
         {/* ── Drag handle — left edge ─────────────────────────────────────── */}
         <div
@@ -776,479 +794,468 @@ Use this context to answer questions about the infrastructure changes between th
           }}
         />
 
-        {/* ── Header ─────────────────────────────────────────────────────── */}
         <div style={{
-          height: 36, flexShrink: 0,
-          paddingLeft: 14, paddingRight: 6,
-          display: 'flex', alignItems: 'center', justifyContent: 'space-between',
-          borderBottom: '1px solid var(--c-border)',
-          background: 'var(--c-sidebar)',
+          flex: 1,
+          display: 'flex',
+          flexDirection: 'column',
+          background: 'var(--v-hover)',
+          border: '1px solid var(--v-border-default)',
+          borderBottom: 'none',
+          borderTopLeftRadius: 12,
+          borderTopRightRadius: 12,
+          borderBottomLeftRadius: 0,
+          borderBottomRightRadius: 0,
+          overflow: 'hidden',
         }}>
-          <span style={{
-            fontSize: '0.60rem', fontWeight: 600,
-            color: 'var(--c-rose-2)', fontFamily: SANS,
-            letterSpacing: '0.06em', textTransform: 'uppercase',
+          {/* ── Header ─────────────────────────────────────────────────────── */}
+          <div style={{
+            height: 36, flexShrink: 0,
+            paddingLeft: 14, paddingRight: 6,
+            display: 'flex', alignItems: 'center', justifyContent: 'space-between',
+            borderBottom: '1px solid var(--v-border-default)',
           }}>
-            {CONTEXT_LABELS[contextType]}
-          </span>
-
-          <div style={{ display: 'flex', alignItems: 'center' }}>
-            {/* New chat button */}
-            <button
-              onClick={clearHistory}
-              title="New chat"
-              style={{
-                width: 22, height: 22,
-                display: 'flex', alignItems: 'center', justifyContent: 'center',
-                background: 'transparent', border: 'none',
-                cursor: 'pointer', color: 'var(--c-text-3)',
-                borderRadius: 3,
-                transition: 'background 0.12s, color 0.12s',
-              }}
-              onMouseEnter={(e) => {
-                const el = e.currentTarget as HTMLElement;
-                el.style.background = 'var(--c-rose-dim)';
-                el.style.color      = 'var(--c-red)';
-              }}
-              onMouseLeave={(e) => {
-                const el = e.currentTarget as HTMLElement;
-                el.style.background = 'transparent';
-                el.style.color      = 'var(--c-text-3)';
-              }}
-            >
-              <svg width="11" height="11" viewBox="0 0 24 24" fill="none"
-                stroke="currentColor" strokeWidth="2"
-                strokeLinecap="round" strokeLinejoin="round">
-                <polyline points="3 6 5 6 21 6" />
-                <path d="M19 6l-1 14H6L5 6" />
-                <path d="M10 11v6M14 11v6" />
-                <path d="M9 6V4h6v2" />
-              </svg>
-            </button>
-            {/* Collapse button */}
-            <button
-              onClick={() => setCollapsed(true)}
-              title="Collapse panel"
-              style={{
-                width: 22, height: 22,
-                display: 'flex', alignItems: 'center', justifyContent: 'center',
-                background: 'transparent', border: 'none',
-                cursor: 'pointer', color: 'var(--c-text-3)',
-                fontSize: '0.8rem', borderRadius: 3,
-                transition: 'background 0.12s, color 0.12s',
-              }}
-              onMouseEnter={(e) => {
-                const el = e.currentTarget as HTMLElement;
-                el.style.background = 'var(--c-hover)';
-                el.style.color      = 'var(--c-text)';
-              }}
-              onMouseLeave={(e) => {
-                const el = e.currentTarget as HTMLElement;
-                el.style.background = 'transparent';
-                el.style.color      = 'var(--c-text-3)';
-              }}
-            >
-              ›
-            </button>
-          </div>
-        </div>
-
-        {/* ── Message list ───────────────────────────────────────────────── */}
-        <div style={{
-          flex: 1, overflowY: 'auto',
-          padding: '10px 10px 6px 14px',
-          display: 'flex', flexDirection: 'column', gap: 8,
-        }}>
-          {messages.length === 0 && (
-            <div style={{
-              color: 'var(--c-text-3)', fontSize: '0.64rem',
-              fontFamily: SANS, textAlign: 'center',
-              marginTop: 20, lineHeight: 1.85,
+            <span style={{
+              fontSize: '0.60rem', fontWeight: 600,
+              color: 'var(--c-rose-2)', fontFamily: SANS,
+              letterSpacing: '0.06em', textTransform: 'uppercase',
             }}>
-              Ask anything about<br />
-              <span style={{ color: 'var(--c-rose-2)' }}>
-                {CONTEXT_LABELS[contextType].toLowerCase()}
-              </span>
-            </div>
-          )}
+              {CONTEXT_LABELS[contextType]}
+            </span>
 
-          {messages.map((m) => (
-            <div key={m.id} style={{
-              display: 'flex', flexDirection: 'column',
-              alignItems: m.role === 'user' ? 'flex-end' : 'flex-start',
-              gap: 4,
-            }}>
-
-              {/* ── Thinking traces (assistant only) ──────────────────── */}
-              {m.role === 'assistant' && (m.traces?.length ?? 0) > 0 && (
-                <div style={{
-                  maxWidth: '93%',
-                  border: '1px solid var(--c-border)',
-                  borderRadius: 5, overflow: 'hidden',
-                }}>
-                  {/* Header — click to expand/collapse */}
-                  <button
-                    onClick={() => setExpandedTraces(prev => {
-                      const n = new Set(prev);
-                      n.has(m.id) ? n.delete(m.id) : n.add(m.id);
-                      return n;
-                    })}
-                    style={{
-                      width: '100%', padding: '5px 9px',
-                      display: 'flex', alignItems: 'center', gap: 6,
-                      background: 'var(--c-elevated)',
-                      border: 'none', cursor: 'pointer',
-                      color: 'var(--c-text-3)',
-                      fontFamily: SANS, fontSize: '0.59rem',
-                      textAlign: 'left',
-                    }}
-                  >
-                    {/* Spinner while active, chevron when done */}
-                    {m.isThinking ? (
-                      <svg
-                        width="11" height="11" viewBox="0 0 11 11"
-                        style={{ animation: 'agent-spin 1s linear infinite', flexShrink: 0 }}
-                      >
-                        <circle cx="5.5" cy="5.5" r="4" fill="none"
-                          stroke="var(--c-text-3)" strokeWidth="1.4"
-                          strokeDasharray="9 5" />
-                      </svg>
-                    ) : (
-                      <svg
-                        width="8" height="8" viewBox="0 0 8 8"
-                        style={{
-                          flexShrink: 0,
-                          transform: expandedTraces.has(m.id) ? 'rotate(90deg)' : 'rotate(0deg)',
-                          transition: 'transform 0.15s',
-                        }}
-                      >
-                        <path d="M2 1.5l3.5 3L2 7"
-                          fill="none" stroke="var(--c-text-3)" strokeWidth="1.2"
-                          strokeLinecap="round" strokeLinejoin="round" />
-                      </svg>
-                    )}
-                    <span style={{ color: m.isThinking ? 'var(--c-text-3)' : 'var(--c-text-2)' }}>
-                      {m.isThinking
-                        ? 'Thinking…'
-                        : `Thought for ${((m.thinkDuration ?? 0) / 1000).toFixed(1)}s`
-                      }
-                    </span>
-                  </button>
-
-                  {/* Traces body */}
-                  {expandedTraces.has(m.id) && (
-                    <div style={{
-                      padding: '8px 10px',
-                      background: 'var(--c-bg)',
-                      display: 'flex', flexDirection: 'column', gap: 7,
-                      maxHeight: 240, overflowY: 'auto',
-                      borderTop: '1px solid var(--c-border)',
-                    }}>
-                      {m.traces!.map((t, ti) => {
-                        const isActiveTrace = m.isThinking && ti === m.traces!.length - 1;
-                        return (
-                          <div key={t.id} style={{
-                            fontSize: '0.60rem', lineHeight: 1.6,
-                            fontFamily: MONO,
-                            wordBreak: 'break-word',
-                            ...(isActiveTrace ? {
-                              background:
-                                'linear-gradient(90deg, var(--c-text-3) 20%, var(--c-text-2) 50%, var(--c-text-3) 80%)',
-                              backgroundSize: '200% auto',
-                              WebkitBackgroundClip: 'text',
-                              WebkitTextFillColor: 'transparent',
-                              backgroundClip: 'text',
-                              animation: 'agent-shimmer 2.2s linear infinite',
-                            } : {
-                              color: 'var(--c-text-3)',
-                            }),
-                          }}>
-                            {t.text}
-                          </div>
-                        );
-                      })}
-                    </div>
-                  )}
-                </div>
-              )}
-
-              {/* ── Main content bubble ───────────────────────────────── */}
-              {(m.content || m.role === 'user' || m.role === 'error') && (
-                <div style={{
-                  maxWidth: '93%', padding: '6px 9px', borderRadius: 4,
-                  fontSize: '0.65rem', fontFamily: MONO, lineHeight: 1.6,
-                  background:
-                    m.role === 'user'  ? 'var(--c-rose-dim)'    :
-                    m.role === 'error' ? 'rgba(255,60,50,0.08)' :
-                                         'var(--c-elevated)',
-                  color:
-                    m.role === 'user'  ? 'var(--c-rose-2)' :
-                    m.role === 'error' ? 'var(--c-red)'    :
-                    m.isThinking       ? 'var(--c-text-3)' :
-                                         'var(--c-text)',
-                  border: `1px solid ${
-                    m.role === 'user'  ? 'var(--c-rose-border)' :
-                    m.role === 'error' ? 'rgba(255,60,50,0.25)' :
-                                         'var(--c-border)'
-                  }`,
-                  whiteSpace: 'pre-wrap', wordBreak: 'break-word',
-                }}>
-                  {m.role === 'assistant' ? renderMarkdown(m.content) : m.content}
-                </div>
-              )}
-            </div>
-          ))}
-
-          {/* Spinner only for contexts that have no inline trace streaming */}
-          {loading && !messages.some(m => m.isThinking) && (
-            <div style={{ display: 'flex', gap: 6, alignItems: 'center', padding: '4px 0' }}>
-              <svg
-                width="12" height="12" viewBox="0 0 12 12"
-                style={{ animation: 'agent-spin 1s linear infinite', flexShrink: 0 }}
-              >
-                <circle cx="6" cy="6" r="4.5" fill="none"
-                  stroke="var(--c-text-3)" strokeWidth="1.5"
-                  strokeDasharray="10 4" />
-              </svg>
-              <span style={{ fontSize: '0.59rem', color: 'var(--c-text-3)', fontFamily: SANS }}>
-                thinking
-              </span>
-            </div>
-          )}
-
-          <div ref={messagesEndRef} />
-        </div>
-
-        {/* ── Quick prompts (only on empty state) ───────────────────────── */}
-        {messages.length === 0 && !loading && (
-          <div style={{ padding: '0 10px 8px 14px', display: 'flex', flexDirection: 'column', gap: 4 }}>
-            {QUICK_PROMPTS[contextType].map((p, i) => (
+            <div style={{ display: 'flex', alignItems: 'center' }}>
+              {/* New chat button */}
               <button
-                key={i}
-                onClick={() => sendQuery(p)}
-                disabled={loading || isRateLimited}
+                onClick={clearHistory}
+                title="New chat"
                 style={{
-                  textAlign: 'left', padding: '5px 8px', borderRadius: 3,
-                  background: 'transparent',
-                  border: '1px solid var(--c-border)',
-                  cursor: loading || isRateLimited ? 'not-allowed' : 'pointer',
-                  color: loading || isRateLimited ? 'var(--c-text-3)' : 'var(--c-text-3)',
-                  fontSize: '0.60rem', fontFamily: SANS,
+                  width: 22, height: 22,
+                  display: 'flex', alignItems: 'center', justifyContent: 'center',
+                  background: 'transparent', border: 'none',
+                  cursor: 'pointer', color: 'var(--c-text-3)',
+                  borderRadius: 3,
+                  transition: 'background 0.12s, color 0.12s',
+                }}
+                onMouseEnter={(e) => {
+                  const el = e.currentTarget as HTMLElement;
+                  el.style.background = 'var(--c-rose-dim)';
+                  el.style.color      = 'var(--c-red)';
+                }}
+                onMouseLeave={(e) => {
+                  const el = e.currentTarget as HTMLElement;
+                  el.style.background = 'transparent';
+                  el.style.color      = 'var(--c-text-3)';
+                }}
+              >
+                <svg width="11" height="11" viewBox="0 0 24 24" fill="none"
+                  stroke="currentColor" strokeWidth="2"
+                  strokeLinecap="round" strokeLinejoin="round">
+                  <polyline points="3 6 5 6 21 6" />
+                  <path d="M19 6l-1 14H6L5 6" />
+                  <path d="M10 11v6M14 11v6" />
+                  <path d="M9 6V4h6v2" />
+                </svg>
+              </button>
+              {/* Collapse button */}
+              <button
+                onClick={() => setCollapsed(true)}
+                title="Collapse panel"
+                style={{
+                  width: 22, height: 22,
+                  display: 'flex', alignItems: 'center', justifyContent: 'center',
+                  background: 'transparent', border: 'none',
+                  cursor: 'pointer', color: 'var(--c-text-3)',
+                  fontSize: '0.8rem', borderRadius: 3,
                   transition: 'background 0.12s, color 0.12s, border-color 0.12s',
                 }}
                 onMouseEnter={(e) => {
-                  if (loading || isRateLimited) return;
                   const el = e.currentTarget as HTMLElement;
-                  el.style.borderColor = 'var(--c-rose-border)';
-                  el.style.color       = 'var(--c-rose-2)';
-                  el.style.background  = 'var(--c-rose-dim)';
+                  el.style.background = 'var(--c-hover)';
+                  el.style.color      = 'var(--c-text)';
                 }}
                 onMouseLeave={(e) => {
-                  if (loading || isRateLimited) return;
                   const el = e.currentTarget as HTMLElement;
-                  el.style.borderColor = 'var(--c-border)';
-                  el.style.color       = 'var(--c-text-3)';
-                  el.style.background  = 'transparent';
+                  el.style.background = 'transparent';
+                  el.style.color      = 'var(--c-text-3)';
                 }}
               >
-                {p}
+                ›
               </button>
-            ))}
+            </div>
           </div>
-        )}
 
-        {/* ── Input row ──────────────────────────────────────────────────── */}
-        <div style={{
-          padding: '6px 10px 10px 14px',
-          borderTop: '1px solid var(--c-border)',
-          flexShrink: 0, position: 'relative',
-        }}>
-
-          {/* ── Attach menu popover ─────────────────────────────────────── */}
-          {showAttachMenu && (
-            <div ref={attachMenuRef} style={{
-              position: 'absolute', bottom: 'calc(100% + 4px)',
-              left: 0, right: 0,
-              background: 'var(--c-elevated)',
-              border: '1px solid var(--c-border)',
-              borderRadius: 5, overflow: 'hidden',
-              boxShadow: '0 6px 24px rgba(0,0,0,0.4)',
-              zIndex: 200,
-            }}>
-              <div style={{
-                padding: '5px 10px 3px',
-                fontSize: '0.54rem', color: 'var(--c-text-3)',
-                fontFamily: SANS, letterSpacing: '0.08em', textTransform: 'uppercase',
-              }}>
-                Add context
-              </div>
-              {attachOptions.length === 0 ? (
-                <div style={{ padding: '6px 10px 8px', fontSize: '0.60rem', color: 'var(--c-text-3)', fontFamily: MONO }}>
-                  No sessions available
+          {/* ── Message list ───────────────────────────────────────────────── */}
+          <div style={{
+            flex: 1, overflowY: 'auto',
+            padding: '12px 14px 2px',
+            display: 'flex', flexDirection: 'column', gap: 10,
+          }}>
+            {messages.length === 0 && (
+              <>
+                <div style={{
+                  color: 'var(--c-text-3)', fontSize: '0.64rem',
+                  fontFamily: SANS, textAlign: 'center',
+                  marginTop: 20, lineHeight: 1.85,
+                }}>
+                  Ask anything about<br />
+                  <span style={{ color: 'var(--c-rose-2)' }}>
+                    {CONTEXT_LABELS[contextType].toLowerCase()}
+                  </span>
                 </div>
-              ) : attachOptions.map(opt => {
-                const already = attachments.some(a => a.id === opt.id);
-                return (
-                  <button
-                    key={opt.id}
-                    onClick={() => {
-                      if (!already) setAttachments(prev => [...prev, opt]);
-                      setShowAttachMenu(false);
-                    }}
+                <div style={{ padding: '10px 4px 0', display: 'flex', flexDirection: 'column', gap: 6 }}>
+                  {(QUICK_PROMPTS[contextType] ?? []).map(p => (
+                    <button
+                      key={p}
+                      onClick={() => sendQuery(p)}
+                      style={{
+                        width: '100%',
+                        padding: '6px 8px',
+                        fontSize: '0.64rem',
+                        fontFamily: SANS,
+                        color: 'var(--c-text-2)',
+                        background: 'var(--c-panel)',
+                        border: '1px solid var(--v-border-default)',
+                        borderRadius: 4,
+                        textAlign: 'left',
+                        cursor: 'pointer',
+                        transition: 'background 120ms, border-color 120ms',
+                      }}
+                      onMouseEnter={(e) => {
+                        e.currentTarget.style.background = 'var(--c-hover-md)';
+                        e.currentTarget.style.borderColor = 'var(--c-border-md)';
+                      }}
+                      onMouseLeave={(e) => {
+                        e.currentTarget.style.background = 'var(--c-panel)';
+                        e.currentTarget.style.borderColor = 'var(--v-border-default)';
+                      }}
+                    >
+                      {p}
+                    </button>
+                  ))}
+                </div>
+              </>
+            )}
+            {messages.map((m) => (
+              <div key={m.id} style={{
+                display: 'flex', flexDirection: 'column',
+                alignItems: m.role === 'user' ? 'flex-end' : 'flex-start',
+                gap: 6,
+              }}>
+
+                {/* ── Thinking traces (assistant only) ──────────────────── */}
+                {m.role === 'assistant' && (m.isThinking || (m.traces?.length ?? 0) > 0) && (
+                  <div style={{ padding: '0 0 2px 0' }}>
+                    {m.isThinking ? (
+                      <div style={{ display: 'flex', alignItems: 'center', gap: 6 }}>
+                        <img
+                          src="/logo.svg"
+                          alt="VIGIA"
+                          style={{ width: 14, height: 14, opacity: 0.7 }}
+                        />
+                        <svg
+                          width="12"
+                          height="12"
+                          viewBox="0 0 16 16"
+                          xmlns="http://www.w3.org/2000/svg"
+                          style={{ animation: 'agent-spin 1s linear infinite' }}
+                        >
+                          <path
+                            fill="var(--c-text-3)"
+                            d="M8 16a8 8 0 1 0 0-16a8 8 0 0 0 0 16Zm0-2a6 6 0 1 1 0-12a6 6 0 0 1 0 12Z"
+                            opacity=".25"
+                          />
+                          <path
+                            fill="var(--c-text-2)"
+                            d="M8 0a8 8 0 0 1 8 8h-2a6 6 0 0 0-6-6V0Z"
+                          />
+                        </svg>
+                      </div>
+                    ) : (
+                      <div>
+                        <div style={{ display: 'flex', alignItems: 'center', gap: 6 }}>
+                          <img
+                            src="/logo.svg"
+                            alt="VIGIA"
+                            style={{ width: 14, height: 14, opacity: 0.7 }}
+                          />
+                          <button
+                            onClick={() => setExpandedTraces(prev => {
+                              const next = new Set(prev);
+                              next.has(m.id) ? next.delete(m.id) : next.add(m.id);
+                              return next;
+                            })}
+                            style={{ background: 'none', border: 'none', cursor: 'pointer', display: 'flex', alignItems: 'center', gap: 6, padding: 0, color: 'var(--c-text-3)', fontSize: '0.6rem', fontFamily: SANS }}
+                          >
+                            <span style={{ fontSize: '0.5rem' }}>{expandedTraces.has(m.id) ? '▼' : '▶'}</span>
+                            {`${m.traces?.length ?? 0} reasoning steps`}
+                          </button>
+                        </div>
+                        {expandedTraces.has(m.id) && (
+                          <div style={{ marginTop: 6, display: 'flex', flexDirection: 'column', gap: 4, borderLeft: '1px solid var(--v-border-subtle)', paddingLeft: 10 }}>
+                            {m.traces?.map((tr, i) => (
+                              <div key={tr.id} style={{ fontSize: '0.62rem', fontFamily: MONO, color: 'var(--c-text-3)', lineHeight: 1.5 }}>
+                                <span style={{ color: 'var(--c-text-4)', marginRight: 6 }}>{i + 1}.</span>
+                                {tr.text}
+                              </div>
+                            ))}
+                          </div>
+                        )}
+                      </div>
+                    )}
+                  </div>
+                )}
+
+                {/* ── Message content ─────────────────────────────────── */}
+                <div style={{ display: 'flex', alignItems: 'flex-start', gap: 8 }}>
+                  <div
+                    className={m.role === 'user' ? 'user-message' : 'assistant-message'}
                     style={{
-                      width: '100%', textAlign: 'left',
-                      padding: '5px 10px',
-                      background: already ? 'var(--c-rose-dim)' : 'transparent',
-                      border: 'none', borderTop: '1px solid var(--c-border)',
-                      cursor: already ? 'default' : 'pointer',
-                      color: already ? 'var(--c-rose-2)' : 'var(--c-text-2)',
-                      fontFamily: SANS, fontSize: '0.62rem',
-                      display: 'flex', alignItems: 'center', gap: 6,
-                    }}
-                    onMouseEnter={(e) => {
-                      if (!already) (e.currentTarget as HTMLElement).style.background = 'var(--c-hover)';
-                    }}
-                    onMouseLeave={(e) => {
-                      if (!already) (e.currentTarget as HTMLElement).style.background = 'transparent';
+                      padding: m.role === 'user' ? '8px 12px' : '8px 12px',
+                      borderRadius: 8,
+                      fontSize: '0.7rem',
+                      lineHeight: 1.7,
+                      border: m.role === 'user' ? '1px solid var(--v-border-default)' : '1px solid transparent',
+                      background: m.role === 'user' ? 'var(--c-panel)' : 'var(--c-bg-card)',
+                      color: 'var(--c-text-2)',
+                      fontFamily: SANS,
+                      marginLeft: m.role === 'user' ? '32px' : 0,
+                      whiteSpace: 'pre-wrap',
+                      wordBreak: 'break-word',
                     }}
                   >
-                    {already && (
-                      <svg width="9" height="9" viewBox="0 0 24 24" fill="none"
-                        stroke="currentColor" strokeWidth="2.5"
-                        strokeLinecap="round" strokeLinejoin="round">
-                        <polyline points="20 6 9 17 4 12" />
-                      </svg>
+                    {m.role === 'assistant' && m.isThinking && !m.content ? (
+                      <div style={{ display: 'flex', flexDirection: 'column', gap: 6, minWidth: 180 }}>
+                        <Skeleton width="85%" height={10} />
+                        <Skeleton width="70%" height={10} />
+                        <Skeleton width="55%" height={10} />
+                      </div>
+                    ) : (
+                      m.role === 'assistant' ? renderMarkdown(m.content) : m.content
                     )}
-                    {opt.label}
-                  </button>
-                );
-              })}
-            </div>
-          )}
+                    {/* ── Hazard cards ── */}
+                    {m.hazards && m.hazards.length > 0 && (
+                      <div style={{ marginTop: 10, display: 'flex', flexDirection: 'column', gap: 6 }}>
+                        {m.hazards.map((h, i) => (
+                          <button
+                            key={h.hazardId}
+                            onClick={() => {
+                              window.dispatchEvent(new CustomEvent('vigia-agent-highlight', {
+                                detail: {
+                                  hazardIds: [h.hazardId],
+                                  top: h.lat !== 0 ? { lat: h.lat, lon: h.lon } : undefined,
+                                },
+                              }));
+                            }}
+                            style={{
+                              display: 'flex', alignItems: 'center', justifyContent: 'space-between',
+                              padding: '7px 10px', borderRadius: 8, cursor: 'pointer', textAlign: 'left',
+                              border: '1px solid color-mix(in srgb, #ff2d55 35%, var(--v-border-subtle))',
+                              background: 'color-mix(in srgb, #ff2d55 8%, var(--c-panel))',
+                              color: 'var(--c-text-2)', fontFamily: MONO, fontSize: '0.65rem',
+                              transition: 'background 0.12s',
+                            }}
+                            onMouseEnter={e => (e.currentTarget.style.background = 'color-mix(in srgb, #ff2d55 16%, var(--c-panel))')}
+                            onMouseLeave={e => (e.currentTarget.style.background = 'color-mix(in srgb, #ff2d55 8%, var(--c-panel))')}
+                          >
+                            <span>
+                              <span style={{ color: '#ff2d55', marginRight: 6 }}>#{i + 1}</span>
+                              {h.hazardType}
+                              {h.lat !== 0 && <span style={{ color: 'var(--c-text-3)', marginLeft: 8 }}>{h.lat.toFixed(4)}, {h.lon.toFixed(4)}</span>}
+                            </span>
+                            <span style={{ color: '#ff2d55', fontWeight: 700 }}>P{Math.round(h.priority)}</span>
+                          </button>
+                        ))}
+                      </div>
+                    )}
+                  </div>
+                </div>
+              </div>
+            ))}
+            <div ref={messagesEndRef} />
+          </div>
 
-          {/* ── Attachment chips ────────────────────────────────────────── */}
+          {/* Spinner only for contexts that have no inline trace streaming */}
+
+
+        </div>
+
+        {/* ── Input area ─────────────────────────────────────────────────── */}
+        <div style={{
+          padding: '6px 10px 8px',
+          border: '1px solid var(--v-border-default)',
+          background: 'var(--v-hover)',
+          display: 'flex',
+          flexDirection: 'column',
+          gap: 6,
+          minHeight: 36,
+          borderTopLeftRadius: 0,
+          borderTopRightRadius: 0,
+          borderBottomLeftRadius: 12,
+          borderBottomRightRadius: 12,
+        }}>
+          {/* Attachments */}
           {attachments.length > 0 && (
-            <div style={{ display: 'flex', flexWrap: 'wrap', gap: 4, marginBottom: 6 }}>
+            <div style={{ display: 'flex', flexWrap: 'wrap', gap: 5, marginBottom: 6 }}>
               {attachments.map(a => (
                 <div key={a.id} style={{
-                  display: 'flex', alignItems: 'center', gap: 3,
-                  padding: '2px 5px 2px 7px',
-                  background: 'var(--c-rose-dim)',
-                  border: '1px solid var(--c-rose-border)',
-                  borderRadius: 10,
-                  fontSize: '0.57rem', fontFamily: SANS, color: 'var(--c-rose-2)',
+                  display: 'flex', alignItems: 'center', gap: 4,
+                  background: 'var(--c-panel)',
+                  border: '1px solid var(--v-border-default)',
+                  borderRadius: 3, padding: '2px 5px',
+                  fontSize: '0.6rem', fontFamily: SANS,
+                  color: 'var(--c-text-2)',
                 }}>
-                  <svg width="8" height="8" viewBox="0 0 24 24" fill="none"
-                    stroke="currentColor" strokeWidth="2"
-                    strokeLinecap="round" strokeLinejoin="round">
-                    <path d="M21.44 11.05l-9.19 9.19a6 6 0 01-8.49-8.49l9.19-9.19a4 4 0 015.66 5.66l-9.2 9.19a2 2 0 01-2.83-2.83l8.49-8.48" />
-                  </svg>
-                  {a.label}
+                  <span>{a.label}</span>
                   <button
-                    onClick={() => setAttachments(prev => prev.filter(x => x.id !== a.id))}
+                    onClick={() => setAttachments(p => p.filter(pa => pa.id !== a.id))}
                     style={{
-                      background: 'none', border: 'none', cursor: 'pointer',
-                      color: 'var(--c-rose-2)', padding: '0 0 0 2px',
-                      fontSize: '0.75rem', lineHeight: 1,
-                      display: 'flex', alignItems: 'center',
+                      background: 'none', border: 'none', padding: 2, cursor: 'pointer',
+                      color: 'var(--c-text-3)', display: 'flex',
                     }}
-                  >×</button>
+                    onMouseEnter={(e) => e.currentTarget.style.color = 'var(--c-red)'}
+                    onMouseLeave={(e) => e.currentTarget.style.color = 'var(--c-text-3)'}
+                  >
+                    <svg width="8" height="8" viewBox="0 0 8 8"><path d="M1 1L7 7M7 1L1 7" stroke="currentColor" strokeWidth="1.5" /></svg>
+                  </button>
                 </div>
               ))}
             </div>
           )}
 
-          <div style={{ display: 'flex', gap: 4, alignItems: 'flex-end' }}>
+          <div style={{
+            display: 'flex',
+            alignItems: 'center',
+            gap: 8,
+            width: '100%',
+          }}>
             {/* Attach button */}
-            <button
-              onClick={() => setShowAttachMenu(v => !v)}
-              title="Add context"
-              disabled={loading || isRateLimited}
-              style={{
-                width: 28, height: 28, flexShrink: 0,
-                display: 'flex', alignItems: 'center', justifyContent: 'center',
-                background: showAttachMenu ? 'var(--c-rose-dim)' : 'transparent',
-                border: `1px solid ${showAttachMenu ? 'var(--c-rose-border)' : 'var(--c-border)'}`,
-                borderRadius: 3, cursor: loading || isRateLimited ? 'not-allowed' : 'pointer',
-                color: showAttachMenu ? 'var(--c-rose-2)' : 'var(--c-text-3)',
-                transition: 'background 0.12s, color 0.12s, border-color 0.12s',
-              }}
-              onMouseEnter={(e) => {
-                if (!showAttachMenu) {
-                  if (loading || isRateLimited) return;
-                  const el = e.currentTarget as HTMLElement;
-                  el.style.borderColor = 'var(--c-rose-border)';
-                  el.style.color       = 'var(--c-rose-2)';
-                  el.style.background  = 'var(--c-rose-dim)';
-                }
-              }}
-              onMouseLeave={(e) => {
-                if (!showAttachMenu) {
-                  if (loading || isRateLimited) return;
-                  const el = e.currentTarget as HTMLElement;
-                  el.style.borderColor = 'var(--c-border)';
-                  el.style.color       = 'var(--c-text-3)';
-                  el.style.background  = 'transparent';
-                }
-              }}
-            >
-              <svg width="13" height="13" viewBox="0 0 24 24" fill="none"
-                stroke="currentColor" strokeWidth="2"
-                strokeLinecap="round" strokeLinejoin="round">
-                <path d="M21.44 11.05l-9.19 9.19a6 6 0 01-8.49-8.49l9.19-9.19a4 4 0 015.66 5.66l-9.2 9.19a2 2 0 01-2.83-2.83l8.49-8.48" />
-              </svg>
-            </button>
+            <div style={{ position: 'relative' }}>
+              <button
+                ref={pinMenuRef as React.RefObject<HTMLButtonElement>}
+                onClick={() => setShowAttachMenu(v => !v)}
+                title="Attach context"
+                style={{
+                  width: 28, height: 28, display: 'flex', alignItems: 'center', justifyContent: 'center',
+                  background: 'transparent', border: '1px solid var(--c-border-1)', cursor: 'pointer',
+                  color: 'var(--c-text-3)', borderRadius: 6,
+                }}
+                onMouseEnter={(e) => e.currentTarget.style.color = 'var(--c-text)'}
+                onMouseLeave={(e) => e.currentTarget.style.color = 'var(--c-text-3)'}
+              >
+                <svg width="14" height="14" viewBox="0 0 14 14" fill="none">
+                  <path d="M6.364 7.636l-2.829 2.829a2.5 2.5 0 103.536 3.536l4.95-4.95a4 4 0 10-5.657-5.657l-5.657 5.657a5.5 5.5 0 107.778 7.778l.707-.707"
+                    stroke="currentColor" strokeWidth="1.2" strokeLinecap="round" />
+                </svg>
+              </button>
+              {/* Attach menu */}
+              {showAttachMenu && (
+                <div
+                  ref={attachMenuRef}
+                  style={{
+                    position: 'absolute',
+                    bottom: 'calc(100% + 4px)',
+                    left: 0,
+                    marginBottom: 4,
+                    width: 200,
+                    maxHeight: 250,
+                    overflowY: 'auto',
+                    background: 'var(--c-bg)',
+                    border: '1px solid var(--c-border)',
+                    borderRadius: 4,
+                    boxShadow: '0 4px 12px #00000044',
+                    zIndex: 100,
+                  }}
+                >
+                  <div style={{
+                    fontSize: '0.6rem',
+                    fontFamily: SANS,
+                    color: 'var(--c-text-3)',
+                    padding: '4px 8px',
+                  }}>
+                    ATTACH CONTEXT
+                  </div>
+                  {(ATTACHMENT_OPTIONS[contextType] ?? []).map(opt => (
+                    <button
+                      key={opt.type}
+                      onClick={() => {
+                        onAttach(opt.type);
+                        setShowAttachMenu(false);
+                      }}
+                      style={{
+                        width: '100%',
+                        display: 'flex',
+                        alignItems: 'center',
+                        gap: 8,
+                        padding: '6px 8px',
+                        background: 'transparent',
+                        border: 'none',
+                        borderRadius: 4,
+                        cursor: 'pointer',
+                        textAlign: 'left',
+                        color: 'var(--c-text-2)',
+                        fontSize: '0.7rem',
+                        fontFamily: SANS,
+                      }}
+                      onMouseEnter={(e) => e.currentTarget.style.background = 'var(--c-hover-sm)'}
+                      onMouseLeave={(e) => e.currentTarget.style.background = 'transparent'}
+                    >
+                      <div style={{ opacity: 0.6 }}>{opt.icon}</div>
+                      <div>{opt.label}</div>
+                    </button>
+                  ))}
+                </div>
+              )}
+            </div>
 
             <textarea
               ref={textareaRef}
               value={query}
-              disabled={loading || isRateLimited}
               onChange={(e) => {
                 setQuery(e.target.value);
                 e.target.style.height = 'auto';
-                e.target.style.height = `${Math.min(e.target.scrollHeight, 100)}px`;
+                e.target.style.height = `${Math.min(e.target.scrollHeight, 120)}px`;
               }}
-              onKeyDown={(e) => {
-                if (e.key === 'Enter' && !e.shiftKey) {
-                  e.preventDefault();
-                  sendQuery();
-                }
-              }}
-              placeholder={isRateLimited ? `Rate limited — try again in ${rateLimitSecondsRemaining}s` : 'Ask the agent…'}
-              rows={1}
+              onKeyDown={handleKeyDown}
+              placeholder="Ask the agent…"
+              disabled={loading || isRateLimited}
               style={{
-                flex: 1, resize: 'none', overflow: 'hidden',
-                minHeight: 30, height: 30, maxHeight: 100,
-                background: 'var(--c-bg)',
-                border: '1px solid var(--c-border)',
-                borderRadius: 3, padding: '5px 8px',
+                flex: 1,
+                border: 'none',
+                background: 'transparent',
+                outline: 'none',
+                resize: 'none',
+                padding: '6px 4px',
+                fontSize: '0.68rem',
+                fontFamily: SANS,
                 color: 'var(--c-text)',
-                fontSize: '0.64rem', fontFamily: SANS,
-                lineHeight: 1.5, outline: 'none',
-                transition: 'border-color 0.15s',
+                maxHeight: 120,
+                lineHeight: 1.5,
               }}
-              onFocus={(e)  => { (e.currentTarget as HTMLElement).style.borderColor = 'var(--c-rose-border)'; }}
-              onBlur={(e)   => { (e.currentTarget as HTMLElement).style.borderColor = 'var(--c-border)'; }}
+              rows={1}
             />
-
-            {/* Send button */}
             <button
-              onClick={() => sendQuery()}
-              disabled={!query.trim() || loading || isRateLimited}
+              onClick={() => sendQuery(query)}
+              disabled={loading || !query.trim() || isRateLimited}
               style={{
-                width: 28, height: 28, flexShrink: 0,
+                width: 28, height: 28,
                 display: 'flex', alignItems: 'center', justifyContent: 'center',
-                background: query.trim() && !loading && !isRateLimited ? 'var(--c-rose-dim)' : 'var(--c-elevated)',
-                border: `1px solid ${query.trim() && !loading && !isRateLimited ? 'var(--c-rose-border)' : 'var(--c-border)'}`,
-                borderRadius: 3,
-                cursor: query.trim() && !loading && !isRateLimited ? 'pointer' : 'not-allowed',
-                color: query.trim() && !loading && !isRateLimited ? 'var(--c-rose-2)' : 'var(--c-text-3)',
-                fontSize: '0.85rem', transition: 'background 0.12s, color 0.12s, border-color 0.12s',
+                background: 'transparent', border: '1px solid var(--c-border-1)',
+                cursor: 'pointer', color: 'var(--c-text-3)',
+                borderRadius: 6,
+                transition: 'color 0.12s, border-color 0.12s',
               }}
+              onMouseEnter={(e) => { if (!loading && query.trim()) e.currentTarget.style.color = 'var(--c-rose-2)'; }}
+              onMouseLeave={(e) => { if (!loading && query.trim()) e.currentTarget.style.color = 'var(--c-text-3)'; }}
             >
-              ↑
+              <svg width="14" height="14" viewBox="0 0 14 14" fill="none">
+                <path d="M13 1L1 6l5 1 1 5 5-11z" stroke="currentColor" strokeWidth="1.2" strokeLinejoin="round" />
+              </svg>
             </button>
           </div>
+          {isRateLimited && (
+            <div style={{ fontSize: '0.58rem', color: 'var(--c-red)', textAlign: 'center', marginTop: 4, fontFamily: SANS }}>
+              Rate limited. Please wait {rateLimitSecondsRemaining}s.
+            </div>
+          )}
         </div>
       </div>
     </>

@@ -169,9 +169,10 @@ export function useSettingsReady() {
 }
 
 const STORAGE_KEY = 'vigia-settings';
+const LOCKED_THEME: Theme = 'light';
 
 const DEFAULTS: AppSettings = {
-  theme:      'light',
+  theme:      LOCKED_THEME,
   mapStyle:   'dark-osm',
   density:    'default',
   showGrid:   false,
@@ -184,7 +185,7 @@ function loadSettings(): AppSettings {
   try {
     const raw = localStorage.getItem(STORAGE_KEY);
     if (!raw) return DEFAULTS;
-    return { ...DEFAULTS, ...JSON.parse(raw) } as AppSettings;
+    return { ...DEFAULTS, ...JSON.parse(raw), theme: LOCKED_THEME } as AppSettings;
   } catch {
     return DEFAULTS;
   }
@@ -223,7 +224,7 @@ export function SettingsProvider({ children }: { children: React.ReactNode }) {
 
   const update = useCallback((partial: Partial<AppSettings>) => {
     setSettings(prev => {
-      const next = { ...prev, ...partial };
+      const next = { ...prev, ...partial, theme: LOCKED_THEME };
       applyToDOM(next);
       try { localStorage.setItem(STORAGE_KEY, JSON.stringify(next)); } catch { /* quota exceeded */ }
       return next;

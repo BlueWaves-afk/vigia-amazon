@@ -102,7 +102,7 @@ Use this checklist before deploying to ensure all integration phases are complet
 
 ### 1. Install Dependencies
 ```bash
-cd /Users/tommathew/Documents/Github\ Repositories/vigia-amazon
+cd <REDACTED_PATH> Repositories/vigia-amazon
 npm install
 ```
 

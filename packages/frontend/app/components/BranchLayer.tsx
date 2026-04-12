@@ -5,6 +5,30 @@ import { useEffect, useRef, useState } from 'react';
 import maplibregl from 'maplibre-gl';
 import type { ScenarioBranch, Hazard } from '@/types/shared';
 
+const getCssVar = (name: string, fallback: string) => {
+  if (typeof window === 'undefined') return fallback;
+  const value = getComputedStyle(document.documentElement).getPropertyValue(name).trim();
+  return value || fallback;
+};
+
+const toRgba = (color: string, alpha: number) => {
+  const c = color.trim();
+  if (c.startsWith('#')) {
+    const hex = c.slice(1);
+    const full = hex.length === 3 ? hex.split('').map(ch => ch + ch).join('') : hex;
+    const num = parseInt(full, 16);
+    const r = (num >> 16) & 255;
+    const g = (num >> 8) & 255;
+    const b = num & 255;
+    return `rgba(${r}, ${g}, ${b}, ${alpha})`;
+  }
+  const rgbMatch = c.match(/^rgb\((\d+),\s*(\d+),\s*(\d+)\)$/i);
+  if (rgbMatch) return `rgba(${rgbMatch[1]}, ${rgbMatch[2]}, ${rgbMatch[3]}, ${alpha})`;
+  const rgbaMatch = c.match(/^rgba\((\d+),\s*(\d+),\s*(\d+),\s*([0-9.]+)\)$/i);
+  if (rgbaMatch) return `rgba(${rgbaMatch[1]}, ${rgbaMatch[2]}, ${rgbaMatch[3]}, ${alpha})`;
+  return c;
+};
+
 export function BranchLayer({ map }: { map: maplibregl.Map | null }) {
   const { files, activeFileId, updateBranchChanges } = useMapFileStore();
   const [routingResults, setRoutingResults] = useState<ScenarioBranch['routingResults'] | null>(null);
@@ -27,7 +51,9 @@ export function BranchLayer({ map }: { map: maplibregl.Map | null }) {
       if (removedIds.has(hazard.id)) {
         // Render removed hazards with strikethrough style
         const el = document.createElement('div');
-        el.style.cssText = 'width:12px;height:12px;border-radius:50%;background:#7A90AA;border:2px dashed rgba(255,255,255,0.3);opacity:0.5;';
+        const removed = getCssVar('--c-text-3', '#7A90AA');
+        const removedBorder = toRgba(getCssVar('--c-text', '#FFFFFF'), 0.3);
+        el.style.cssText = `width:12px;height:12px;border-radius:50%;background:${removed};border:2px dashed ${removedBorder};opacity:0.5;`;
         el.title = `Removed: ${hazard.type}`;
 
         const marker = new maplibregl.Marker({ element: el })
@@ -41,7 +67,10 @@ export function BranchLayer({ map }: { map: maplibregl.Map | null }) {
     // Render added hazards with dashed border
     activeBranch.simulatedChanges.addedHazards.forEach(hazard => {
       const el = document.createElement('div');
-      el.style.cssText = 'width:12px;height:12px;border-radius:50%;background:#5C8FF8;border:2px dashed rgba(255,255,255,0.4);box-shadow:0 0 6px #5C8FF880;';
+      const added = getCssVar('--c-accent-2', '#5C8FF8');
+      const addedBorder = toRgba(getCssVar('--c-text', '#FFFFFF'), 0.4);
+      const addedGlow = toRgba(added, 0.5);
+      el.style.cssText = `width:12px;height:12px;border-radius:50%;background:${added};border:2px dashed ${addedBorder};box-shadow:0 0 6px ${addedGlow};`;
       el.title = `Simulated: ${hazard.type} (Severity ${hazard.severity})`;
 
       const marker = new maplibregl.Marker({ element: el })
@@ -113,7 +142,6 @@ export function BranchLayer({ map }: { map: maplibregl.Map | null }) {
         minWidth: 180,
       }}>
         <div style={{ fontSize: '0.72rem', fontWeight: 600, marginBottom: 8, display: 'flex', alignItems: 'center', gap: 6, color: 'var(--c-text)' }}>
-          <span style={{ fontSize: '0.65rem', color: 'var(--c-green)', fontFamily: "var(--v-font-mono)" }}>⎇</span>
           <span>Branch: {activeBranch.branchName}</span>
         </div>
         <div style={{ fontSize: '0.70rem', color: 'var(--c-text-2)', display: 'flex', flexDirection: 'column', gap: 3, marginBottom: 8 }}>

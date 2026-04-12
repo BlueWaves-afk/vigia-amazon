@@ -127,7 +127,7 @@ export function TreeNodeComponent({ node, selected, expanded, onExpand, onSelect
           <span style={{
             fontSize: '0.56rem', fontWeight: 600, letterSpacing: '0.06em',
             textTransform: 'uppercase', color: 'var(--c-green)',
-            background: 'var(--c-green-dim)', border: '1px solid rgba(52,212,146,0.25)',
+            background: 'var(--c-green-dim)', border: '1px solid var(--c-green)',
             borderRadius: 3, padding: '1px 4px', flexShrink: 0,
             fontFamily: FONT_UI,
           }}>

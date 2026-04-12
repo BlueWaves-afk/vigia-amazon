@@ -2,7 +2,7 @@
 
 ## ✅ Your Deployment
 
-**API Endpoint**: <YOUR_API_GATEWAY_URL>  
+**API Endpoint**: <REDACTED>  
 **Region**: us-east-1  
 **Status**: 🟢 OPERATIONAL
 
@@ -12,7 +12,7 @@
 
 ### 1. Start Frontend
 ```bash
-cd /Users/tommathew/Documents/Github\ Repositories/vigia-amazon/packages/frontend
+cd <REDACTED_PATH> Repositories/vigia-amazon/packages/frontend
 npm run dev
 ```
 
@@ -20,7 +20,7 @@ npm run dev
 http://localhost:3000
 
 ### 3. Upload Files
-1. **Private Key**: `/Users/tommathew/Documents/Github Repositories/vigia-amazon/private-key.pem`
+1. **Private Key**: `<REDACTED_PATH> Repositories/vigia-amazon/private-key.pem`
 2. **Video**: Any dashcam video with potholes
 
 ### 4. Start Detection

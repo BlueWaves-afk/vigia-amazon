@@ -6,6 +6,8 @@ import * as iam from 'aws-cdk-lib/aws-iam';
 import * as sfn from 'aws-cdk-lib/aws-stepfunctions';
 import * as tasks from 'aws-cdk-lib/aws-stepfunctions-tasks';
 import * as location from 'aws-cdk-lib/aws-location';
+import * as ssm from 'aws-cdk-lib/aws-ssm';
+import * as s3 from 'aws-cdk-lib/aws-s3';
 import * as cdk from 'aws-cdk-lib';
 import { Construct } from 'constructs';
 import * as path from 'path';
@@ -17,11 +19,14 @@ export interface IntelligenceStackProps {
   ledgerTable: dynamodb.Table;
   maintenanceQueueTable?: dynamodb.Table;
   economicMetricsTable?: dynamodb.Table;
+  deviceRegistryTable?: dynamodb.Table;
+  framesBucket?: s3.Bucket;
 }
 
 export class IntelligenceStack extends Construct {
   public readonly cooldownTable: dynamodb.Table;
   public readonly tracesTable: dynamodb.Table;
+  public readonly rewardsLedgerTable: dynamodb.Table;
   public readonly bedrockRouterFn: lambda.Function;
   public readonly networkIntelligenceFn?: lambda.Function;
   public readonly maintenanceLogisticsFn?: lambda.Function;
@@ -30,6 +35,8 @@ export class IntelligenceStack extends Construct {
   public readonly geofenceCollection?: location.CfnGeofenceCollection;
   public readonly bedrockAgentConfig?: BedrockAgentConfig;
   public readonly verifyHazardSyncFn?: lambdaNodejs.NodejsFunction;
+  public readonly claimSignatureFn?: lambdaNodejs.NodejsFunction;
+  public readonly rewardsBalanceFn?: lambdaNodejs.NodejsFunction;
 
   constructor(scope: Construct, id: string, props: IntelligenceStackProps) {
     super(scope, id);
@@ -56,6 +63,13 @@ export class IntelligenceStack extends Construct {
       partitionKey: { name: 'hazardId', type: dynamodb.AttributeType.STRING },
       sortKey: { name: 'createdAt', type: dynamodb.AttributeType.STRING },
       projectionType: dynamodb.ProjectionType.ALL,
+    });
+
+    // BME Rewards Ledger (off-chain pending balances)
+    this.rewardsLedgerTable = new dynamodb.Table(this, 'RewardsLedgerTable', {
+      partitionKey: { name: 'wallet_address', type: dynamodb.AttributeType.STRING },
+      billingMode: dynamodb.BillingMode.PAY_PER_REQUEST,
+      removalPolicy: cdk.RemovalPolicy.DESTROY,
     });
 
     // Bedrock Action Router Lambda (Python) - only if hazards table provided
@@ -102,7 +116,8 @@ export class IntelligenceStack extends Construct {
           TRACES_TABLE_NAME: this.tracesTable.tableName,
           HAZARDS_TABLE_NAME: props.hazardsTable.tableName,
           LEDGER_TABLE_NAME: props.ledgerTable.tableName,
-          // Note: BEDROCK_AGENT_ID and BEDROCK_AGENT_ALIAS_ID must be set manually after Agent creation
+          REWARDS_LEDGER_TABLE_NAME: this.rewardsLedgerTable.tableName,
+          FRAMES_BUCKET_NAME: props.framesBucket?.bucketName ?? '',
           BEDROCK_AGENT_ID: process.env.BEDROCK_AGENT_ID || 'placeholder',
           BEDROCK_AGENT_ALIAS_ID: process.env.BEDROCK_AGENT_ALIAS_ID || 'placeholder',
         },
@@ -113,14 +128,13 @@ export class IntelligenceStack extends Construct {
       this.tracesTable.grantWriteData(orchestratorFn);
       props.hazardsTable.grantReadWriteData(orchestratorFn);
       props.ledgerTable.grantWriteData(orchestratorFn);
+      this.rewardsLedgerTable.grantWriteData(orchestratorFn);
+      if (props.framesBucket) props.framesBucket.grantRead(orchestratorFn);
 
-      // Grant Bedrock Agent invocation permission
-      orchestratorFn.addToRolePolicy(
-        new iam.PolicyStatement({
-          actions: ['bedrock:InvokeAgent'],
-          resources: ['*'], // Will be restricted after Agent creation
-        })
-      );
+      orchestratorFn.addToRolePolicy(new iam.PolicyStatement({
+        actions: ['bedrock:InvokeAgent', 'bedrock:InvokeModel'],
+        resources: ['*'],
+      }));
 
       // Add DynamoDB Stream trigger
       orchestratorFn.addEventSource(
@@ -136,28 +150,82 @@ export class IntelligenceStack extends Construct {
         entry: path.join(__dirname, '../../../backend/functions/verify-hazard-sync/index.ts'),
         handler: 'handler',
         runtime: lambda.Runtime.NODEJS_20_X,
-        timeout: cdk.Duration.seconds(25), // Must be < 29s API Gateway limit
+        timeout: cdk.Duration.seconds(29), // Must be < 29s API Gateway limit
         memorySize: 256,
         bundling: {
           externalModules: ['@aws-sdk/*'],
+          // ethers + ethers-aws-kms-signer are bundled inline by esbuild
         },
         environment: {
           TRACES_TABLE_NAME: this.tracesTable.tableName,
           HAZARDS_TABLE_NAME: props.hazardsTable.tableName,
+          LEDGER_TABLE_NAME: props.ledgerTable.tableName,
+          REWARDS_LEDGER_TABLE_NAME: this.rewardsLedgerTable.tableName,
+          DEVICE_REGISTRY_TABLE_NAME: props.deviceRegistryTable?.tableName ?? '',
           BEDROCK_AGENT_ID: 'TAWWC3SQ0L',
           BEDROCK_AGENT_ALIAS_ID: 'TSTALIASID',
+          POLYGON_AMOY_RPC_URL: 'https://rpc-amoy.polygon.technology/',
+          KMS_KEY_ID: ssm.StringParameter.valueForStringParameter(this, '/vigia/KMS_KEY_ID'),
+          VIGIA_CONTRACT_ADDRESS: ssm.StringParameter.valueForStringParameter(this, '/vigia/VIGIA_CONTRACT_ADDRESS'),
         },
       });
 
       // Grant permissions
       this.tracesTable.grantWriteData(this.verifyHazardSyncFn);
       props.hazardsTable.grantWriteData(this.verifyHazardSyncFn);
+      props.ledgerTable.grantWriteData(this.verifyHazardSyncFn);
+      this.rewardsLedgerTable.grantWriteData(this.verifyHazardSyncFn);
+      if (props.deviceRegistryTable) {
+        props.deviceRegistryTable.grantReadData(this.verifyHazardSyncFn);
+      }
       this.verifyHazardSyncFn.addToRolePolicy(
         new iam.PolicyStatement({
           actions: ['bedrock:InvokeAgent'],
           resources: ['*'],
         })
       );
+      this.verifyHazardSyncFn.addToRolePolicy(
+        new iam.PolicyStatement({
+          actions: ['kms:Sign', 'kms:GetPublicKey'],
+          resources: [
+            'arn:aws:kms:us-east-1:203800220566:key/ad6343de-0e67-4502-a230-db2a6210e6a7',
+          ],
+        })
+      );
+
+      // BME Claim Signature Lambda
+      this.claimSignatureFn = new lambdaNodejs.NodejsFunction(this, 'ClaimSignatureFunction', {
+        entry: path.join(__dirname, '../../../backend/functions/claim-signature/index.ts'),
+        handler: 'handler',
+        runtime: lambda.Runtime.NODEJS_20_X,
+        timeout: cdk.Duration.seconds(15),
+        memorySize: 256,
+        bundling: { externalModules: ['@aws-sdk/*'] },
+        environment: {
+          REWARDS_LEDGER_TABLE_NAME: this.rewardsLedgerTable.tableName,
+          KMS_KEY_ID: ssm.StringParameter.valueForStringParameter(this, '/vigia/KMS_KEY_ID'),
+          CHAIN_ID: '80002',
+        },
+      });
+      this.rewardsLedgerTable.grantReadWriteData(this.claimSignatureFn);
+      this.claimSignatureFn.addToRolePolicy(new iam.PolicyStatement({
+        actions: ['kms:Sign', 'kms:GetPublicKey'],
+        resources: [
+          'arn:aws:kms:us-east-1:203800220566:key/ad6343de-0e67-4502-a230-db2a6210e6a7',
+        ],
+      }));
+
+      // BME Rewards Balance Lambda (read-only, no nonce consumption)
+      this.rewardsBalanceFn = new lambdaNodejs.NodejsFunction(this, 'RewardsBalanceFunction', {
+        entry: path.join(__dirname, '../../../backend/functions/rewards-balance/index.ts'),
+        handler: 'handler',
+        runtime: lambda.Runtime.NODEJS_20_X,
+        timeout: cdk.Duration.seconds(10),
+        memorySize: 128,
+        bundling: { externalModules: ['@aws-sdk/*'] },
+        environment: { REWARDS_LEDGER_TABLE_NAME: this.rewardsLedgerTable.tableName },
+      });
+      this.rewardsLedgerTable.grantReadData(this.rewardsBalanceFn);
 
       // ═══════════════════════════════════════════════════════════
       // NEW: Agent Upgrade - 3 Additional Action Group Lambdas

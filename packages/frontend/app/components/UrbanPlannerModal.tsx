@@ -16,7 +16,7 @@ const C = {
   textSec: 'var(--c-text-2)',
   textMut: 'var(--c-text-3)',
   accent: 'var(--c-accent-2)',
-  overlay: 'rgba(0, 0, 0, 0.7)',
+  overlay: 'var(--c-overlay)',
 };
 
 const MONO = 'var(--v-font-mono)';
@@ -310,7 +310,7 @@ export function UrbanPlannerModal({ onClose }: UrbanPlannerModalProps) {
               <div style={{
                 padding: 12,
                 background: 'var(--c-red-dim)',
-                border: '1px solid rgba(240,96,108,0.3)',
+                border: '1px solid color-mix(in srgb, var(--c-red) 30%, transparent)',
                 borderRadius: 4,
                 fontSize: '0.76rem',
                 color: 'var(--c-red)',
