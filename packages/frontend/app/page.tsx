@@ -72,22 +72,10 @@ export default function Dashboard() {
   const [sidebarActivity,    setSidebarActivity]    = useState<'explorer' | 'detection' | 'network' | 'maintenance' | 'enterprise'>('explorer');
   const [showUrbanPlanner,   setShowUrbanPlanner]   = useState(false);
   const [splitView,          setSplitView]          = useState<{ left: any; right: any } | null>(null);
-  const [detectionOnboarded, setDetectionOnboarded] = useState(() => {
-    if (typeof window === 'undefined') return false;
-    try { return localStorage.getItem('vigia:detection:onboarded') === 'true'; } catch { return false; }
-  });
-  const [explorerOnboarded,  setExplorerOnboarded]  = useState(() => {
-    if (typeof window === 'undefined') return false;
-    try { return localStorage.getItem('vigia:explorer:onboarded') === 'true'; } catch { return false; }
-  });
-  const [enterpriseOnboarded, setEnterpriseOnboarded] = useState(() => {
-    if (typeof window === 'undefined') return false;
-    try { return localStorage.getItem('vigia:enterprise:onboarded') === 'true'; } catch { return false; }
-  });
-  const [networkOnboarded,   setNetworkOnboarded]   = useState(() => {
-    if (typeof window === 'undefined') return false;
-    try { return localStorage.getItem('vigia:network:onboarded') === 'true'; } catch { return false; }
-  });
+  const [detectionOnboarded,  setDetectionOnboarded]  = useState(true);
+  const [explorerOnboarded,   setExplorerOnboarded]   = useState(true);
+  const [enterpriseOnboarded, setEnterpriseOnboarded] = useState(true);
+  const [networkOnboarded,    setNetworkOnboarded]    = useState(true);
   // Track which content tab is showing for crossfade key
   const [mainTabKey,         setMainTabKey]         = useState(0);
   const [consoleTabKey,      setConsoleTabKey]      = useState(0);

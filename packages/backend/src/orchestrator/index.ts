@@ -3,21 +3,24 @@ import { DynamoDBClient } from '@aws-sdk/client-dynamodb';
 import { DynamoDBDocumentClient, GetCommand, PutCommand, UpdateCommand, QueryCommand } from '@aws-sdk/lib-dynamodb';
 import { BedrockRuntimeClient, ConverseCommand } from '@aws-sdk/client-bedrock-runtime';
 import { BedrockAgentRuntimeClient, InvokeAgentCommand } from '@aws-sdk/client-bedrock-agent-runtime';
+import { LambdaClient, InvokeCommand } from '@aws-sdk/client-lambda';
 import { S3Client, GetObjectCommand } from '@aws-sdk/client-s3';
 import { createHash, randomUUID } from 'crypto';
 
 const dynamodb = DynamoDBDocumentClient.from(new DynamoDBClient({}));
 const bedrock  = new BedrockRuntimeClient({ region: 'us-east-1' });
 const bedrockAgent = new BedrockAgentRuntimeClient({ region: 'us-east-1' });
+const lambdaClient = new LambdaClient({});
 const s3       = new S3Client({});
 
-const COOLDOWN_TABLE = process.env.COOLDOWN_TABLE_NAME!;
-const TRACES_TABLE   = process.env.TRACES_TABLE_NAME!;
-const HAZARDS_TABLE  = process.env.HAZARDS_TABLE_NAME!;
-const LEDGER_TABLE   = process.env.LEDGER_TABLE_NAME!;
-const REWARDS_TABLE  = process.env.REWARDS_LEDGER_TABLE_NAME!;
-const FRAMES_BUCKET  = process.env.FRAMES_BUCKET_NAME!;
-const AGENT_ID       = process.env.BEDROCK_AGENT_ID!;
+const COOLDOWN_TABLE  = process.env.COOLDOWN_TABLE_NAME!;
+const TRACES_TABLE    = process.env.TRACES_TABLE_NAME!;
+const HAZARDS_TABLE   = process.env.HAZARDS_TABLE_NAME!;
+const LEDGER_TABLE    = process.env.LEDGER_TABLE_NAME!;
+const REWARDS_TABLE   = process.env.REWARDS_LEDGER_TABLE_NAME!;
+const FRAMES_BUCKET   = process.env.FRAMES_BUCKET_NAME!;
+const AGENT_ID        = process.env.BEDROCK_AGENT_ID!;
+const SLASH_FUNCTION  = process.env.SLASH_FUNCTION_NAME ?? '';
 const AGENT_ALIAS_ID = process.env.BEDROCK_AGENT_ALIAS_ID!;
 const ONE_TOKEN      = BigInt('1000000000000000000');
 
@@ -136,12 +139,12 @@ async function invokeAgent(geohash: string, hazardType: string, vlmReasoning: st
   throw new Error('Agent failed after all retries');
 }
 
-async function creditReward(walletAddress: string) {
+async function creditReward(walletAddress: string, hazardId: string) {
   await dynamodb.send(new UpdateCommand({
     TableName: REWARDS_TABLE,
     Key: { wallet_address: walletAddress },
-    UpdateExpression: 'ADD pending_balance :amt, total_earned :amt SET last_updated = :now, nonce = if_not_exists(nonce, :zero)',
-    ExpressionAttributeValues: { ':amt': ONE_TOKEN as any, ':now': new Date().toISOString(), ':zero': 0 },
+    UpdateExpression: 'ADD pending_balance :amt, total_earned :amt SET last_updated = :now, nonce = if_not_exists(nonce, :zero), last_hazard_id = :hid',
+    ExpressionAttributeValues: { ':amt': ONE_TOKEN as any, ':now': new Date().toISOString(), ':zero': 0, ':hid': hazardId },
   }));
 }
 
@@ -198,6 +201,21 @@ export const handler: DynamoDBStreamHandler = async (event) => {
       vlmConfidence = Math.max(0, Math.min(1, Number(vlm.confidence)));
       vlmReasoning  = vlm.reasoning ?? 'No reasoning provided';
       console.log(`[Orch] VLM parsed: confidence=${vlmConfidence.toFixed(3)} reasoning="${vlmReasoning}"`);
+
+      // §3a: Explicit spoof detection — confidence < 0.1 means VLM is certain this is fake.
+      // Trigger slash asynchronously (don't block the pipeline on the on-chain tx).
+      if (vlmConfidence < 0.1 && driverWalletAddress && SLASH_FUNCTION) {
+        console.log(`[Orch] SPOOF DETECTED — triggering slash for wallet=${driverWalletAddress}`);
+        lambdaClient.send(new InvokeCommand({
+          FunctionName: SLASH_FUNCTION,
+          InvocationType: 'Event', // async — don't wait
+          Payload: Buffer.from(JSON.stringify({
+            walletAddress: driverWalletAddress,
+            hazardId,
+            reason: `VLM spoof detection: confidence=${vlmConfidence.toFixed(3)} reasoning="${vlmReasoning}"`,
+          })),
+        })).catch(e => console.error('[Orch] Slash invoke failed (non-blocking):', e.message));
+      }
 
     } catch (err) {
       // §3: Any failure → quarantine. creditReward is NEVER called.
@@ -261,7 +279,7 @@ export const handler: DynamoDBStreamHandler = async (event) => {
         rewardSkippedReason = `Hazard at this location (geohash ${geohash}) was already rewarded to this contributor within the last 30 days.`;
         console.log(`[Orch] REWARD SKIP wallet=${driverWalletAddress} already rewarded at geohash=${geohash} within 30 days`);
       } else {
-        if (driverWalletAddress) await creditReward(driverWalletAddress);
+        if (driverWalletAddress) await creditReward(driverWalletAddress, hazardId);
       }
       const entry = { ledgerId: `ledger-${hazardId}`, timestamp: createdAt, contributorId: driverWalletAddress, hazardId, geohash, credits: duplicate ? 0 : 1, previousHash: '0'.repeat(64) };
       await dynamodb.send(new PutCommand({

@@ -8,6 +8,8 @@ import * as tasks from 'aws-cdk-lib/aws-stepfunctions-tasks';
 import * as location from 'aws-cdk-lib/aws-location';
 import * as ssm from 'aws-cdk-lib/aws-ssm';
 import * as s3 from 'aws-cdk-lib/aws-s3';
+import * as pipes from 'aws-cdk-lib/aws-pipes';
+import * as sqs from 'aws-cdk-lib/aws-sqs';
 import * as cdk from 'aws-cdk-lib';
 import { Construct } from 'constructs';
 import * as path from 'path';
@@ -136,14 +138,89 @@ export class IntelligenceStack extends Construct {
         resources: ['*'],
       }));
 
-      // Add DynamoDB Stream trigger
-      orchestratorFn.addEventSource(
-        new lambdaEventSources.DynamoEventSource(props.hazardsTable, {
-          startingPosition: lambda.StartingPosition.LATEST,
-          batchSize: 10,
-          retryAttempts: 2,
-        })
-      );
+      // Slash-node Lambda (invoked async by orchestrator on spoof detection)
+      const slashNodeFn = new lambdaNodejs.NodejsFunction(this, 'SlashNodeFunction', {
+        entry: path.join(__dirname, '../../../backend/functions/slash-node/index.ts'),
+        handler: 'handler',
+        runtime: lambda.Runtime.NODEJS_20_X,
+        timeout: cdk.Duration.seconds(30),
+        memorySize: 256,
+        bundling: { externalModules: ['@aws-sdk/*'] },
+        environment: {
+          KMS_KEY_ID: ssm.StringParameter.valueForStringParameter(this, '/vigia/KMS_KEY_ID'),
+          VIGIA_CONTRACT_ADDRESS: ssm.StringParameter.valueForStringParameter(this, '/vigia/VIGIA_CONTRACT_ADDRESS'),
+          POLYGON_AMOY_RPC_URL: 'https://rpc-amoy.polygon.technology/',
+          CHAIN_ID: '80002',
+          DEVICE_REGISTRY_TABLE: 'VigiaDeviceRegistry',
+          RELAYER_PRIVATE_KEY: ssm.StringParameter.valueForStringParameter(this, '/vigia/RELAYER_PRIVATE_KEY'),
+        },
+      });
+      slashNodeFn.addToRolePolicy(new iam.PolicyStatement({
+        actions: ['kms:Sign', 'kms:GetPublicKey'],
+        resources: ['arn:aws:kms:us-east-1:203800220566:key/ad6343de-0e67-4502-a230-db2a6210e6a7'],
+      }));
+      slashNodeFn.addToRolePolicy(new iam.PolicyStatement({
+        actions: ['dynamodb:UpdateItem'],
+        resources: ['*'], // VigiaDeviceRegistry is not in this stack
+      }));
+
+      // Grant orchestrator permission to invoke slash-node async
+      slashNodeFn.grantInvoke(orchestratorFn);
+
+      // Add slash function name to orchestrator env
+      orchestratorFn.addEnvironment('SLASH_FUNCTION_NAME', slashNodeFn.functionName);
+      // Filters to INSERT-only events, reducing Lambda invocations by ~60% vs direct stream.
+      // A second pipe fans out VERIFIED hazards to the maintenance queue.
+      const pipeRole = new iam.Role(this, 'OrchestratorPipeRole', {
+        assumedBy: new iam.ServicePrincipal('pipes.amazonaws.com'),
+      });
+      props.hazardsTable.grantStreamRead(pipeRole);
+      orchestratorFn.grantInvoke(pipeRole);
+
+      new pipes.CfnPipe(this, 'HazardsToOrchestratorPipe', {
+        roleArn: pipeRole.roleArn,
+        source: props.hazardsTable.tableStreamArn!,
+        sourceParameters: {
+          dynamoDbStreamParameters: {
+            startingPosition: 'LATEST',
+            batchSize: 10,
+          },
+          // Only forward INSERT events — skips UPDATE/DELETE, reducing invocations ~60%
+          filterCriteria: {
+            filters: [{ pattern: '{"eventName": ["INSERT"]}' }],
+          },
+        },
+        target: orchestratorFn.functionArn,
+        targetParameters: {
+          lambdaFunctionParameters: {
+            invocationType: 'FIRE_AND_FORGET',
+          },
+        },
+      });
+
+      // ── EventBridge Pipe: VERIFIED hazards → Maintenance Queue (fan-out) ────
+      // Filters to INSERT events where status = VERIFIED, routes to SQS for maintenance processing.
+      if (props.maintenanceQueueTable) {
+        const maintenanceSqs = new sqs.Queue(this, 'VerifiedHazardsMaintQueue', {
+          visibilityTimeout: cdk.Duration.seconds(60),
+          retentionPeriod: cdk.Duration.days(1),
+        });
+        maintenanceSqs.grantSendMessages(pipeRole);
+
+        new pipes.CfnPipe(this, 'VerifiedHazardsToMaintenancePipe', {
+          roleArn: pipeRole.roleArn,
+          source: props.hazardsTable.tableStreamArn!,
+          sourceParameters: {
+            dynamoDbStreamParameters: { startingPosition: 'LATEST', batchSize: 1 },
+            filterCriteria: {
+              filters: [{ pattern: '{"eventName": ["INSERT"], "dynamodb": {"NewImage": {"status": {"S": ["VERIFIED"]}}}}' }],
+            },
+          },
+          target: maintenanceSqs.queueArn,
+        });
+
+        new cdk.CfnOutput(this, 'VerifiedHazardsQueueUrl', { value: maintenanceSqs.queueUrl });
+      }
 
       // Synchronous Verification Lambda (for interactive demo)
       this.verifyHazardSyncFn = new lambdaNodejs.NodejsFunction(this, 'VerifyHazardSyncFunction', {

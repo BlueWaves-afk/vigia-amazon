@@ -21,11 +21,15 @@ type ClaimStatus = 'idle' | 'signing' | 'submitting' | 'confirmed' | 'error';
 interface Props { walletAddress: string; }
 
 export function RewardsWidget({ walletAddress }: Props) {
-  const [pending,   setPending]   = useState('0');
-  const [earned,    setEarned]    = useState('0');
-  const [status,    setStatus]    = useState<ClaimStatus>('idle');
-  const [txHash,    setTxHash]    = useState<string | null>(null);
-  const [errMsg,    setErrMsg]    = useState<string | null>(null);
+  const [pending,       setPending]       = useState('0');
+  const [earned,        setEarned]        = useState('0');
+  const [status,        setStatus]        = useState<ClaimStatus>('idle');
+  const [txHash,        setTxHash]        = useState<string | null>(null);
+  const [errMsg,        setErrMsg]        = useState<string | null>(null);
+  const [lastHazardId,  setLastHazardId]  = useState<string | null>(null);
+  const [traces,        setTraces]        = useState<string[] | null>(null);
+  const [showTraces,    setShowTraces]    = useState(false);
+  const [tracesLoading, setTracesLoading] = useState(false);
 
   const fetchBalance = useCallback(async () => {
     try {
@@ -34,6 +38,7 @@ export function RewardsWidget({ walletAddress }: Props) {
       if (!data.error) {
         setPending(data.pending_balance ?? '0');
         setEarned(data.total_earned ?? '0');
+        setLastHazardId(data.last_hazard_id ?? null);
       }
     } catch (_) {}
   }, [walletAddress]);
@@ -70,6 +75,25 @@ export function RewardsWidget({ walletAddress }: Props) {
       setPending(prevPending); // restore on failure
       setErrMsg(e.message ?? 'Claim failed');
       setStatus('error');
+    }
+  };
+
+  const handleViewReasoning = async () => {
+    if (!lastHazardId) return;
+    if (showTraces && traces) { setShowTraces(false); return; }
+    setTracesLoading(true);
+    setShowTraces(true);
+    try {
+      const res = await fetch(`/api/traces/${encodeURIComponent(lastHazardId)}`);
+      const data = await res.json();
+      const steps: string[] = (data.traces ?? []).map((t: any) =>
+        t.rationale ?? t.observation ?? t.invocation ?? JSON.stringify(t)
+      ).filter(Boolean);
+      setTraces(steps.length > 0 ? steps : ['No reasoning trace available for this hazard.']);
+    } catch {
+      setTraces(['Failed to load reasoning.']);
+    } finally {
+      setTracesLoading(false);
     }
   };
 
@@ -152,6 +176,28 @@ export function RewardsWidget({ walletAddress }: Props) {
       {status === 'error' && errMsg && (
         <div style={{ fontSize: '0.6rem', color: C.red, marginTop: 4 }}>
           Error: {errMsg.slice(0, 80)}
+        </div>
+      )}
+
+      {/* View Reasoning */}
+      {lastHazardId && (
+        <button
+          onClick={handleViewReasoning}
+          style={{ marginTop: 8, width: '100%', padding: '5px 0', background: 'none', border: `1px solid ${C.border}`, borderRadius: 4, fontSize: '0.6rem', fontFamily: 'var(--v-font-mono)', color: C.accent, cursor: 'pointer', letterSpacing: '0.06em' }}
+        >
+          {showTraces ? '▲ HIDE REASONING' : '▼ VIEW REASONING'}
+        </button>
+      )}
+      {showTraces && (
+        <div style={{ marginTop: 6, borderLeft: `2px solid ${C.accent}`, paddingLeft: 8, display: 'flex', flexDirection: 'column', gap: 4 }}>
+          {tracesLoading
+            ? <span style={{ fontSize: '0.58rem', color: C.textMut }}>Loading…</span>
+            : (traces ?? []).map((t, i) => (
+                <div key={i} style={{ fontSize: '0.58rem', color: C.textMut, lineHeight: 1.5 }}>
+                  <span style={{ color: C.accent, marginRight: 4 }}>{i + 1}.</span>{t}
+                </div>
+              ))
+          }
         </div>
       )}
     </div>

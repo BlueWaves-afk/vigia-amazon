@@ -31,6 +31,7 @@ export const handler = async (event: APIGatewayProxyEvent): Promise<APIGatewayPr
         total_earned:    item.total_earned?.toString()    ?? '0',
         total_claimed:   item.total_claimed?.toString()   ?? '0',
         nonce:           item.nonce ?? 0,
+        last_hazard_id:  item.last_hazard_id ?? null,
       }),
     };
   } catch (e: any) {

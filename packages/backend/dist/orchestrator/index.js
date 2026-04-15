@@ -128,12 +128,12 @@ async function invokeAgent(geohash, hazardType, vlmReasoning, vlmConfidence) {
     }
     throw new Error('Agent failed after all retries');
 }
-async function creditReward(walletAddress) {
+async function creditReward(walletAddress, hazardId) {
     await dynamodb.send(new lib_dynamodb_1.UpdateCommand({
         TableName: REWARDS_TABLE,
         Key: { wallet_address: walletAddress },
-        UpdateExpression: 'ADD pending_balance :amt, total_earned :amt SET last_updated = :now, nonce = if_not_exists(nonce, :zero)',
-        ExpressionAttributeValues: { ':amt': ONE_TOKEN, ':now': new Date().toISOString(), ':zero': 0 },
+        UpdateExpression: 'ADD pending_balance :amt, total_earned :amt SET last_updated = :now, nonce = if_not_exists(nonce, :zero), last_hazard_id = :hid',
+        ExpressionAttributeValues: { ':amt': ONE_TOKEN, ':now': new Date().toISOString(), ':zero': 0, ':hid': hazardId },
     }));
 }
 const handler = async (event) => {
@@ -243,7 +243,7 @@ const handler = async (event) => {
             }
             else {
                 if (driverWalletAddress)
-                    await creditReward(driverWalletAddress);
+                    await creditReward(driverWalletAddress, hazardId);
             }
             const entry = { ledgerId: `ledger-${hazardId}`, timestamp: createdAt, contributorId: driverWalletAddress, hazardId, geohash, credits: duplicate ? 0 : 1, previousHash: '0'.repeat(64) };
             await dynamodb.send(new lib_dynamodb_1.PutCommand({

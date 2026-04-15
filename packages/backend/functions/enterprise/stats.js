@@ -8,7 +8,7 @@ const cors = {
   'Access-Control-Allow-Headers': 'Content-Type,Authorization',
 };
 
-const CONTRACT = '0x8c45482788De4a5d496089AD057E8CE550971b62';
+const CONTRACT = '0xb4F085aa632065dA4bB1A9250E9C5C3675B7Da47';
 const RPC = 'https://rpc-amoy.polygon.technology/';
 const INITIAL_SUPPLY = 1_000_000; // VGA minted at genesis
 // Tokenomics constants (BME architecture)

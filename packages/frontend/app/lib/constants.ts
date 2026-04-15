@@ -1,4 +1,4 @@
-export const VIGIA_CONTRACT_ADDRESS = '0x8c45482788De4a5d496089AD057E8CE550971b62';
+export const VIGIA_CONTRACT_ADDRESS = '0xb4F085aa632065dA4bB1A9250E9C5C3675B7Da47';
 export const POLYGON_AMOY_RPC = 'https://rpc-amoy.polygon.technology/';
 export const CHAIN_ID = 80002;
 export const CHAIN_ID_HEX = '0x13882';

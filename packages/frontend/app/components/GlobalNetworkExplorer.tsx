@@ -66,14 +66,17 @@ export function GlobalNetworkExplorer() {
   const [hazards,        setHazards]        = useState<Hazard[]>([]);
   const [verifiedCount,  setVerifiedCount]  = useState(0);
   const [loading,        setLoading]        = useState(true);
+  const [vgaPrice,       setVgaPrice]       = useState<number | null>(null);
+  const [rewardPool,     setRewardPool]     = useState<number | null>(null);
 
   const totalBurned = TOTAL_SUPPLY_INITIAL - totalSupply;
 
   const fetchData = useCallback(async () => {
     try {
-      const [supplyRes, hazardRes] = await Promise.allSettled([
+      const [supplyRes, hazardRes, statsRes] = await Promise.allSettled([
         readTotalSupply(),
         fetch(`/api/hazards?limit=20`).then(r => r.json()),
+        fetch(`${process.env.NEXT_PUBLIC_ENTERPRISE_API_URL}/enterprise/stats`).then(r => r.json()),
       ]);
 
       if (supplyRes.status === 'fulfilled') setTotalSupply(supplyRes.value);
@@ -82,6 +85,11 @@ export function GlobalNetworkExplorer() {
         const items: Hazard[] = hazardRes.value?.hazards ?? hazardRes.value ?? [];
         setHazards(items.slice(0, 20));
         setVerifiedCount(items.filter((h: Hazard) => h.status === 'verified' || h.status === 'VERIFIED').length);
+      }
+
+      if (statsRes.status === 'fulfilled' && !statsRes.value.error) {
+        setVgaPrice(statsRes.value.vgaPriceUsd ?? null);
+        setRewardPool(statsRes.value.nodeRewardPoolVga ?? null);
       }
     } catch (_) {}
     setLoading(false);
@@ -113,7 +121,9 @@ export function GlobalNetworkExplorer() {
         {[
           { label: 'TOTAL SUPPLY',    value: `${fmt(totalSupply)} VGA`,  sub: 'live · Polygon Amoy' },
           { label: 'TOTAL BURNED',    value: `${fmt(totalBurned)} VGA`,  sub: 'deflation metric', highlight: totalBurned > 0n },
-          { label: 'VERIFIED (FEED)', value: String(verifiedCount),       sub: 'in current feed' },
+          { label: 'VGA PRICE',       value: vgaPrice != null ? `$${vgaPrice.toFixed(6)}` : '—', sub: 'P = P₀ × (S₀ / S)', highlight: false },
+          { label: 'NODE REWARD POOL',value: rewardPool != null ? `${rewardPool.toFixed(4)} VGA` : '—', sub: '20% of all burns', highlight: false },
+          { label: 'VERIFIED (FEED)', value: String(verifiedCount), sub: 'in current feed' },
         ].map(({ label, value, sub, highlight }) => (
           <div key={label} style={{
             background: C.panel,
