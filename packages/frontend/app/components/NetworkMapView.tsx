@@ -87,10 +87,36 @@ export function NetworkMapView() {
 
   const fetchNetworkData = async () => {
     try {
-      const res = await fetch('/api/network-nodes');
+      const apiUrl = process.env.NEXT_PUBLIC_TELEMETRY_API_URL || process.env.NEXT_PUBLIC_API_URL || '';
+      const res = await fetch(`${apiUrl}/hazards`);
       if (res.ok) {
-        const data: NetworkData = await res.json();
-        setNetworkData(data);
+        const data = await res.json();
+        const hazards: any[] = data.hazards || data || [];
+        // Derive nodes from unique wallet addresses
+        const walletMap = new Map<string, any>();
+        for (const h of hazards) {
+          const wallet = h.driverWalletAddress;
+          if (!wallet) continue;
+          const existing = walletMap.get(wallet);
+          if (!existing || h.timestamp > existing.timestamp) {
+            walletMap.set(wallet, { ...h, reportCount: (existing?.reportCount ?? 0) + 1 });
+          } else {
+            existing.reportCount = (existing.reportCount ?? 0) + 1;
+          }
+        }
+        const nodes = Array.from(walletMap.entries()).map(([wallet, h]) => ({
+          wallet: wallet.slice(0, 6) + '...' + wallet.slice(-4),
+          lat: h.lat, lon: h.lon, lastSeen: h.timestamp,
+          reportCount: h.reportCount, lastHazardType: h.hazardType,
+        }));
+        const coverage = hazards
+          .filter(h => h.status === 'VERIFIED' && h.lat && h.lon)
+          .map(h => ({ lat: h.lat, lon: h.lon, hazardType: h.hazardType }));
+        setNetworkData({
+          nodes,
+          coverage,
+          stats: { activeNodes: nodes.length, totalReports: hazards.length, verifiedCoverage: coverage.length },
+        });
       }
     } catch (e) { console.error('[NetworkMapView] fetch failed', e); }
     setLoading(false);
