@@ -66,14 +66,14 @@ All compute runs on AWS Lambda (scales to zero), DynamoDB on-demand billing, API
 YOLOv26-FP32 ONNX model runs in a browser Web Worker (6 MB model, ~60ms inference). Zero cloud compute costs for AI inference. Simulates real-world DePIN nodes (ARM chips, mobile phones).
 
 ### 3. Cost-Optimized AI
-Amazon Nova Lite ($0.06/1M tokens) instead of Claude 3.5 Sonnet ($3.00/1M tokens). 50x cost reduction. Aggressive caching and deduplication. Total AI cost: $1.20 for entire voting phase.
+Amazon Nova Lite ($0.06/1M tokens) instead of Claude 3.5 Sonnet ($3.00/1M tokens). 50x cost reduction. Aggressive caching and deduplication. Total AI cost: ~$1.60 for entire voting phase (includes Bedrock image tile pricing at $0.00080/tile).
 ![compressed](https://github.com/user-attachments/assets/d0b2213b-8172-49f3-a585-34e626e3a6df)
 
 ### 4. Local-First Operations
 Diff computation, scenario branching, and forensic analysis run in browser (IndexedDB + Web Workers). Zero server costs for analysis. Data sent to cloud only on explicit user action.
 
-### 5. Cryptographic Trust(Future Scope)
-ECDSA P-256 signatures on all telemetry. Server-side signature verification. Tamper-evident ledger with SHA-256 hash chain. Zero-knowledge contributor privacy. Not implemented in this browser demo, but is a core principle of how nodes in the VIGIA system will transmit telemetry.
+### 5. Cryptographic Trust
+ECDSA P-256 signatures on all telemetry via `ethers.js` keypair generated in the browser. Every hazard payload is signed with EIP-191 at the edge. The backend dynamically recovers the public key via `ethers.verifyMessage()` and enforces a strict fail-closed HTTP 401 for any unregistered or improperly signed payload. Device addresses are registered in a `VigiaDeviceRegistry` DynamoDB table. The production `vigia-raspi` deployment uses a Hardware Root of Trust for firmware-level signing.
 
 ### 6. Explainable AI
 ReAct pattern (Reasoning + Acting) for all agent decisions. Full transparency with thought/action/observation logs. Streaming traces via Server-Sent Events (SSE). Users see exactly how AI reached conclusions.
@@ -137,10 +137,10 @@ Enterprise-grade routing with Esri road network data. Calculates fastest and saf
 ### 5. DynamoDB Streams + Lambda Triggers
 Event-driven architecture with change data capture. New hazards automatically trigger verification workflow.
 
-**Pattern**: HazardsTable Stream → Orchestrator Lambda → Bedrock Agent → LedgerTable
+**Pattern**: HazardsTable Stream → EventBridge Pipe (INSERT-only filter, ~60% invocation reduction) → Orchestrator Lambda → Nova Lite VLM → Bedrock Agent → LedgerTable. A second Pipe fans out VERIFIED hazards to an SQS maintenance queue.
 
 ### 6. Amazon Bedrock Agents
-4 Action Groups with 8 tools for hazard verification, network intelligence, maintenance logistics, and urban planning.
+4 Action Groups with 11 tools for hazard verification, network intelligence, maintenance logistics, and urban planning.
  
 **Model**: Amazon Nova Lite  
 **Cost**: $0.006 per query
@@ -149,7 +149,7 @@ Event-driven architecture with change data capture. New hazards automatically tr
 - QueryAndVerify: `query_hazards`, `calculate_score`, `coordinates_to_geohash`, `scan_all_hazards`
 - NetworkIntelligence: `analyze_node_connectivity`, `identify_coverage_gaps`
 - MaintenanceLogistics: `prioritize_repair_queue`, `estimate_repair_cost`
-- UrbanPlanner: `find_optimal_path` (invokes Step Functions)
+- UrbanPlanner: `find_optimal_path`, `calculate_construction_roi`, `calculate_pin_routes` (invokes Step Functions)
 
 
 ---
@@ -169,7 +169,7 @@ Event-driven architecture with change data capture. New hazards automatically tr
 | CloudWatch | 5 GB logs | $0.00 | Within 5 GB free tier |
 | Step Functions Express | 100 executions | $0.00 | Within 4K free tier |
 | Location Service Routes | 50 calculations | $0.00 | Within 40K free tier |
-| **TOTAL** | | **$1.39** | **99% under $200 budget** |
+| **TOTAL** | | **$1.72** | **99% under $200 budget** |
 
 ### Cost Guardrails
 
@@ -201,7 +201,7 @@ Event-driven architecture with change data capture. New hazards automatically tr
 | Bedrock | $135.00 | 150K calls/day × $0.006 × 30 days |
 | Location Service | $25.00 | 50K routes/day × $0.0005 × 30 days |
 | API Gateway | $7.80 | 9M requests - 1M free = 8M × $3.50/1M |
-| **TOTAL** | **$230.80** | **$0.023 per user/month** |
+| **TOTAL** | **$288.50** | **$0.028 per node/month** |
 
 **Revenue Model**: Premium tier at $2.99/month  
 **Break-Even**: 35 premium users (0.35% conversion)  
@@ -212,7 +212,7 @@ Event-driven architecture with change data capture. New hazards automatically tr
 **Traffic**: 30,000,000 hazards/day
 
 **Monthly Cost**: $23,305 (linear scaling)  
-**Per-User Cost**: $0.023/month (constant)  
+**Per-User Cost**: $0.028/month (constant)  
 **Revenue Potential**: $159,700/month (5% premium conversion)  
 **Profit Margin**: 85%
 
@@ -318,16 +318,18 @@ Kiro streamlines development by acting as a Technical Lead rather than just a co
 - Comlink 4.4.2 (Web Worker RPC)
 
 ### Backend (Zones 2-4)
-- Node.js 20 (10 Lambdas), Python 3.12 (5 Lambdas)
+- Node.js 20 (20+ Lambdas), Python 3.12 (8 Lambdas)
 - AWS SDK v3, Bedrock Agent Runtime
 
 ### Infrastructure (AWS CDK)
 - AWS CDK 2.170.0 (TypeScript)
-- 6 DynamoDB tables, 15 Lambda functions
-- 1 Step Functions State Machine
-- 1 Location Service Geofence Collection
-- 1 Location Service Route Calculator
-- 3 API Gateways (REST)
+- 17 DynamoDB tables, 33 Lambda functions
+- 1 Step Functions State Machine (Express, 3 states)
+- 2 EventBridge Pipes (INSERT filter + VERIFIED fan-out)
+- 1 SQS Queue (verified hazard maintenance fan-out)
+- 1 Location Service Geofence Collection (`VigiaRestrictedZones`)
+- 1 Location Service Route Calculator (`VigiaStack-VigiaRouteCalculator`)
+- 4 API Gateways (Telemetry, Session, Innovation, Enterprise)
 
 ### AI/ML
 - Amazon Bedrock (Nova Lite) - Verification agent
@@ -379,8 +381,8 @@ NEXT_PUBLIC_BEDROCK_AGENT_ALIAS_ID=<REDACTED>
 ### 1. Edge Hazard Detection
 Frame extraction at 5 FPS, YOLOv26-FP32 inference in Web Worker (60ms), ECDSA P-256 signing, privacy controls (blur faces/plates).
 
-### 2. Cryptographic Trust(Future Scope, not implemented in browser.)
-ECDSA signatures on all telemetry, server-side verification, tamper-evident ledger with SHA-256 hash chain.
+### 2. Cryptographic Trust
+ECDSA dynamic device registry (`VigiaDeviceRegistry`), EIP-191 payload signing via `ethers.js`, `ethers.verifyMessage()` server-side recovery, fail-closed HTTP 401 for unregistered devices, SHA-256 hash chain ledger.
 
 ### 3. Agent Verification
 Nova Lite-based verification with ReAct traces (Thought → Action → Observation), streaming via SSE, explainable AI.
@@ -404,46 +406,98 @@ Maintenance queue with repair reports, cost estimation ($500/pothole, $5K/accide
 
 ## Data Infrastructure
 
-### 6 DynamoDB Tables
+### 17 DynamoDB Tables
 
 **1. HazardsTable** (Ingestion Stack)
 - PK: `geohash` (7 chars), SK: `timestamp` (ISO 8601)
-- Attributes: hazardType, lat, lon, confidence, status, signature, verificationScore
-- GSI: `status-timestamp-index`
-- Stream: NEW_AND_OLD_IMAGES
+- Attributes: hazardType, lat, lon, confidence, status, signature, verificationScore, h3_index, s3_key, driverWalletAddress
+- GSI: `status-timestamp-index`, `h3-hazardtype-index`
+- Stream: NEW_AND_OLD_IMAGES → EventBridge Pipes
 
-**2. LedgerTable** (Trust Stack)
+**2. VigiaDeviceRegistry** (Ingestion Stack)
+- PK: `device_address` (Ethereum address)
+- Attributes: registered_at, blacklisted, slashed_at, slash_reason
+- Purpose: Zero-trust ECDSA device authentication
+
+**3. TrustLedgerTable** (Trust Stack)
 - PK: `ledgerId`, SK: `timestamp`
-- Attributes: sessionId, action, contributorId, previousHash, currentHash
+- Attributes: contributorId, hazardId, geohash, credits, previousHash, currentHash
+- GSI: `ContributorGeohashIndex` — reward deduplication
 - Hash Chain: SHA-256(previousHash + currentData)
 
-**3. AgentTracesTable** (Intelligence Stack)
-- PK: `traceId`, SK: `timestamp`
-- GSI: `HazardIdIndex`
+**4. AgentTracesTable** (Intelligence Stack)
+- PK: `traceId`, SK: `createdAt`
+- GSI: `HazardIdIndex` (hazardId + createdAt)
 - TTL: 7 days
-- Stores: ReAct reasoning steps
+- Stores: VLM reasoning, verdict, scores, ReAct steps
 
-**4. CooldownTable** (Intelligence Stack)
-- PK: `cooldownKey` (geohash#timestamp)
-- TTL: 300 seconds
-- Purpose: Prevent duplicate Bedrock invocations
+**5. CooldownTable** (Intelligence Stack)
+- PK: `cooldownKey` (hazardId)
+- TTL: 30 seconds
+- Purpose: Prevent duplicate Orchestrator invocations
 
-**5. MaintenanceQueueTable** (Innovation Stack)
+**6. RewardsLedgerTable** (Intelligence Stack)
+- PK: `wallet_address`
+- Attributes: pending_balance, total_earned, total_claimed, nonce, last_hazard_id
+- Purpose: Off-chain VGA reward accrual (zero gas)
+
+**7. MaintenanceQueueTable** (Innovation Stack)
 - PK: `reportId`, SK: `reportedAt`
 - GSI: `GeohashIndex`, `StatusIndex`
 - Attributes: hazardId, estimatedCost, status, priority
 
-**6. EconomicMetricsTable** (Innovation Stack)
+**8. EconomicMetricsTable** (Innovation Stack)
 - PK: `sessionId`, SK: `timestamp`
 - Attributes: totalHazards, verifiedCount, estimatedSavings, roi
-<img width="1570" height="2182" alt="image" src="https://github.com/user-attachments/assets/6b0671bd-4d2e-4373-9525-aeebe26df399" />
+
+**9. SessionFilesTable** (Session Stack)
+- PK: `userId`, SK: `sessionId`
+- GSI: `geohash7-timestamp-index`, `status-timestamp-index`
+- TTL: configurable
+
+**10. SessionLedgerEntries** (Session Stack)
+- PK: `ledgerId`, SK: `timestamp`
+- Stream: NEW_AND_OLD_IMAGES
+
+**11. EnterpriseUsersTable** (Enterprise Stack)
+- PK: `userId` (Cognito sub)
+- GSI: `apiKey-index`
+- Attributes: email, apiKey, trialVga, dataCredits
+
+**12. BurnHistoryTable** (Enterprise Stack)
+- PK: `userId`, SK: `timestamp`
+- Stream: NEW_IMAGE → RewardsDistributor Lambda
+- Attributes: vgaBurned, creditsProvisioned, nodeRewardPool, txHash
+
+**13. AgentRateLimitTable** (Shared)
+- PK: `pk`, TTL: `ttl`
+- Purpose: IP-based rate limiting for agent queries
 
 ### 15 Lambda Functions
 
-**Ingestion** (2): Validator, Session CRUD  
-**Intelligence** (9): Orchestrator, Bedrock Router, Network Intelligence, Maintenance Logistics, Urban Planner, 3 Step Functions micro-Lambdas, Sync Verifier  
-**Trust** (1): Ledger Writer  
-**Innovation** (3): Maintenance Reporter, Economic Calculator, Trace Streamer
+**Ingestion** (6): Validator, RegisterDevice, HazardsGetter, LedgerGetter, TracesGetter, TracesByHazard  
+**Intelligence** (11): Orchestrator, BedrockRouter, NetworkIntelligence, MaintenanceLogistics, UrbanPlanner, 3 Step Functions micro-Lambdas, VerifyHazardSync, ClaimSignature, RewardsBalance, SlashNode  
+**Session** (4): SessionCRUD, GeohashResolver, HashChainValidator, PlacesSearch  
+**Innovation** (5): RoutingAgentBranch, AgentTraceStreamer, MaintenanceReportHandler, EconomicMetricsQuery, MaintenanceQueueQuery  
+**Enterprise** (6): Register, Login, Me, Burn, Stats, RewardsDistributor  
+**Shared** (1): AgentRateLimit
+
+### Web3 BME Economy
+
+**Smart Contract**: `VIGIA_BME.sol` deployed on Polygon Amoy (`0xb4F085aa632065dA4bB1A9250E9C5C3675B7Da47`)  
+**Treasury**: AWS KMS vault (`0x4588a66b967ed8CFad952Ca557160A338f6115BF`) holds 1,000,000 VGA  
+**Staking**: Nodes must stake ≥ 10 VGA to earn rewards and claim  
+**Slashing**: VLM confidence < 0.1 triggers `vigia-slash-node` Lambda → KMS signs `slash()` → burns stake + blacklists node  
+**Bonding Curve**: `P = P₀ × (S₀ / S)` — price rises as supply burns  
+**Off-chain Ledger**: Rewards accrue in `RewardsLedgerTable` (zero gas) → node calls `claimRewards()` on-chain with KMS signature
+
+### Enterprise DaaS Portal
+
+**Auth**: AWS Cognito User Pool (`us-east-1_kPgzfccax`) — email/password, JWT-protected routes  
+**Tables**: `EnterpriseUsersTable` (userId, apiKey, trialVga, dataCredits) + `BurnHistoryTable` (stream-triggered rewards)  
+**API**: `https://m1ots3cacc.execute-api.us-east-1.amazonaws.com/prod`  
+**Trial**: 20 VGA pre-loaded, no wallet required  
+**Burn mechanic**: 1 VGA → 1,000 API credits; 20% of each burn → node reward pool
 
 
 ## Security Architecture
@@ -451,7 +505,7 @@ Maintenance queue with repair reports, cost estimation ($500/pothole, $5K/accide
 ### Cryptographic Signing(In actual VIGIA nodes, simulated in browser).
 - ECDSA P-256 (secp256r1 curve)
 - Private key: Browser Web Crypto API (non-exportable)
-- Public key: AWS Secrets Manager
+- KMS key ID: AWS Systems Manager Parameter Store (`/vigia/KMS_KEY_ID`)
 - Signature: Base64-encoded, attached to all telemetry
 
 ### Server-Side Validation
@@ -491,8 +545,7 @@ Maintenance queue with repair reports, cost estimation ($500/pothole, $5K/accide
 ## Future Roadmap
 
 ### Phase 1: Production Hardening
-Implement authentication, pricing tiers, careful rate limits, domain name, end to end connectivity, data privacy.
-Also implement full copilot like capability to agent, fasten workflows, enhance productivity.
+Implement pricing tiers, domain name, data privacy controls, full end-to-end connectivity for enterprise customers.
 
 ### Phase 2: Mobile SDK
 Native iOS/Android libraries, real-time GPS integration, background detection mode, offline queue with sync.
@@ -500,8 +553,8 @@ Native iOS/Android libraries, real-time GPS integration, background detection mo
 ### Phase 3: Advanced Features
 WebSocket streaming, multi-tenant support, ML-based predictions, gamification, API marketplace.
 
-### Phase 4: Blockchain Migration(Using mock datatable right now)
-Replace DynamoDB ledger with Ethereum L2, smart contracts for DePIN rewards, token economics, decentralized governance.
+### Phase 4: Blockchain Migration
+Replace DynamoDB off-chain ledger with on-chain anchoring (Merkle root written to Polygon periodically). Expand staking/slashing to full DePIN governance model with decentralized consensus.
 
 ---
 
@@ -544,5 +597,5 @@ Apache License 2.0 - See [LICENSE](LICENSE)
 ---
 
 **Status**: Near Production-ready demo system  
-**Last Updated**: March 8, 2026  
+**Last Updated**: April 16, 2026  
 **Version**: 1.0
