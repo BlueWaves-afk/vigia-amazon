@@ -45,9 +45,6 @@ const region = getAwsRegion();
 const client = new DynamoDBClient({ region });
 const docClient = DynamoDBDocumentClient.from(client);
 
-const HAZARDS_TABLE =
-  process.env.HAZARDS_TABLE_NAME;
-
 function calculateDistance(lat1: number, lon1: number, lat2: number, lon2: number): number {
   const R = 6371000; // Earth radius in meters
   const φ1 = lat1 * Math.PI / 180;
@@ -64,6 +61,7 @@ function calculateDistance(lat1: number, lon1: number, lat2: number, lon2: numbe
 }
 
 export async function GET(req: NextRequest) {
+  const HAZARDS_TABLE = process.env.HAZARDS_TABLE_NAME;
   try {
     const { searchParams } = new URL(req.url);
     const lat = parseFloat(searchParams.get('lat') || '0');

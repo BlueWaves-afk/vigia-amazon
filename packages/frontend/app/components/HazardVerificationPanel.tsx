@@ -113,9 +113,11 @@ export function HazardVerificationPanel({ onHazardDetected, deviceAddress, signP
         clearInterval(pollTimers.current[hazardId]); delete pollTimers.current[hazardId]; return;
       }
       try {
-        // Primary: check trace (has VLM reasoning + score)
-        const res = await fetch(`/api/traces/${encodeURIComponent(hazardId)}`);
-        const { trace } = await res.json();
+        // Primary: check trace via backend API Gateway directly
+        const apiUrl = process.env.NEXT_PUBLIC_TELEMETRY_API_URL || process.env.NEXT_PUBLIC_API_URL || '';
+        const res = await fetch(`${apiUrl}/traces/${encodeURIComponent(hazardId)}`);
+        const data = await res.json();
+        const trace = data.trace ?? (Array.isArray(data) ? data[0] : null) ?? data;
         if (trace?.verdict) {
           const verdict: string = trace.verdict;
           if (verdict === 'VERIFIED') {

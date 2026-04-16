@@ -325,29 +325,30 @@ export function Sidebar({ onSentinelEyeClick, isSentinelEyeActive, onSettingsOpe
     );
   };
 
-  // Fetch real metrics from API
+  // Fetch real metrics — call backend API Gateway directly (same pattern as map hazards)
   useEffect(() => {
     const fetchMetrics = async () => {
       try {
         if (!hasLoadedMetricsRef.current) setMetricsLoading(true);
-        const res = await fetch('/api/metrics/dashboard');
+        const apiUrl = process.env.NEXT_PUBLIC_TELEMETRY_API_URL || process.env.NEXT_PUBLIC_API_URL;
+        if (!apiUrl) return;
+        const res = await fetch(`${apiUrl}/hazards`);
         if (res.ok) {
           const data = await res.json();
+          const hazards: any[] = data.hazards || data || [];
+          const verified = hazards.filter((h: any) => h.status === 'VERIFIED' || h.status === 'verified').length;
+          const uniqueNodes = new Set(hazards.map((h: any) => h.driverWalletAddress || h.contributorId).filter(Boolean)).size;
           setHasCloudMetrics(true);
           setMetrics({
-            verifiedHazards: data.hazards?.verified || 0,
-            unverifiedHazards: data.hazards?.pending || 0,
-            activeNodes: data.network?.activeNodes || 0,
-            coverageAreaKm2: data.network?.coverageAreaKm2 || 0,
-            criticalHazards: data.hazards?.critical || 0,
-            avgSeverity: data.hazards?.avgVerificationScore || 0,
-            recentActivity: data.network?.recentActivity || 0,
-            hazardDensity: data.network?.coverageAreaKm2 > 0 
-              ? Math.round((data.hazards?.total || 0) / data.network.coverageAreaKm2 * 100) / 100
-              : 0,
+            verifiedHazards: verified,
+            unverifiedHazards: hazards.length - verified,
+            activeNodes: uniqueNodes,
+            coverageAreaKm2: 0,
+            criticalHazards: hazards.filter((h: any) => h.hazardType === 'ACCIDENT').length,
+            avgSeverity: 0,
+            recentActivity: hazards.filter((h: any) => Date.now() - new Date(h.timestamp).getTime() < 86400000).length,
+            hazardDensity: 0,
           });
-        } else {
-          // Don’t render potentially misleading defaults if the cloud endpoint is unavailable.
         }
       } catch (error) {
         console.error('Failed to fetch sidebar metrics:', error);
@@ -360,7 +361,7 @@ export function Sidebar({ onSentinelEyeClick, isSentinelEyeActive, onSettingsOpe
     };
 
     fetchMetrics();
-    const interval = setInterval(fetchMetrics, 30000); // Refresh every 30s
+    const interval = setInterval(fetchMetrics, 30000);
     return () => clearInterval(interval);
   }, []);
   const mapRef = useRef<any>(null);

@@ -45,18 +45,13 @@ const region = getAwsRegion();
 const client = new DynamoDBClient({ region });
 const docClient = DynamoDBDocumentClient.from(client);
 
-const TABLES = {
-  hazards:
-    process.env.HAZARDS_TABLE_NAME,
-  ledger:
-    process.env.LEDGER_TABLE_NAME,
-  traces:
-    process.env.TRACES_TABLE_NAME,
-  maintenance:
-    process.env.MAINTENANCE_TABLE_NAME,
-};
-
 export async function GET() {
+  const TABLES = {
+    hazards:     process.env.HAZARDS_TABLE_NAME,
+    ledger:      process.env.LEDGER_TABLE_NAME,
+    traces:      process.env.TRACES_TABLE_NAME,
+    maintenance: process.env.MAINTENANCE_TABLE_NAME,
+  };
   try {
     // Fetch hazards
     const hazardsResult = await docClient.send(new ScanCommand({
