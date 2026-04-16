@@ -3,10 +3,9 @@ import { DynamoDBClient } from '@aws-sdk/client-dynamodb';
 import { DynamoDBDocumentClient, ScanCommand } from '@aws-sdk/lib-dynamodb';
 
 const dynamodb = DynamoDBDocumentClient.from(new DynamoDBClient({ region: process.env.NEXT_PUBLIC_AWS_REGION || 'us-east-1' }));
-const HAZARDS_TABLE = process.env.HAZARDS_TABLE_NAME;
-
 export async function GET() {
   try {
+    const HAZARDS_TABLE = process.env.HAZARDS_TABLE_NAME;
     // Scan all hazards — we need wallet + lat/lon + timestamp
     const res = await dynamodb.send(new ScanCommand({
       TableName: HAZARDS_TABLE,

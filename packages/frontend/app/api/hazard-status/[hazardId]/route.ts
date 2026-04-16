@@ -3,10 +3,9 @@ import { DynamoDBClient } from '@aws-sdk/client-dynamodb';
 import { DynamoDBDocumentClient, GetCommand } from '@aws-sdk/lib-dynamodb';
 
 const dynamodb = DynamoDBDocumentClient.from(new DynamoDBClient({ region: process.env.NEXT_PUBLIC_AWS_REGION || 'us-east-1' }));
-const HAZARDS_TABLE = process.env.HAZARDS_TABLE_NAME;
-
 export async function GET(_req: NextRequest, context: { params: Promise<{ hazardId: string }> }) {
   try {
+    const HAZARDS_TABLE = process.env.HAZARDS_TABLE_NAME;
     const { hazardId } = await context.params;
     const [geohash, timestamp] = hazardId.split('#');
     if (!geohash || !timestamp) return NextResponse.json({ status: null }, { status: 400 });
