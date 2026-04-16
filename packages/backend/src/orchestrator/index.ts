@@ -148,8 +148,10 @@ async function creditReward(walletAddress: string, hazardId: string) {
   }));
 }
 
-export const handler: DynamoDBStreamHandler = async (event) => {
-  for (const record of event.Records) {
+export const handler = async (event: any) => {
+  // EventBridge Pipes sends events as a flat array; DynamoDB Streams sends {Records: [...]}
+  const records: any[] = Array.isArray(event) ? event : (event.Records ?? []);
+  for (const record of records) {
     if (record.eventName !== 'INSERT') continue;
     const img = record.dynamodb?.NewImage;
     if (!img) continue;

@@ -137,7 +137,7 @@ export function LedgerTicker() {
                         border: '1px solid var(--c-border)', fontFamily: 'var(--v-font-mono)',
                         letterSpacing: '0.04em', textTransform: 'uppercase',
                       }}>
-                        Pending Sync
+                        Off-Chain Ledger
                       </span>
                     </span>
                   )}
