@@ -707,6 +707,24 @@ export function VideoUploader({
             icon={<FileVideo size={18} />}
             file={videoFile}
           />
+          {!videoFile && (
+            <button
+              onClick={async () => {
+                const res = await fetch('/intro/hazard.mp4');
+                const blob = await res.blob();
+                const file = new File([blob], 'hazard.mp4', { type: 'video/mp4' });
+                handleVideoFile(file);
+              }}
+              style={{
+                padding: '7px 12px', borderRadius: 3, border: '1px solid var(--v-border-default)',
+                background: 'var(--c-elevated)', color: 'var(--c-text-2)',
+                fontFamily: 'var(--v-font-mono)', fontSize: '0.65rem', cursor: 'pointer',
+                display: 'flex', alignItems: 'center', gap: 6, justifyContent: 'center',
+              }}
+            >
+              <FileVideo size={12} /> Use demo video (hazard.mp4)
+            </button>
+          )}
         </div>
       </div>
 

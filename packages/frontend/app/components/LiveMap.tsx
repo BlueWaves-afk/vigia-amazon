@@ -823,8 +823,8 @@ export function LiveMap({ selectedSession }: { selectedSession?: any }) {
     map.current = new maplibregl.Map({
       container: mapContainer.current,
       style: styleSpec,
-      center: [84.8814, 22.2604],
-      zoom: 12,
+      center: [-71.0589, 42.3601], // Boston — where the demo hazard data is
+      zoom: 13,
       maxZoom: getMaxZoomForStyle(settings.mapStyle),
       attributionControl: false,
     });
